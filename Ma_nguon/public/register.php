@@ -14,8 +14,11 @@ require __DIR__ . '/../templates/header.php';
 <form class="registration-form" method="post">
     <label class="form-field" for="event_id">Sự kiện
 <select id="event_id" name="event_id">
-            <?php foreach ($events as $event): ?>
-                <option value="<?= $event['id'] ?>">
+            <?php 
+            $selectedEventId = field($_POST, 'event_id') !== '' ? field($_POST, 'event_id') : field($_GET, 'event_id');
+            foreach ($events as $event): 
+            ?>
+                <option value="<?= $event['id'] ?>" <?= $selectedEventId === (string)$event['id'] ? 'selected' : '' ?>>
                     <?= e($event['title']) ?>
                 </option>
             <?php endforeach; ?>

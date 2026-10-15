@@ -37,7 +37,7 @@ case "${1:-help}" in
       echo 'Giữ terminal này mở. Nhấn Ctrl+C để dừng; không có tiến trình chạy nền.'
       mkdir -p .local/sessions || exit 2
       php -d session.name="OSSLAB$lesson" -d session.save_path="$root/.local/sessions" \
-        -S "127.0.0.1:$port" -t public
+        -S "0.0.0.0:$port" -t public
     fi ;;
   test)
     check_env || exit 2

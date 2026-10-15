@@ -1,0 +1,58 @@
+<?php
+return [
+    [
+        'id' => 1,
+        'key' => 'dark_mode_ui',
+        'name' => 'Chế độ giao diện tối (Dark Mode)',
+        'category' => 'ui',
+        'enabled' => true,
+        'environment' => 'production',
+        'description' => 'Cho phép người dùng chuyển đổi giữa giao diện sáng và tối trên toàn hệ thống.',
+    ],
+    [
+        'id' => 2,
+        'key' => 'ai_smart_search',
+        'name' => 'Tìm kiếm thông minh bằng AI',
+        'category' => 'experimental',
+        'enabled' => false,
+        'environment' => 'staging',
+        'description' => 'Tự động gợi ý từ khóa và phân tích ngữ nghĩa kết quả tìm kiếm.',
+    ],
+    [
+        'id' => 3,
+        'key' => 'new_checkout_flow',
+        'name' => 'Quy trình đăng ký và thanh toán mới',
+        'category' => 'backend',
+        'enabled' => true,
+        'environment' => 'production',
+        'description' => 'Cập nhật luồng đăng ký nhanh kèm xác thực OTP và gửi thông báo qua Email.',
+    ],
+    [
+        'id' => 4,
+        'key' => 'beta_ticket_preview',
+        'name' => 'Bản xem trước vé 3D tương tác',
+        'category' => 'ui',
+        'enabled' => false,
+        'environment' => 'development',
+        'description' => 'Hiển thị sơ đồ chỗ ngồi tương tác và bản xem trước vé dạng 3D card.',
+    ],
+    [
+        'id' => 5,
+        'key' => 'audit_log_exporter',
+        'name' => 'Xuất nhật ký kiểm toán hệ thống',
+        'category' => 'system',
+        'enabled' => true,
+        'environment' => 'production',
+        'description' => 'Hỗ trợ quản trị viên xuất toàn bộ lịch sử thay đổi cờ tính năng ra file CSV.',
+    ],
+    [
+        'id' => 6,
+        'key' => 'rate_limiter_v2',
+        'name' => 'Giới hạn tần suất yêu cầu nâng cao',
+        'category' => 'backend',
+        'enabled' => false,
+        'environment' => 'staging',
+        'description' => 'Tự động phát hiện và ngăn chặn bot spam biểu mẫu theo tần suất truy cập IP.',
+    ],
+];
+
