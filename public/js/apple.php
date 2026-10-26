@@ -1,3 +1,4 @@
+<?php header('Content-Type: application/javascript; charset=utf-8'); ?>
 /**
  * ===================================================================
  * APPLE DEMO CLIENT APPLICATION (JQUERY-FREE, CLEAN JAVASCRIPT)

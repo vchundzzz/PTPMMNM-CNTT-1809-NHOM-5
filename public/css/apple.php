@@ -1,3 +1,4 @@
+<?php header('Content-Type: text/css; charset=utf-8'); ?>
 /* ===================================================================
    APPLE DEMO WEB DESIGN SYSTEM (APPLE SF DESIGN)
    Phong cách chuẩn Apple: Tối giản, Sang trọng, Hiện đại, Mượt mà

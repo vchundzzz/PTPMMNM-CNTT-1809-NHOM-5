@@ -1,3 +1,4 @@
+<?php header('Content-Type: text/css; charset=utf-8'); ?>
 /* ===================================================================
    WEB ADMIN & FEATURE FLAGS MANAGEMENT SYSTEM
    Phong cách chuẩn AdminLTE kết hợp Modern Enterprise UI

@@ -1,3 +1,4 @@
+<?php header('Content-Type: application/javascript; charset=utf-8'); ?>
 /**
  * ===================================================================
  * WEB ADMIN & FEATURE FLAGS MANAGEMENT SCRIPT
@@ -689,8 +690,8 @@ function renderFlagsTable() {
                            onchange="updateFlagWhitelist('${f.key}', this.value)">
                 </td>
                 <td class="text-center">
-                    <button class="btn-action-outline btn-action-outline-delete" ${disabledAttr} onclick="deleteFlag('${f.key}')" title="Xóa cờ tính năng này">
-                        Xóa
+                    <button class="btn-action-outline btn-action-outline-delete" ${disabledAttr} onclick="deleteFlag('${f.key}')" title="Xóa cờ tính năng này" aria-label="Xóa cờ tính năng này">
+                        <iconify-icon icon="ant-design:delete-outlined" aria-hidden="true"></iconify-icon>
                     </button>
                 </td>
             </tr>
@@ -1386,7 +1387,7 @@ async function loadUsers() {
 }
 
 function testUserOnApple(userId) {
-    window.open(`/apple?user=${encodeURIComponent(userId)}&env=${encodeURIComponent(appState.env)}`, '_blank');
+    window.open(`/apple.php?user=${encodeURIComponent(userId)}&env=${encodeURIComponent(appState.env)}`, '_blank');
 }
 
 // Băm CRC32 nhẹ ở Client

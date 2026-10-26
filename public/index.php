@@ -1,3 +1,4 @@
+<?php header('Content-Type: text/html; charset=utf-8'); ?>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -5,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hệ Thống Quản Trị Tính Năng Web Apple & Quản Lý Sản Phẩm</title>
   <meta name="description" content="Hệ thống Web Admin quản lý sản phẩm iPhone, Mac, iPad và cấu hình bật/tắt tính năng theo đề tài 1">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.php">
   <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
 </head>
 <body>
@@ -28,7 +29,7 @@
         </button>
 
         <!-- Nút Xem website mở ứng dụng Apple Demo -->
-        <a href="/apple" target="_blank" class="view-website-link" title="Mở trang chủ Web Apple Store gọi API bật/tắt">
+        <a href="/apple.php" target="_blank" class="view-website-link" title="Mở trang chủ Web Apple Store gọi API bật/tắt">
           <span>Xem Web Apple Demo</span>
         </a>
       </div>
@@ -132,7 +133,7 @@
 
       <!-- MỤC 3: ỨNG DỤNG CLIENT DEMO -->
       <li>
-        <a href="/apple" target="_blank" title="Mở trang chủ Apple Store gọi API đánh giá cờ">
+        <a href="/apple.php" target="_blank" title="Mở trang chủ Apple Store gọi API đánh giá cờ">
           <span class="menu-text">XEM WEB APPLE DEMO</span>
         </a>
       </li>
@@ -911,6 +912,6 @@
   <div id="toast-container"></div>
 
   <!-- JavaScript Modules -->
-  <script src="js/admin_app.js"></script>
+  <script src="js/admin_app.php"></script>
 </body>
 </html>

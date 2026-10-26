@@ -1,3 +1,4 @@
+<?php header('Content-Type: text/html; charset=utf-8'); ?>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -5,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Apple (Việt Nam) — Trang Chủ Thử Nghiệm Tính Năng (Feature Flags)</title>
   <meta name="description" content="Trang web mô phỏng Apple Store tích hợp hệ thống Feature Flag: Banner iPhone 17, Tỷ lệ Rollout và cơ chế Fallback">
-  <link rel="stylesheet" href="css/apple.css">
+  <link rel="stylesheet" href="css/apple.php">
 </head>
 <body>
 
@@ -239,6 +240,6 @@
     </section>
   </main>
 
-  <script src="js/apple.js"></script>
+  <script src="js/apple.php"></script>
 </body>
 </html>
