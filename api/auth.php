@@ -17,7 +17,7 @@ $accounts = [
     [
         'id' => 'ADMIN_01',
         'username' => 'admin',
-        'fullname' => 'Nguyễn Quản Trị',
+        'fullname' => 'Admin',
         'role' => 'sua',
         'role_title' => 'Toàn quyền (Sửa & Phát hành)',
         'badge' => 'badge-success'
@@ -25,7 +25,7 @@ $accounts = [
     [
         'id' => 'EDITOR_01',
         'username' => 'developer',
-        'fullname' => 'Lê Kỹ Sư Web',
+        'fullname' => 'Kỹ sư',
         'role' => 'sua',
         'role_title' => 'Lập trình viên (Sửa & Phát hành)',
         'badge' => 'badge-info'
@@ -33,7 +33,7 @@ $accounts = [
     [
         'id' => 'VIEWER_01',
         'username' => 'viewer',
-        'fullname' => 'Trần Khách Xem',
+        'fullname' => 'Người dùng',
         'role' => 'xem',
         'role_title' => 'Khách xem (Chỉ đọc - Bị chặn sửa)',
         'badge' => 'badge-warning'

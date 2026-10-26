@@ -67,10 +67,6 @@ body {
   letter-spacing: -0.2px;
 }
 
-.controller-brand .apple-icon {
-  font-size: 18px;
-}
-
 .controller-select-group {
   display: flex;
   align-items: center;
@@ -345,10 +341,6 @@ body {
   align-items: center;
   gap: 6px;
   color: #d2d2d7;
-}
-
-.sub-promo-item .icon {
-  font-size: 15px;
 }
 
 /* 5. KHỐI TÍNH NĂNG CÔNG NGHỆ (GRID SECTIONS) */

@@ -16,7 +16,7 @@
 const appState = {
     env: 'van_hanh',          // 'van_hanh' hoặc 'thu_nghiem'
     role: 'sua',              // 'sua' (Toàn quyền) hoặc 'xem' (Chỉ đọc)
-    currentUser: 'Nguyễn Quản Trị',
+    currentUser: 'Admin',
     activeTab: 'tab-products',// Mặc định mở tab Sản phẩm theo ảnh
     products: [],
     productSearch: '',
@@ -120,7 +120,7 @@ function onEnvironmentChange() {
 function onRoleChange() {
     const sel = document.getElementById('select-role');
     appState.role = sel.value;
-    appState.currentUser = (appState.role === 'sua') ? 'Nguyễn Quản Trị' : 'Trần Khách Xem';
+    appState.currentUser = (appState.role === 'sua') ? 'Admin' : 'Người dùng';
 
     updateRoleUI();
     renderProductsTable();
@@ -216,7 +216,7 @@ function renderProductsTable() {
     if (appState.products.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="10" style="text-align: center; padding: 35px; color: #888;">
+                <td colspan="9" style="text-align: center; padding: 35px; color: #888;">
                     Không tìm thấy sản phẩm nào phù hợp với bộ lọc.
                 </td>
             </tr>
@@ -276,31 +276,16 @@ function renderProductsTable() {
                         <input type="checkbox" ${visibleChecked} ${disabledAttr} onchange="quickToggleProduct('${p.id}', 'is_visible', this.checked)">
                     </span>
                 </td>
-                <td>
-                    <div class="status-bullet-group">
-                        <div class="status-bullet-item">
-                            <span class="dot"></span>
-                            <span>Dofollow</span>
-                        </div>
-                        <div class="status-bullet-item">
-                            <span class="dot"></span>
-                            <span>Index</span>
-                        </div>
-                    </div>
-                </td>
                 <td class="text-center">
                     <div class="action-buttons-wrap">
-                        <!-- Nút Xem: Icon Outline Mắt (#00c0ef) -->
-                        <button class="btn-action-outline btn-action-outline-view" onclick="viewProductDetails('${p.id}')" title="Xem chi tiết sản phẩm">
-                            <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        <button class="btn-action-outline btn-action-outline-view" onclick="viewProductDetails('${p.id}')" title="Xem chi tiết sản phẩm" aria-label="Xem chi tiết sản phẩm">
+                            <iconify-icon icon="ant-design:eye-outlined"></iconify-icon>
                         </button>
-                        <!-- Nút Sửa: Icon Outline Bút Chì (#f39c12) -->
-                        <button class="btn-action-outline btn-action-outline-edit" ${disabledAttr} onclick="openEditProductModal('${p.id}')" title="Chỉnh sửa thông tin sản phẩm">
-                            <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        <button class="btn-action-outline btn-action-outline-edit" ${disabledAttr} onclick="openEditProductModal('${p.id}')" title="Chỉnh sửa thông tin sản phẩm" aria-label="Chỉnh sửa thông tin sản phẩm">
+                            <iconify-icon icon="ant-design:edit-outlined"></iconify-icon>
                         </button>
-                        <!-- Nút Xóa: Icon Outline Thùng Rác (#dd4b39) -->
-                        <button class="btn-action-outline btn-action-outline-delete" ${disabledAttr} onclick="deleteProduct('${p.id}', '${p.name.replace(/'/g, "\\'")}')" title="Xóa sản phẩm">
-                            <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                        <button class="btn-action-outline btn-action-outline-delete" ${disabledAttr} onclick="deleteProduct('${p.id}', '${p.name.replace(/'/g, "\\'")}')" title="Xóa sản phẩm" aria-label="Xóa sản phẩm">
+                            <iconify-icon icon="ant-design:delete-outlined"></iconify-icon>
                         </button>
                     </div>
                 </td>
@@ -577,10 +562,10 @@ function viewProductDetails(id) {
             </div>
         </div>
         <div style="background:#f9f9f9; padding:12px; border-radius:3px; font-size:13px; border:1px solid #eee; margin-bottom:12px;">
-            <div style="margin-bottom:6px;"><strong>Trạng thái bán:</strong> <span class="status-badge-inline badge-selling">● ${p.status || 'Đang bán'}</span></div>
+            <div style="margin-bottom:6px;"><strong>Trạng thái bán:</strong> <span class="status-badge-inline badge-selling">${p.status || 'Đang bán'}</span></div>
             <div style="margin-bottom:6px;"><strong>Cờ tính năng gắn kèm:</strong> <code>${p.feature_flag || 'banner_iphone_17'}</code></div>
             <div style="margin-bottom:6px;"><strong>Cấu hình SEO:</strong> Dofollow, Index</div>
-            <div><strong>Tùy chọn:</strong> Trang chủ: ${p.is_home ? '✓' : '✗'} | Menu: ${p.is_menu ? '✓' : '✗'} | Hiển thị: ${p.is_visible ? '✓' : '✗'}</div>
+            <div><strong>Tùy chọn:</strong> Trang chủ: ${p.is_home ? 'Bật' : 'Tắt'} | Menu: ${p.is_menu ? 'Bật' : 'Tắt'} | Hiển thị: ${p.is_visible ? 'Bật' : 'Tắt'}</div>
         </div>
         <div style="font-size:13px; color:#666;">
             <strong>Mô tả:</strong> ${p.description || 'Chưa có mô tả chi tiết.'}
@@ -705,7 +690,7 @@ function renderFlagsTable() {
                 </td>
                 <td class="text-center">
                     <button class="btn-action-outline btn-action-outline-delete" ${disabledAttr} onclick="deleteFlag('${f.key}')" title="Xóa cờ tính năng này">
-                        <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                        Xóa
                     </button>
                 </td>
             </tr>
@@ -877,7 +862,7 @@ function renderVersionsTable() {
     appState.versions.forEach((v, idx) => {
         const isLatest = (idx === 0);
         const statusBadge = isLatest
-            ? '<span class="status-badge-inline badge-selling">● ĐANG CHẠY</span>'
+            ? '<span class="status-badge-inline badge-selling">ĐANG CHẠY</span>'
             : '<span style="color:#777; font-size:12px;">ĐÃ ĐÓNG BĂNG</span>';
         const disabledAttr = isEditor ? '' : 'disabled';
 
@@ -900,7 +885,7 @@ function renderVersionsTable() {
                             <span>🔍 So Sánh</span>
                         </button>
                         <button class="btn-action-edit" ${disabledAttr} onclick="openRollbackModal('${v.version_tag}')" title="Khôi phục về bản này">
-                            <span>↩️ Khôi Phục</span>
+                            <span>Khôi Phục</span>
                         </button>
                     </div>
                 </td>
@@ -1014,8 +999,8 @@ async function reloadDiffModal() {
         let html = '';
         diffs.forEach(d => {
             const rowStyle = d.is_different ? 'background-color: #fff9db;' : '';
-            const status1 = d.v1_exists ? `${d.v1_enabled ? '🟢 BẬT' : '🔴 TẮT'} (${d.v1_percentage}%)` : '<span style="color:#aaa;">Chưa có</span>';
-            const status2 = d.v2_exists ? `${d.v2_enabled ? '🟢 BẬT' : '🔴 TẮT'} (${d.v2_percentage}%)` : '<span style="color:#aaa;">Chưa có</span>';
+            const status1 = d.v1_exists ? `${d.v1_enabled ? 'BẬT' : 'TẮT'} (${d.v1_percentage}%)` : '<span style="color:#aaa;">Chưa có</span>';
+            const status2 = d.v2_exists ? `${d.v2_enabled ? 'BẬT' : 'TẮT'} (${d.v2_percentage}%)` : '<span style="color:#aaa;">Chưa có</span>';
             const changesText = d.changes && d.changes.length > 0 ? d.changes.join(', ') : 'Giống nhau 100%';
 
             html += `
@@ -1075,7 +1060,7 @@ async function submitRollbackVersion() {
         }
 
         closeAdminModal('modal-rollback');
-        showToast(`↩️ ${json.message}`, 'success');
+        showToast(json.message, 'success');
         await loadVersions();
         await loadFlags();
         await loadHistory();
@@ -1111,9 +1096,9 @@ function renderHistoryTable(historyList) {
     let html = '';
     historyList.forEach(h => {
         let actionBadge = '<span class="status-badge-inline" style="background:#e9ecef; color:#495057;">THAY ĐỔI</span>';
-        if (h.action === 'phat_hanh') actionBadge = '<span class="status-badge-inline badge-selling">🚀 PHÁT HÀNH</span>';
-        if (h.action === 'khoi_phuc') actionBadge = '<span class="status-badge-inline badge-warning-stock">↩️ KHÔI PHỤC</span>';
-        if (h.action === 'nhap_json') actionBadge = '<span class="status-badge-inline" style="background:#ede7f6; color:#5e35b1;">📥 NHẬP JSON</span>';
+        if (h.action === 'phat_hanh') actionBadge = '<span class="status-badge-inline badge-selling">PHÁT HÀNH</span>';
+        if (h.action === 'khoi_phuc') actionBadge = '<span class="status-badge-inline badge-warning-stock">KHÔI PHỤC</span>';
+        if (h.action === 'nhap_json') actionBadge = '<span class="status-badge-inline" style="background:#ede7f6; color:#5e35b1;">NHẬP JSON</span>';
 
         html += `
             <tr>
@@ -1197,7 +1182,7 @@ async function submitImportConfig() {
         }
 
         closeAdminModal('modal-import');
-        showToast(`📥 ${json.message}`, 'success');
+        showToast(json.message, 'success');
         await loadFlags();
         await loadHistory();
     } catch (err) {
@@ -1222,7 +1207,7 @@ async function runAutomatedTests() {
         let html = `
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; padding:10px 14px; background:#e8f5e9; border-radius:3px; border:1px solid #c8e6c9;">
                 <span style="font-size:14px; font-weight:700; color:#2e7d32;">
-                    ${json.all_passed ? '✓ TẤT CẢ 5 PHÉP THỬ ĐỀU ĐẠT (5/5 PASS)' : 'CÓ PHÉP THỬ THẤT BẠI'}
+                    ${json.all_passed ? 'TẤT CẢ 5 PHÉP THỬ ĐỀU ĐẠT (5/5 PASS)' : 'CÓ PHÉP THỬ THẤT BẠI'}
                 </span>
                 <span style="font-size:12px; color:#555;">Thời gian chạy: ${json.timestamp}</span>
             </div>
@@ -1233,7 +1218,7 @@ async function runAutomatedTests() {
                 <div class="test-card passed">
                     <div class="test-card-header">
                         <span class="test-card-title">${t.name}</span>
-                        <span class="test-status-badge pass">✓ ĐẠT (PASS)</span>
+                        <span class="test-status-badge pass">ĐẠT (PASS)</span>
                     </div>
                     <div class="test-card-details">
                         ${t.details.map(d => `<div>→ ${d}</div>`).join('')}
@@ -1253,7 +1238,7 @@ async function runAutomatedTests() {
 async function runScenario1() {
     const logBox = document.getElementById('scenario1-log');
     logBox.innerHTML = `
-        <div style="color:var(--admin-blue); font-weight:600;">🚀 Đang chạy Tình Huống 1...</div>
+        <div style="color:var(--admin-blue); font-weight:600;">Đang chạy Tình Huống 1...</div>
         <div>1. Tạo cờ thử nghiệm [demo_promo_tet] với tỷ lệ 80%...</div>
     `;
 
@@ -1263,11 +1248,11 @@ async function runScenario1() {
             headers: { 'Content-Type': 'application/json', 'X-User-Role': 'sua', 'X-User-Name': 'admin' },
             body: JSON.stringify({ key: 'demo_promo_tet', name: 'Ưu Đãi Tết Apple', percentage: 80, whitelist: 'U0001' })
         });
-        logBox.innerHTML += `<div>✓ Bước 1 xong: Đã tạo cờ [demo_promo_tet] trong bản nháp.</div>`;
+        logBox.innerHTML += `<div>Bước 1 xong: Đã tạo cờ [demo_promo_tet] trong bản nháp.</div>`;
 
         const resEval = await fetch(`/api/evaluate.php?user=U0001&flag=demo_promo_tet&env=${encodeURIComponent(appState.env)}`);
         const evalJson = await resEval.json();
-        logBox.innerHTML += `<div>✓ Bước 2 xong: Đánh giá user U0001 nhận kết quả [${evalJson.enabled ? 'BẬT' : 'TẮT'}].</div>`;
+        logBox.innerHTML += `<div>Bước 2 xong: Đánh giá user U0001 nhận kết quả [${evalJson.enabled ? 'BẬT' : 'TẮT'}].</div>`;
 
         const resPub = await fetch(`/api/versions.php?action=publish&env=${encodeURIComponent(appState.env)}`, {
             method: 'POST',
@@ -1275,7 +1260,7 @@ async function runScenario1() {
             body: JSON.stringify({ title: 'Phát hành Demo Tình Huống 1', reason: 'Hoàn thành chu trình Tình Huống 1 Mục 5', author: 'admin' })
         });
         const pubJson = await resPub.json();
-        logBox.innerHTML += `<div>✓ Bước 3 xong: Đã đóng băng cấu hình thành bản <strong>${pubJson.version_tag}</strong>.</div>`;
+        logBox.innerHTML += `<div>Bước 3 xong: Đã đóng băng cấu hình thành bản <strong>${pubJson.version_tag}</strong>.</div>`;
         logBox.innerHTML += `<div style="color:var(--admin-green); margin-top:8px; font-weight:700;">🎉 TÌNH HUỐNG 1 HOÀN TẤT THÀNH CÔNG! Web Apple đã nhận diện phiên bản mới.</div>`;
 
         await loadFlags();
@@ -1289,7 +1274,7 @@ async function runScenario1() {
 async function runScenario2() {
     const logBox = document.getElementById('scenario2-log');
     logBox.innerHTML = `
-        <div style="color:var(--admin-orange); font-weight:600;">⚠️ Đang chạy Tình Huống 2...</div>
+        <div style="color:var(--admin-orange); font-weight:600;">Đang chạy Tình Huống 2...</div>
         <div>1. Đổi tỷ lệ cờ [banner_iphone_17] lên 90% gây quá tải mô phỏng...</div>
     `;
 
@@ -1305,11 +1290,11 @@ async function runScenario2() {
             body: JSON.stringify({ title: 'Bản sự cố 90%', reason: 'Bản thử nghiệm phát sinh lỗi quá tải', author: 'admin' })
         });
         const pubJson = await resPub.json();
-        logBox.innerHTML += `<div>✓ Đã phát hành bản sự cố [${pubJson.version_tag}].</div>`;
+        logBox.innerHTML += `<div>Đã phát hành bản sự cố [${pubJson.version_tag}].</div>`;
 
         const resDiff = await fetch(`/api/versions.php?action=diff&v1=v1&v2=${pubJson.version_tag}&env=${encodeURIComponent(appState.env)}`);
         const diffJson = await resDiff.json();
-        logBox.innerHTML += `<div>✓ So sánh Diff: Tìm thấy ${diffJson.total_differences} cờ bị thay đổi tỷ lệ.</div>`;
+        logBox.innerHTML += `<div>So sánh Diff: Tìm thấy ${diffJson.total_differences} cờ bị thay đổi tỷ lệ.</div>`;
 
         const resRoll = await fetch(`/api/versions.php?action=rollback&env=${encodeURIComponent(appState.env)}`, {
             method: 'POST',
@@ -1317,7 +1302,7 @@ async function runScenario2() {
             body: JSON.stringify({ version: 'v1', reason: 'Tình huống 2: Khôi phục khẩn cấp về bản v1 an toàn', author: 'admin' })
         });
         const rollJson = await resRoll.json();
-        logBox.innerHTML += `<div>✓ Đã khôi phục về cấu hình bản v1, phát hành thành bản [<strong>${rollJson.new_version}</strong>].</div>`;
+        logBox.innerHTML += `<div>Đã khôi phục về cấu hình bản v1, phát hành thành bản [<strong>${rollJson.new_version}</strong>].</div>`;
         logBox.innerHTML += `<div style="color:var(--admin-green); margin-top:8px; font-weight:700;">🎉 TÌNH HUỐNG 2 HOÀN TẤT THÀNH CÔNG! Hệ thống đã an toàn trở lại.</div>`;
 
         await loadFlags();
@@ -1373,8 +1358,8 @@ async function loadUsers() {
                 const str = u.id + 'banner_iphone_17' + appState.env;
                 const bucket = Math.abs(crc32Simple(str)) % 100;
                 let badgeGroup = '<span class="status-badge-inline" style="background:#eee; color:#555;">Thường</span>';
-                if (u.user_group === 'VIP') badgeGroup = '<span class="status-badge-inline badge-warning-stock">⭐ VIP</span>';
-                if (u.user_group === 'Beta Tester') badgeGroup = '<span class="status-badge-inline" style="background:#ede7f6; color:#5e35b1;">🧪 Beta</span>';
+                if (u.user_group === 'VIP') badgeGroup = '<span class="status-badge-inline badge-warning-stock">VIP</span>';
+                if (u.user_group === 'Beta Tester') badgeGroup = '<span class="status-badge-inline" style="background:#ede7f6; color:#5e35b1;">Beta</span>';
 
                 html += `
                     <tr>
@@ -1383,11 +1368,11 @@ async function loadUsers() {
                         <td class="text-center">${badgeGroup}</td>
                         <td class="text-center">Bucket: <strong>${bucket}</strong></td>
                         <td class="text-center">
-                            <span class="status-badge-inline badge-selling">● Khả dụng</span>
+                            <span class="status-badge-inline badge-selling">Khả dụng</span>
                         </td>
                         <td class="text-center">
                             <button class="btn-action-view" onclick="testUserOnApple('${u.id}')" title="Mở Web Apple với mã User này">
-                                <span> Thử Ngay</span>
+                                <span>Thử Ngay</span>
                             </button>
                         </td>
                     </tr>
@@ -1426,12 +1411,7 @@ function showToast(message, type = 'info') {
 
     const toast = document.createElement('div');
     toast.className = `toast-msg ${type}`;
-    let icon = 'ℹ️';
-    if (type === 'success') icon = '✓';
-    if (type === 'error') icon = '⚠️';
-    if (type === 'warning') icon = '🔔';
-
-    toast.innerHTML = `<span style="font-weight:700;">${icon}</span><span>${message}</span>`;
+    toast.textContent = message;
     container.appendChild(toast);
 
     setTimeout(() => {

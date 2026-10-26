@@ -15,7 +15,6 @@
   <aside class="test-controller-bar" aria-label="Bảng điều khiển thử nghiệm">
     <div class="controller-left">
       <div class="controller-brand">
-        <span class="apple-icon"></span>
         <span>Apple Store Demo (Gọi API PHP)</span>
       </div>
 
@@ -43,8 +42,8 @@
       <div class="controller-select-group">
         <label for="select-env">Môi trường:</label>
         <select id="select-env" class="controller-select" onchange="loadAppleFeatureFlags()">
-          <option value="thu_nghiem">🧪 Thử Nghiệm (thu_nghiem)</option>
-          <option value="van_hanh" selected>🚀 Vận Hành (van_hanh)</option>
+          <option value="thu_nghiem">Thử Nghiệm (thu_nghiem)</option>
+          <option value="van_hanh" selected>Vận Hành (van_hanh)</option>
         </select>
       </div>
     </div>
@@ -53,12 +52,11 @@
       <!-- Công tắc mô phỏng API lỗi (Test Fallback Yêu cầu Kỹ thuật 2) -->
       <label class="outage-toggle" title="Gạt công tắc để ngắt API và kiểm tra phản ứng của Web Apple">
         <input type="checkbox" id="toggle-outage" onchange="toggleApiOutage(this.checked)">
-        <span>🔴 Mô phỏng Lỗi API / Mất mạng</span>
+        <span>Mô phỏng Lỗi API / Mất mạng</span>
       </label>
 
       <!-- Nút chuyển sang Trang Quản Trị -->
       <a href="/" class="btn-nav-admin" title="Mở trang quản trị để chỉnh cấu hình, phiên bản và cờ tính năng">
-        <span>⚙️</span>
         <span>Sang Trang Quản Trị</span>
       </a>
     </div>
@@ -69,7 +67,6 @@
        =================================================================== -->
   <header class="apple-nav">
     <nav class="apple-nav-inner" aria-label="Menu Apple">
-      <a href="#" style="font-size: 16px;"></a>
       <a href="#">Cửa Hàng</a>
       <a href="#">Mac</a>
       <a href="#">iPad</a>
@@ -86,7 +83,6 @@
   <!-- Báo động khi API sập (Fallback Mode) -->
   <div id="outage-alert-box" class="inspector-panel" style="display: none; margin-top: 20px; margin-bottom: 0;">
     <div class="outage-alert">
-      <span style="font-size: 24px;">⚠️</span>
       <div>
         <strong>CẢNH BÁO: MÁY CHỦ API KHÔNG PHẢN HỒI (MÔ PHỎNG SẬP MẠNG HOẶC LỖI 503)</strong><br>
         <span style="font-size: 13px;">Web Apple tự động chuyển sang đọc <strong>Giá Trị Dự Phòng (Fallback: TẮT các tính năng mới)</strong>. Web vẫn hoạt động bình thường, không bị gián đoạn hay crash trang!</span>
@@ -99,15 +95,12 @@
        =================================================================== -->
   <section class="sub-promo-bar" id="apple-promo-bar">
     <div class="sub-promo-item" id="flag-box-apple_pay_0percent" style="display: none;">
-      <span class="icon">💳</span>
       <span><strong>Trả góp 0% Apple Pay:</strong> Kỳ hạn 12 tháng liên kết các ngân hàng hàng đầu.</span>
     </div>
     <div class="sub-promo-item" id="flag-box-express_delivery_2h" style="display: none;">
-      <span class="icon">⚡</span>
       <span><strong>Giao hàng hỏa tốc 2 giờ:</strong> Nhận hàng ngay tại TP.HCM &amp; Hà Nội.</span>
     </div>
     <div class="sub-promo-item" id="flag-box-trade_in_bonus" style="display: none;">
-      <span class="icon">♻️</span>
       <span><strong>Thu cũ đổi mới:</strong> Trợ giá lên đời iPhone 17 đến 5.000.000đ.</span>
     </div>
   </section>
@@ -138,7 +131,7 @@
       <div class="hero-cta">
         <!-- Nút Đặt Trước Ưu Đãi (Tính năng 2: btn_preorder_17) -->
         <button class="btn-apple-preorder" id="flag-box-btn_preorder_17" onclick="alertPreorderSuccess()" style="display: none;">
-          <span>⚡ Đặt Trước Ngay — Nhận Ưu Đãi 2.000.000đ</span>
+          <span>Đặt Trước Ngay — Nhận Ưu Đãi 2.000.000đ</span>
         </button>
 
         <a href="#details" class="btn-apple-secondary">Tìm hiểu thêm &gt;</a>
@@ -180,7 +173,6 @@
             <h4 class="card-title">Khắc Tên &amp; Emoji Bằng Laser</h4>
             <p class="card-desc">Khắc chữ ký, biểu tượng may mắn hoặc tên của bạn lên hộp sạc AirPods và Apple Pencil Pro.</p>
           </div>
-          <div class="card-visual">✏️</div>
         </div>
 
         <!-- Tính năng 9: gift_card_custom -->

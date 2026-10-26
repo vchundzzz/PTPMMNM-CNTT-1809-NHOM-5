@@ -100,7 +100,7 @@ async function loadAppleFeatureFlags() {
         // YÊU CẦU KỸ THUẬT 2: CƠ CHẾ DỰ PHÒNG FALLBACK KHI API GẶP SỰ CỐ
         // "Nếu API lỗi thì coi như tắt, ghi log, web vẫn chạy"
         // =============================================================
-        console.warn(`[Apple Store Fallback] ⚠️ Gặp sự cố kết nối API: ${err.message}. Kích hoạt cơ chế dự phòng an toàn!`);
+        console.warn(`[Apple Store Fallback] Gặp sự cố kết nối API: ${err.message}. Kích hoạt cơ chế dự phòng an toàn!`);
         isFallbackActive = true;
 
         // Giá trị dự phòng quy định: Toàn bộ cờ mới đều coi như TẮT
@@ -208,7 +208,7 @@ function renderInspectorTable(tbody, flags, isFallback) {
     for (const [key, info] of Object.entries(flags)) {
         const isEnabled = info.enabled;
         const badge = isEnabled
-            ? '<span class="badge-flag-on">● ĐANG BẬT</span>'
+            ? '<span class="badge-flag-on">ĐANG BẬT</span>'
             : '<span class="badge-flag-off">○ ĐANG TẮT</span>';
 
         const bucketStr = info.hash_bucket >= 0 ? `Bucket: <strong>${info.hash_bucket}</strong>` : 'N/A';

@@ -6,6 +6,7 @@
   <title>Hệ Thống Quản Trị Tính Năng Web Apple & Quản Lý Sản Phẩm</title>
   <meta name="description" content="Hệ thống Web Admin quản lý sản phẩm iPhone, Mac, iPad và cấu hình bật/tắt tính năng theo đề tài 1">
   <link rel="stylesheet" href="css/style.css">
+  <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
 </head>
 <body>
 
@@ -15,11 +16,6 @@
   <header class="main-header">
     <!-- Khối Logo xanh đậm #367fa9 rộng 230px -->
     <a href="javascript:void(0)" class="logo-box" onclick="switchAdminTab('tab-products')">
-      <svg viewBox="0 0 24 24">
-        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-        <line x1="8" y1="21" x2="16" y2="21"></line>
-        <line x1="12" y1="17" x2="12" y2="21"></line>
-      </svg>
       <span>HỆ THỐNG QUẢN TRỊ</span>
     </a>
 
@@ -28,13 +24,12 @@
       <div class="navbar-left">
         <!-- Nút bật/tắt thu gọn sidebar -->
         <button class="sidebar-toggle-btn" id="sidebar-toggle" onclick="toggleSidebar()" title="Thu gọn / Mở rộng menu bên trái">
-          ☰
+          <iconify-icon icon="ant-design:unordered-list-outlined"></iconify-icon>
         </button>
 
         <!-- Nút Xem website mở ứng dụng Apple Demo -->
         <a href="/apple" target="_blank" class="view-website-link" title="Mở trang chủ Web Apple Store gọi API bật/tắt">
-          <span></span>
-          <span>Xem Web Apple Demo ↗</span>
+          <span>Xem Web Apple Demo</span>
         </a>
       </div>
 
@@ -43,8 +38,8 @@
         <div class="header-select-group" title="Chuyển đổi môi trường cấu hình">
           <span class="header-select-label">Môi trường:</span>
           <select id="select-env" class="header-select" onchange="onEnvironmentChange()">
-            <option value="van_hanh" selected>🚀 Vận Hành (Production)</option>
-            <option value="thu_nghiem">🧪 Thử Nghiệm (Staging)</option>
+            <option value="van_hanh" selected>Vận Hành</option>
+            <option value="thu_nghiem">Thử Nghiệm</option>
           </select>
         </div>
 
@@ -52,13 +47,10 @@
         <div class="header-select-group" title="Chuyển đổi tài khoản để kiểm tra phân quyền Xem và Sửa">
           <span class="header-select-label">Tài khoản:</span>
           <select id="select-role" class="header-select" onchange="onRoleChange()">
-            <option value="sua" selected>Nguyễn Quản Trị (Quyền: Sửa)</option>
-            <option value="xem">Trần Khách Xem (Quyền: Chỉ Xem)</option>
+            <option value="sua" selected>Admin</option>
+            <option value="xem">Người dùng</option>
           </select>
         </div>
-
-        <!-- Huy hiệu quyền hạn -->
-        <span id="role-badge" class="badge-role admin">SỬA</span>
 
         <!-- Thông tin User Admin -->
         <div class="user-badge-header">
@@ -76,10 +68,6 @@
     <!-- User Panel -->
     <div class="user-panel">
       <div class="user-panel-avatar">
-        <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" fill="none" stroke-width="2">
-          <circle cx="12" cy="7" r="4"></circle>
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-        </svg>
       </div>
       <div class="user-panel-info">
         <div class="user-panel-name" id="sidebar-user-name">Quản trị viên</div>
@@ -97,9 +85,7 @@
       <!-- MỤC 1: QUẢN TRỊ SẢN PHẨM APPLE (TRỌNG TÂM GIAO DIỆN) -->
       <li class="active treeview" id="nav-group-danhmuc">
         <a href="javascript:void(0)" onclick="toggleTreeview('nav-group-danhmuc')">
-          <span class="menu-icon">📱</span>
           <span class="menu-text">QUẢN LÝ SẢN PHẨM</span>
-          <span style="font-size: 11px;">▼</span>
         </a>
         <ul class="treeview-menu" style="display: block;">
           <li class="active" id="menu-item-products">
@@ -113,9 +99,7 @@
       <!-- MỤC 2: QUẢN TRỊ CẤU HÌNH TÍNH NĂNG (ĐỀ TÀI 1) -->
       <li class="treeview" id="nav-group-flags">
         <a href="javascript:void(0)" onclick="toggleTreeview('nav-group-flags')">
-          <span class="menu-icon">🚩</span>
           <span class="menu-text">CẤU HÌNH TÍNH NĂNG (ĐỀ TÀI 1)</span>
-          <span style="font-size: 11px;">▼</span>
         </a>
         <ul class="treeview-menu" style="display: block;">
           <li id="menu-item-flags">
@@ -149,8 +133,7 @@
       <!-- MỤC 3: ỨNG DỤNG CLIENT DEMO -->
       <li>
         <a href="/apple" target="_blank" title="Mở trang chủ Apple Store gọi API đánh giá cờ">
-          <span class="menu-icon"></span>
-          <span class="menu-text">XEM WEB APPLE DEMO ↗</span>
+          <span class="menu-text">XEM WEB APPLE DEMO</span>
         </a>
       </li>
     </ul>
@@ -169,7 +152,7 @@
       <div class="content-header">
         <h1 class="content-title">Quản Lý Sản Phẩm Apple (iPhone, Mac, iPad)</h1>
         <ul class="content-breadcrumb">
-          <li><a href="javascript:void(0)">🏠 Trang chủ</a></li>
+          <li><a href="javascript:void(0)">Trang chủ</a></li>
           <li><span class="divider">&gt;</span></li>
           <li style="color: #666; font-weight: 600;">Danh mục sản phẩm Apple</li>
         </ul>
@@ -183,13 +166,13 @@
             <!-- Dropdown Tác vụ hàng loạt -->
             <select id="bulk-action-select" class="form-select-sm">
               <option value="">Tác vụ chọn nhiều...</option>
-              <option value="delete">🗑️ Xóa đã chọn</option>
-              <option value="toggle_home_on">✓ Bật hiển thị Trang chủ</option>
-              <option value="toggle_home_off">✗ Tắt hiển thị Trang chủ</option>
-              <option value="toggle_menu_on">✓ Bật hiển thị Menu</option>
-              <option value="toggle_menu_off">✗ Tắt hiển thị Menu</option>
-              <option value="toggle_visible_on">✓ Bật Hiển thị</option>
-              <option value="toggle_visible_off">✗ Tắt Hiển thị</option>
+              <option value="delete">Xóa đã chọn</option>
+              <option value="toggle_home_on">Bật hiển thị Trang chủ</option>
+              <option value="toggle_home_off">Tắt hiển thị Trang chủ</option>
+              <option value="toggle_menu_on">Bật hiển thị Menu</option>
+              <option value="toggle_menu_off">Tắt hiển thị Menu</option>
+              <option value="toggle_visible_on">Bật Hiển thị</option>
+              <option value="toggle_visible_off">Tắt Hiển thị</option>
             </select>
             <button class="btn-admin btn-admin-default" onclick="applyBulkAction()" title="Áp dụng tác vụ cho các sản phẩm đã chọn">Áp dụng</button>
 
@@ -206,20 +189,19 @@
 
             <!-- Nút Làm mới -->
             <button class="btn-admin btn-admin-default" onclick="resetProductFilters()" title="Làm mới bộ lọc danh sách">
-              <span>🔄</span>
+              Làm mới
             </button>
           </div>
 
           <div class="toolbar-right">
             <!-- Nút Thêm mới sản phẩm -->
             <button class="btn-admin btn-admin-primary" id="btn-add-product" onclick="openAddProductModal()">
-              <span>➕</span>
               <span>Thêm Sản Phẩm Mới</span>
             </button>
           </div>
         </div>
 
-        <!-- Bảng danh sách sản phẩm với icon outline -->
+        <!-- Bảng danh sách sản phẩm -->
         <div class="table-responsive">
           <table class="admin-table">
             <thead>
@@ -236,13 +218,12 @@
                 <th style="width: 90px;">TRANG CHỦ</th>
                 <th style="width: 80px;">MENU</th>
                 <th style="width: 90px;">HIỂN THỊ</th>
-                <th style="width: 120px;">TRẠNG THÁI</th>
                 <th style="width: 125px;">THAO TÁC</th>
               </tr>
             </thead>
             <tbody id="products-table-body">
               <tr>
-                <td colspan="10" style="text-align: center; padding: 30px; color: #888;">
+                <td colspan="9" style="text-align: center; padding: 30px; color: #888;">
                   Đang tải danh mục sản phẩm iPhone, Mac, iPad...
                 </td>
               </tr>
@@ -254,9 +235,9 @@
         <div class="admin-table-footer">
           <div id="products-count-info">Hiển thị 13 sản phẩm</div>
           <div style="display: flex; gap: 6px;">
-            <button class="btn-admin btn-admin-default btn-sm" onclick="showToast('Trang đầu tiên', 'info')">«</button>
+            <button class="btn-admin btn-admin-default btn-sm" onclick="showToast('Trang đầu tiên', 'info')">Trang đầu</button>
             <button class="btn-admin btn-admin-primary btn-sm">1</button>
-            <button class="btn-admin btn-admin-default btn-sm" onclick="showToast('Chỉ có 1 trang', 'info')">»</button>
+            <button class="btn-admin btn-admin-default btn-sm" onclick="showToast('Chỉ có 1 trang', 'info')">Trang sau</button>
           </div>
         </div>
       </div>
@@ -282,7 +263,6 @@
             <div style="font-size: 24px; font-weight: 700; color: #333;" id="stat-total-flags">10</div>
             <div style="font-size: 12px; color: #777; font-weight: 600;">Tính năng Apple khai báo</div>
           </div>
-          <div style="font-size: 30px;">🚩</div>
         </div>
 
         <div style="background: #fff; padding: 16px; border-radius: 3px; border-left: 4px solid var(--admin-green); box-shadow: var(--shadow-sm); display: flex; justify-content: space-between; align-items: center;">
@@ -290,7 +270,6 @@
             <div style="font-size: 24px; font-weight: 700; color: var(--admin-green);" id="stat-active-flags">10</div>
             <div style="font-size: 12px; color: #777; font-weight: 600;">Đang bật công tắc</div>
           </div>
-          <div style="font-size: 30px;">🟢</div>
         </div>
 
         <div style="background: #fff; padding: 16px; border-radius: 3px; border-left: 4px solid var(--admin-orange); box-shadow: var(--shadow-sm); display: flex; justify-content: space-between; align-items: center;">
@@ -298,7 +277,6 @@
             <div style="font-size: 24px; font-weight: 700; color: var(--admin-orange);" id="stat-active-version">v1</div>
             <div style="font-size: 12px; color: #777; font-weight: 600;">Phiên bản đang phát hành</div>
           </div>
-          <div style="font-size: 30px;">📦</div>
         </div>
 
         <div style="background: #fff; padding: 16px; border-radius: 3px; border-left: 4px solid var(--admin-purple); box-shadow: var(--shadow-sm); display: flex; justify-content: space-between; align-items: center;">
@@ -306,13 +284,12 @@
             <div style="font-size: 24px; font-weight: 700; color: var(--admin-purple);">1.000</div>
             <div style="font-size: 12px; color: #777; font-weight: 600;">Mã người dùng (U0001 - U1000)</div>
           </div>
-          <div style="font-size: 30px;">👥</div>
         </div>
       </div>
 
       <!-- Hộp giải thích quy tắc ưu tiên cố định (Yêu cầu 1 của đề tài) -->
       <div style="background: #e8f4f8; border: 1px solid #bce8f1; color: #31708f; padding: 14px 18px; border-radius: 3px; margin-bottom: 20px; font-size: 13px; line-height: 1.6;">
-        <strong style="color: #245269;">⚖️ QUY ĐỊNH THỨ TỰ ƯU TIÊN KHI NHIỀU ĐIỀU KIỆN CÙNG ĐÚNG (YÊU CẦU 1):</strong><br>
+        <strong style="color: #245269;">QUY ĐỊNH THỨ TỰ ƯU TIÊN KHI NHIỀU ĐIỀU KIỆN CÙNG ĐÚNG (YÊU CẦU 1):</strong><br>
         1. <strong>Danh sách người dùng ưu tiên (Whitelist):</strong> Xét trước nhất. Nếu mã người dùng nằm trong Whitelist &rarr; <span style="color:#00a65a; font-weight:700;">LUÔN BẬT</span> (ghi đè cả tỷ lệ 0%).<br>
         2. <strong>Công tắc chính (Master Switch):</strong> Nếu công tắc tắt &rarr; <span style="color:#dd4b39; font-weight:700;">LUÔN TẮT</span> toàn bộ người dùng thông thường.<br>
         3. <strong>Quy tắc tỷ lệ % (Rollout %):</strong> Dùng thuật toán băm tất định <code>crc32(user + flag_key + env) % 100 &lt; percentage</code>. Cùng người dùng, tính năng, môi trường và phiên bản luôn cho kết quả ổn định 100%. Xử lý đúng 0% (luôn tắt) và 100% (luôn bật).
@@ -326,7 +303,7 @@
           </div>
           <div class="toolbar-right">
             <button class="btn-admin btn-admin-primary" id="btn-add-flag" onclick="openAddFlagModal()">
-              <span>➕</span> Thêm Tính Năng Mới
+              Thêm Tính Năng Mới
             </button>
           </div>
         </div>
@@ -371,7 +348,7 @@
 
       <div style="background: #fcf8e3; border: 1px solid #faebcc; color: #8a6d3b; padding: 14px 18px; border-radius: 3px; margin-bottom: 20px; font-size: 13px; line-height: 1.5;">
         <strong>🔒 QUY TẮC BẤT BIẾN CỦA PHIÊN BẢN ĐÃ PHÁT HÀNH:</strong><br>
-        Bản cấu hình sau khi phát hành được đánh dấu đóng băng (bất biến), khóa không cho sửa trực tiếp để đảm bảo an toàn vận hành. Muốn sửa, hãy tạo phiên bản mới hoặc dùng nút <strong>"↩️ Khôi phục"</strong> để đưa hệ thống về bản cấu hình an toàn trước đó.
+        Bản cấu hình sau khi phát hành được đánh dấu đóng băng (bất biến), khóa không cho sửa trực tiếp để đảm bảo an toàn vận hành. Muốn sửa, hãy tạo phiên bản mới hoặc dùng nút <strong>"Khôi phục"</strong> để đưa hệ thống về bản cấu hình an toàn trước đó.
       </div>
 
       <div class="admin-box">
@@ -381,7 +358,7 @@
           </div>
           <div class="toolbar-right">
             <button class="btn-admin btn-admin-success" id="btn-publish-new" onclick="openPublishModal()">
-              <span>🚀</span> Phát Hành Phiên Bản Mới
+              Phát Hành Phiên Bản Mới
             </button>
           </div>
         </div>
@@ -432,7 +409,7 @@
           </div>
           <div class="toolbar-right">
             <button class="btn-admin btn-admin-default" onclick="exportConfigJson()">
-              <span>📥</span> Xuất File JSON
+              Xuất File JSON
             </button>
             <button class="btn-admin btn-admin-primary" id="btn-open-import" onclick="openImportModal()">
               <span>📤</span> Nhập Từ File JSON
@@ -608,7 +585,7 @@
   <div class="admin-modal-backdrop" id="modal-add-product">
     <div class="admin-modal-dialog">
       <div class="admin-modal-header">
-        <div class="admin-modal-title">➕ Thêm Sản Phẩm Mới (iPhone, Mac, iPad)</div>
+        <div class="admin-modal-title">Thêm Sản Phẩm Mới (iPhone, Mac, iPad)</div>
         <button class="admin-modal-close" onclick="closeAdminModal('modal-add-product')">&times;</button>
       </div>
       <div class="admin-modal-body">
@@ -685,7 +662,7 @@
   <div class="admin-modal-backdrop" id="modal-edit-product">
     <div class="admin-modal-dialog">
       <div class="admin-modal-header">
-        <div class="admin-modal-title">✏️ Chỉnh Sửa Sản Phẩm</div>
+        <div class="admin-modal-title">Chỉnh Sửa Sản Phẩm</div>
         <button class="admin-modal-close" onclick="closeAdminModal('modal-edit-product')">&times;</button>
       </div>
       <div class="admin-modal-body">
@@ -752,7 +729,7 @@
   <div class="admin-modal-backdrop" id="modal-view-product">
     <div class="admin-modal-dialog">
       <div class="admin-modal-header" style="background-color: var(--admin-cyan);">
-        <div class="admin-modal-title">👁️ Chi Tiết Sản Phẩm Apple</div>
+        <div class="admin-modal-title">Chi Tiết Sản Phẩm Apple</div>
         <button class="admin-modal-close" onclick="closeAdminModal('modal-view-product')">&times;</button>
       </div>
       <div class="admin-modal-body" id="view-product-body">
@@ -768,7 +745,7 @@
   <div class="admin-modal-backdrop" id="modal-add-flag">
     <div class="admin-modal-dialog">
       <div class="admin-modal-header">
-        <div class="admin-modal-title">➕ Thêm Cờ Tính Năng Mới</div>
+        <div class="admin-modal-title">Thêm Cờ Tính Năng Mới</div>
         <button class="admin-modal-close" onclick="closeAdminModal('modal-add-flag')">&times;</button>
       </div>
       <div class="admin-modal-body">
@@ -805,7 +782,7 @@
   <div class="admin-modal-backdrop" id="modal-publish">
     <div class="admin-modal-dialog">
       <div class="admin-modal-header" style="background-color: var(--admin-green);">
-        <div class="admin-modal-title">🚀 Phát Hành Phiên Bản Cấu Hình Mới</div>
+        <div class="admin-modal-title">Phát Hành Phiên Bản Cấu Hình Mới</div>
         <button class="admin-modal-close" onclick="closeAdminModal('modal-publish')">&times;</button>
       </div>
       <div class="admin-modal-body">
@@ -875,7 +852,7 @@
   <div class="admin-modal-backdrop" id="modal-rollback">
     <div class="admin-modal-dialog">
       <div class="admin-modal-header" style="background-color: var(--admin-red);">
-        <div class="admin-modal-title">↩️ Khôi Phục Cấu Hình Về Bản Cũ (Rollback)</div>
+        <div class="admin-modal-title">Khôi Phục Cấu Hình Về Bản Cũ (Rollback)</div>
         <button class="admin-modal-close" onclick="closeAdminModal('modal-rollback')">&times;</button>
       </div>
       <div class="admin-modal-body">

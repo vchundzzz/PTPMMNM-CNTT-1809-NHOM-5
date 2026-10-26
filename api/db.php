@@ -154,9 +154,9 @@ function seed_initial_data($pdo) {
 
     // 2.2. Thêm các tài khoản quản trị mẫu
     $stmtUser = $pdo->prepare("INSERT OR IGNORE INTO users (id, username, fullname, role, user_group) VALUES (?, ?, ?, ?, ?)");
-    $stmtUser->execute(['ADMIN_01', 'admin', 'Nguyễn Quản Trị', 'sua', 'Nội bộ Apple']);
-    $stmtUser->execute(['EDITOR_01', 'developer', 'Lê Kỹ Sư Web', 'sua', 'Nội bộ Apple']);
-    $stmtUser->execute(['VIEWER_01', 'viewer', 'Trần Khách Xem', 'xem', 'Khách dự thính']);
+    $stmtUser->execute(['ADMIN_01', 'admin', 'Admin', 'sua', 'Nội bộ Apple']);
+    $stmtUser->execute(['EDITOR_01', 'developer', 'Kỹ Sư', 'sua', 'Nội bộ Apple']);
+    $stmtUser->execute(['VIEWER_01', 'viewer', 'Người dùng', 'xem', 'Khách dự thính']);
 
     // 2.3. Sinh tự động 1.000 mã người dùng từ U0001 đến U1000
     // Phân vào 3 nhóm: VIP (10%), Beta (20%), Khách thường (70%)

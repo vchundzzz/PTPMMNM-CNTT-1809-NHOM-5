@@ -49,10 +49,10 @@ php -S localhost:8000 router.php
 
 ### 1. Đăng nhập và phân quyền (RBAC)
 - **2 loại tài khoản:**
-  - `Nguyễn Quản Trị` (Quyền: **Sửa** - Toàn quyền).
-  - `Trần Khách Xem` (Quyền: **Xem** - Chỉ đọc).
+  - `Admin` (Quyền: **Sửa** - Toàn quyền).
+  - `Người dùng` (Quyền: **Xem** - Chỉ đọc).
 - **Chặn quyền ở Server:** Khi tài khoản "Xem" cố tình gửi yêu cầu sửa đổi (POST/PUT/DELETE), server từ chối ngay lập tức với mã lỗi **`HTTP 403 Forbidden`**, không chỉ ẩn nút ở giao diện.
-- **2 môi trường độc lập:** `thu_nghiem` (Staging) và `van_hanh` (Production). Chuyển môi trường nào thì xem và sửa cấu hình của môi trường đó.
+- **2 môi trường độc lập:** `thu_nghiem`  và `van_hanh` . Chuyển môi trường nào thì xem và sửa cấu hình của môi trường đó.
 
 ### 2. Tạo tính năng và quy tắc
 - Tạo tính năng gồm: Tên tính năng, Mã cờ, Mô tả, Môi trường.
