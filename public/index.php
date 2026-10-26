@@ -4,8 +4,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hệ Thống Quản Trị Tính Năng Web Apple & Quản Lý Sản Phẩm</title>
-  <meta name="description" content="Hệ thống Web Admin quản lý sản phẩm iPhone, Mac, iPad và cấu hình bật/tắt tính năng theo đề tài 1">
+  <title>Hệ Thống Quản Trị Tính Năng & Danh Mục</title>
+  <meta name="description" content="Hệ thống quản trị danh mục và cấu hình bật/tắt tính năng">
   <link rel="stylesheet" href="css/style.php">
   <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
 </head>
@@ -28,9 +28,9 @@
           <iconify-icon icon="ant-design:unordered-list-outlined"></iconify-icon>
         </button>
 
-        <!-- Nút Xem website mở ứng dụng Apple Demo -->
-        <a href="apple.php" target="_blank" class="view-website-link" title="Mở trang chủ Web Apple Store gọi API bật/tắt">
-          <span>Xem Web Apple Demo</span>
+        <!-- Nút mở ứng dụng demo -->
+        <a href="apple.php" target="_blank" class="view-website-link" title="Mở ứng dụng demo gọi API bật/tắt">
+          <span>Xem ứng dụng demo</span>
         </a>
       </div>
 
@@ -83,7 +83,7 @@
     <div class="sidebar-header-title">DANH MỤC QUẢN TRỊ</div>
 
     <ul class="sidebar-menu">
-      <!-- MỤC 1: QUẢN TRỊ SẢN PHẨM APPLE (TRỌNG TÂM GIAO DIỆN) -->
+      <!-- MỤC 1: QUẢN TRỊ DANH MỤC -->
       <li class="active treeview" id="nav-group-danhmuc">
         <a href="javascript:void(0)" onclick="toggleTreeview('nav-group-danhmuc')">
           <span class="menu-text">QUẢN LÝ SẢN PHẨM</span>
@@ -91,7 +91,7 @@
         <ul class="treeview-menu" style="display: block;">
           <li class="active" id="menu-item-products">
             <a href="javascript:void(0)" onclick="switchAdminTab('tab-products')">
-              <span class="sub-circle"></span> <strong>Sản phẩm (iPhone, Mac, iPad)</strong>
+              <span class="sub-circle"></span> <strong>Danh mục sản phẩm</strong>
             </a>
           </li>
         </ul>
@@ -100,32 +100,32 @@
       <!-- MỤC 2: QUẢN TRỊ CẤU HÌNH TÍNH NĂNG (ĐỀ TÀI 1) -->
       <li class="treeview" id="nav-group-flags">
         <a href="javascript:void(0)" onclick="toggleTreeview('nav-group-flags')">
-          <span class="menu-text">CẤU HÌNH TÍNH NĂNG (ĐỀ TÀI 1)</span>
+          <span class="menu-text">CẤU HÌNH TÍNH NĂNG</span>
         </a>
         <ul class="treeview-menu" style="display: block;">
           <li id="menu-item-flags">
             <a href="javascript:void(0)" onclick="switchAdminTab('tab-flags')">
-              <span class="sub-circle"></span> 1. Khai báo cờ &amp; Tỷ lệ %
+              <span class="sub-circle"></span> Quản Lý Cấu Hình
             </a>
           </li>
           <li id="menu-item-versions">
             <a href="javascript:void(0)" onclick="switchAdminTab('tab-versions')">
-              <span class="sub-circle"></span> 2. Phiên bản, Diff &amp; Rollback
+              <span class="sub-circle"></span> Quản Lý Phiên Bản
             </a>
           </li>
           <li id="menu-item-history">
             <a href="javascript:void(0)" onclick="switchAdminTab('tab-history')">
-              <span class="sub-circle"></span> 3. Lịch sử Audit &amp; Nhập/Xuất JSON
+              <span class="sub-circle"></span> Nhật Ký Thay Đổi &amp; Nhập/Xuất
             </a>
           </li>
           <li id="menu-item-tests">
             <a href="javascript:void(0)" onclick="switchAdminTab('tab-tests')">
-              <span class="sub-circle"></span> 4. 5 Phép thử &amp; 2 Kịch bản
+              <span class="sub-circle"></span> Kiểm Thử Tự Động
             </a>
           </li>
           <li id="menu-item-users">
             <a href="javascript:void(0)" onclick="switchAdminTab('tab-users')">
-              <span class="sub-circle"></span> 5. 1.000 User &amp; Băm CRC32
+              <span class="sub-circle"></span> Quản Lý Mã Người Dùng
             </a>
           </li>
         </ul>
@@ -133,8 +133,8 @@
 
       <!-- MỤC 3: ỨNG DỤNG CLIENT DEMO -->
       <li>
-        <a href="apple.php" target="_blank" title="Mở trang chủ Apple Store gọi API đánh giá cờ">
-          <span class="menu-text">XEM WEB APPLE DEMO</span>
+        <a href="apple.php" target="_blank" title="Mở ứng dụng demo gọi API đánh giá cờ">
+          <span class="menu-text">XEM ỨNG DỤNG DEMO</span>
         </a>
       </li>
     </ul>
@@ -146,16 +146,16 @@
   <main class="content-wrapper">
 
     <!-- ================================================================
-         TAB 0: BẢNG QUẢN LÝ SẢN PHẨM (IPHONE, MAC, IPAD)
+         TAB 0: BẢNG QUẢN LÝ DANH MỤC SẢN PHẨM
          ================================================================ -->
     <div id="tab-products" class="tab-pane-view active">
       <!-- Breadcrumb Header dễ hiểu và dễ đọc -->
       <div class="content-header">
-        <h1 class="content-title">Quản Lý Sản Phẩm Apple (iPhone, Mac, iPad)</h1>
+        <h1 class="content-title">Quản Lý Danh Mục Sản Phẩm</h1>
         <ul class="content-breadcrumb">
           <li><a href="javascript:void(0)">Trang chủ</a></li>
           <li><span class="divider">&gt;</span></li>
-          <li style="color: #666; font-weight: 600;">Danh mục sản phẩm Apple</li>
+          <li style="color: #666; font-weight: 600;">Danh mục sản phẩm</li>
         </ul>
       </div>
 
@@ -182,10 +182,10 @@
 
             <!-- Dropdown Lọc theo dòng máy -->
             <select id="product-module-filter" class="form-select-sm" onchange="loadProducts()">
-              <option value="all">Tất cả dòng máy (iPhone, Mac, iPad)</option>
-              <option value="iPhone">Dòng máy iPhone</option>
-              <option value="Mac">Dòng máy Mac (MacBook, iMac, Mac mini)</option>
-              <option value="iPad">Dòng máy iPad (Pro, Air, mini, Gen 10)</option>
+              <option value="all">Tất cả danh mục</option>
+              <option value="iPhone">Nhóm sản phẩm 1</option>
+              <option value="Mac">Nhóm sản phẩm 2</option>
+              <option value="iPad">Nhóm sản phẩm 3</option>
             </select>
 
             <!-- Nút Làm mới -->
@@ -213,7 +213,7 @@
                   </span>
                 </th>
                 <th style="width: 55px;">STT</th>
-                <th class="text-left" style="min-width: 260px;">TÊN SẢN PHẨM APPLE</th>
+                <th class="text-left" style="min-width: 260px;">TÊN SẢN PHẨM</th>
                 <th style="width: 80px;">HÌNH ẢNH</th>
                 <th style="width: 110px;">DÒNG MÁY</th>
                 <th style="width: 90px;">TRANG CHỦ</th>
@@ -225,7 +225,7 @@
             <tbody id="products-table-body">
               <tr>
                 <td colspan="9" style="text-align: center; padding: 30px; color: #888;">
-                  Đang tải danh mục sản phẩm iPhone, Mac, iPad...
+                  Đang tải danh mục sản phẩm...
                 </td>
               </tr>
             </tbody>
@@ -236,9 +236,9 @@
         <div class="admin-table-footer">
           <div id="products-count-info">Hiển thị 13 sản phẩm</div>
           <div style="display: flex; gap: 6px;">
-            <button class="btn-admin btn-admin-default btn-sm" onclick="showToast('Trang đầu tiên', 'info')">Trang đầu</button>
+            <button class="btn-admin btn-admin-default btn-sm" onclick="showToast('Trang đầu tiên', 'info')"><</button>
             <button class="btn-admin btn-admin-primary btn-sm">1</button>
-            <button class="btn-admin btn-admin-default btn-sm" onclick="showToast('Chỉ có 1 trang', 'info')">Trang sau</button>
+            <button class="btn-admin btn-admin-default btn-sm" onclick="showToast('Chỉ có 1 trang', 'info')">></button>
           </div>
         </div>
       </div>
@@ -250,11 +250,6 @@
     <div id="tab-flags" class="tab-pane-view" style="display: none;">
       <div class="content-header">
         <h1 class="content-title">Quản Lý Cấu Hình Bật / Tắt Tính Năng (Feature Flags)</h1>
-        <ul class="content-breadcrumb">
-          <li><a href="javascript:void(0)">Đề tài 1</a></li>
-          <li><span class="divider">&gt;</span></li>
-          <li style="color: #666; font-weight: 600;">Khai báo tính năng &amp; Quy tắc tỷ lệ %</li>
-        </ul>
       </div>
 
       <!-- 4 Thẻ thống kê -->
@@ -262,7 +257,7 @@
         <div style="background: #fff; padding: 16px; border-radius: 3px; border-left: 4px solid var(--admin-blue); box-shadow: var(--shadow-sm); display: flex; justify-content: space-between; align-items: center;">
           <div>
             <div style="font-size: 24px; font-weight: 700; color: #333;" id="stat-total-flags">10</div>
-            <div style="font-size: 12px; color: #777; font-weight: 600;">Tính năng Apple khai báo</div>
+            <div style="font-size: 12px; color: #777; font-weight: 600;">Tính năng đã khai báo</div>
           </div>
         </div>
 
@@ -300,7 +295,7 @@
       <div class="admin-box">
         <div class="admin-toolbar">
           <div class="toolbar-left">
-            <strong style="font-size: 15px; color: #333;">Danh Sách 10 Cờ Tính Năng Web Apple (Bản Nháp Làm Việc)</strong>
+            <strong style="font-size: 15px; color: #333;">Danh Sách Cờ Tính Năng (Bản Nháp Làm Việc)</strong>
           </div>
           <div class="toolbar-right">
             <button class="btn-admin btn-admin-primary" id="btn-add-flag" onclick="openAddFlagModal()">
@@ -340,11 +335,6 @@
     <div id="tab-versions" class="tab-pane-view" style="display: none;">
       <div class="content-header">
         <h1 class="content-title">Quản Lý Phiên Bản Cấu Hình &amp; Khôi Phục (Rollback)</h1>
-        <ul class="content-breadcrumb">
-          <li><a href="javascript:void(0)">Đề tài 1</a></li>
-          <li><span class="divider">&gt;</span></li>
-          <li style="color: #666; font-weight: 600;">Lưu, so sánh, phát hành &amp; khôi phục</li>
-        </ul>
       </div>
 
       <div style="background: #fcf8e3; border: 1px solid #faebcc; color: #8a6d3b; padding: 14px 18px; border-radius: 3px; margin-bottom: 20px; font-size: 13px; line-height: 1.5;">
@@ -396,11 +386,6 @@
     <div id="tab-history" class="tab-pane-view" style="display: none;">
       <div class="content-header">
         <h1 class="content-title">Nhật Ký Thay Đổi (Audit Trail) &amp; Nhập/Xuất Cấu Hình JSON</h1>
-        <ul class="content-breadcrumb">
-          <li><a href="javascript:void(0)">Đề tài 1</a></li>
-          <li><span class="divider">&gt;</span></li>
-          <li style="color: #666; font-weight: 600;">Lịch sử thay đổi &amp; Kiểm tra dữ liệu nhập</li>
-        </ul>
       </div>
 
       <div class="admin-box" style="margin-bottom: 20px;">
@@ -455,12 +440,7 @@
          ================================================================ -->
     <div id="tab-tests" class="tab-pane-view" style="display: none;">
       <div class="content-header">
-        <h1 class="content-title">Kiểm Thử Tự Động 5 Phép Thử Bắt Buộc &amp; 2 Tình Huống</h1>
-        <ul class="content-breadcrumb">
-          <li><a href="javascript:void(0)">Đề tài 1</a></li>
-          <li><span class="divider">&gt;</span></li>
-          <li style="color: #666; font-weight: 600;">5 Phép thử &amp; 2 Kịch bản demo</li>
-        </ul>
+        <h1 class="content-title">Kiểm Thử Tự Động</h1>
       </div>
 
       <!-- 5 Phép thử bắt buộc của đề tài -->
@@ -498,7 +478,7 @@
             </div>
           </div>
           <div style="padding: 14px; font-size: 13px; min-height: 140px; background: #fff;" id="scenario1-log">
-            <p style="color: #777;">Bấm nút để chạy tự động quy trình Tình huống 1: Tạo cờ Banner Tết &rarr; Thử nghiệm nháp &rarr; Phát hành v2 &rarr; Web Apple hiển thị giao diện Tết.</p>
+            <p style="color: #777;">Bấm nút để chạy tự động quy trình: Tạo cờ &rarr; Thử nghiệm nháp &rarr; Phát hành phiên bản &rarr; Ứng dụng demo cập nhật giao diện.</p>
           </div>
         </div>
 
@@ -526,12 +506,7 @@
          ================================================================ -->
     <div id="tab-users" class="tab-pane-view" style="display: none;">
       <div class="content-header">
-        <h1 class="content-title">Quản Lý 1.000 Mã Người Dùng &amp; Băm Tất Định (CRC32)</h1>
-        <ul class="content-breadcrumb">
-          <li><a href="javascript:void(0)">Đề tài 1</a></li>
-          <li><span class="divider">&gt;</span></li>
-          <li style="color: #666; font-weight: 600;">Dữ liệu 1.000 User (U0001 - U1000)</li>
-        </ul>
+        <h1 class="content-title">Quản Lý Mã Người Dùng &amp; Băm Tất Định (CRC32)</h1>
       </div>
 
       <div class="admin-box">
@@ -586,14 +561,14 @@
   <div class="admin-modal-backdrop" id="modal-add-product">
     <div class="admin-modal-dialog">
       <div class="admin-modal-header">
-        <div class="admin-modal-title">Thêm Sản Phẩm Mới (iPhone, Mac, iPad)</div>
+        <div class="admin-modal-title">Thêm Sản Phẩm Mới</div>
         <button class="admin-modal-close" onclick="closeAdminModal('modal-add-product')">&times;</button>
       </div>
       <div class="admin-modal-body">
         <div class="form-grid-2">
           <div class="form-group">
             <label for="prod-name">Tên sản phẩm <b>*</b>:</label>
-            <input type="text" id="prod-name" class="form-control" placeholder="Ví dụ: iPhone 16 Pro Max 256GB">
+            <input type="text" id="prod-name" class="form-control" placeholder="Ví dụ: Gói dịch vụ tiêu chuẩn">
           </div>
           <div class="form-group">
             <label for="prod-sku">Mã sản phẩm (SKU):</label>
@@ -605,9 +580,9 @@
           <div class="form-group">
             <label for="prod-module">Phân loại Dòng máy <b>*</b>:</label>
             <select id="prod-module" class="form-control">
-              <option value="iPhone" selected>iPhone</option>
-              <option value="Mac">Mac</option>
-              <option value="iPad">iPad</option>
+              <option value="iPhone" selected>Nhóm sản phẩm 1</option>
+              <option value="Mac">Nhóm sản phẩm 2</option>
+              <option value="iPad">Nhóm sản phẩm 3</option>
             </select>
           </div>
           <div class="form-group">
@@ -624,16 +599,16 @@
         <div class="form-group">
           <label for="prod-flag">Gắn với Cờ Tính Năng (Feature Flag):</label>
           <select id="prod-flag" class="form-control">
-            <option value="banner_iphone_17">banner_iphone_17 (Banner Quảng Bá iPhone)</option>
+            <option value="banner_iphone_17">banner_iphone_17 (Tính năng hiển thị nổi bật)</option>
             <option value="dark_mode">dark_mode (Giao Diện Tối Tự Động)</option>
-            <option value="apple_intelligence">apple_intelligence (Tính Năng AI Thông Minh)</option>
+            <option value="apple_intelligence">apple_intelligence (Tính năng AI thông minh)</option>
             <option value="tra_gop_0_dong">tra_gop_0_dong (Ưu Đãi Trả Góp 0%)</option>
             <option value="thu_cu_doi_moi">thu_cu_doi_moi (Chương Trình Thu Cũ Đổi Mới)</option>
           </select>
         </div>
 
         <div class="form-group">
-          <label>Các tùy chọn hiển thị trên Web Apple:</label>
+          <label>Các tùy chọn hiển thị trên ứng dụng:</label>
           <div class="form-checkbox-inline-group">
             <label class="form-checkbox-inline">
               <input type="checkbox" id="prod-is-home" checked> Hiện ở Trang chủ
@@ -649,7 +624,7 @@
 
         <div class="form-group">
           <label for="prod-desc">Mô tả ngắn gọn:</label>
-          <textarea id="prod-desc" class="form-control" rows="2" placeholder="Sản phẩm Apple chính hãng VN/A, bảo hành 12 tháng"></textarea>
+          <textarea id="prod-desc" class="form-control" rows="2" placeholder="Mô tả sản phẩm hoặc dịch vụ"></textarea>
         </div>
       </div>
       <div class="admin-modal-footer">
@@ -683,9 +658,9 @@
           <div class="form-group">
             <label for="edit-prod-module">Phân loại Dòng máy <b>*</b>:</label>
             <select id="edit-prod-module" class="form-control">
-              <option value="iPhone">iPhone</option>
-              <option value="Mac">Mac</option>
-              <option value="iPad">iPad</option>
+              <option value="iPhone">Nhóm sản phẩm 1</option>
+              <option value="Mac">Nhóm sản phẩm 2</option>
+              <option value="iPad">Nhóm sản phẩm 3</option>
             </select>
           </div>
           <div class="form-group">
@@ -730,7 +705,7 @@
   <div class="admin-modal-backdrop" id="modal-view-product">
     <div class="admin-modal-dialog">
       <div class="admin-modal-header" style="background-color: var(--admin-cyan);">
-        <div class="admin-modal-title">Chi Tiết Sản Phẩm Apple</div>
+        <div class="admin-modal-title">Chi Tiết Sản Phẩm</div>
         <button class="admin-modal-close" onclick="closeAdminModal('modal-view-product')">&times;</button>
       </div>
       <div class="admin-modal-body" id="view-product-body">
@@ -752,7 +727,7 @@
       <div class="admin-modal-body">
         <div class="form-group">
           <label for="flag-name">Tên tính năng <b>*</b>:</label>
-          <input type="text" id="flag-name" class="form-control" placeholder="Ví dụ: Banner iPhone 17 Pro Max">
+          <input type="text" id="flag-name" class="form-control" placeholder="Ví dụ: Hiển thị thông báo khuyến mãi">
           <small style="color: #888;">Không được để trống theo quy định kiểm tra hợp lệ dữ liệu.</small>
         </div>
         <div class="form-group">
@@ -761,7 +736,7 @@
         </div>
         <div class="form-group">
           <label for="flag-desc">Mô tả tính năng:</label>
-          <input type="text" id="flag-desc" class="form-control" placeholder="Chi tiết hiển thị trên Web Apple">
+          <input type="text" id="flag-desc" class="form-control" placeholder="Mô tả cách tính năng hoạt động">
         </div>
         <div class="form-group">
           <label for="flag-pct">Tỷ lệ áp dụng (% Rollout từ 0 đến 100):</label>
@@ -792,7 +767,7 @@
         </p>
         <div class="form-group">
           <label for="publish-title">Tiêu đề phát hành:</label>
-          <input type="text" id="publish-title" class="form-control" placeholder="Ví dụ: Phát hành tính năng đợt mở bán iPhone 16">
+          <input type="text" id="publish-title" class="form-control" placeholder="Ví dụ: Phát hành tính năng khuyến mãi tháng 10">
         </div>
         <div class="form-group">
           <label for="publish-reason">Lý do phát hành <b>*</b> (Bắt buộc theo Chức năng 5):</label>
@@ -893,7 +868,7 @@
         </div>
         <div class="form-group">
           <label for="import-text">Hoặc dán trực tiếp nội dung JSON:</label>
-          <textarea id="import-text" class="form-control" rows="5" placeholder='[{"name": "Banner iPhone 17", "key": "banner_iphone_17", "percentage": 50, ...}]'></textarea>
+          <textarea id="import-text" class="form-control" rows="5" placeholder='[{"name": "Thông báo khuyến mãi", "key": "promotion_banner", "percentage": 50, ...}]'></textarea>
         </div>
         <div class="form-group">
           <label for="import-reason">Lý do nhập cấu hình:</label>

@@ -211,7 +211,7 @@ function renderProductsTable() {
     if (!tbody) return;
 
     if (countInfo) {
-        countInfo.textContent = `Hiển thị ${appState.products.length} sản phẩm Apple`;
+        countInfo.textContent = `Hiển thị ${appState.products.length} sản phẩm`;
     }
 
     if (appState.products.length === 0) {
@@ -423,7 +423,7 @@ function openAddProductModal() {
     document.getElementById('prod-is-home').checked = true;
     document.getElementById('prod-is-menu').checked = true;
     document.getElementById('prod-is-visible').checked = true;
-    document.getElementById('prod-desc').value = 'Sản phẩm Apple chính hãng VN/A';
+    document.getElementById('prod-desc').value = 'Mô tả sản phẩm hoặc dịch vụ';
 
     openAdminModal('modal-add-product');
 }
@@ -1262,7 +1262,7 @@ async function runScenario1() {
         });
         const pubJson = await resPub.json();
         logBox.innerHTML += `<div>Bước 3 xong: Đã đóng băng cấu hình thành bản <strong>${pubJson.version_tag}</strong>.</div>`;
-        logBox.innerHTML += `<div style="color:var(--admin-green); margin-top:8px; font-weight:700;">🎉 TÌNH HUỐNG 1 HOÀN TẤT THÀNH CÔNG! Web Apple đã nhận diện phiên bản mới.</div>`;
+        logBox.innerHTML += `<div style="color:var(--admin-green); margin-top:8px; font-weight:700;">🎉 TÌNH HUỐNG 1 HOÀN TẤT THÀNH CÔNG! Ứng dụng demo đã nhận diện phiên bản mới.</div>`;
 
         await loadFlags();
         await loadVersions();
@@ -1372,7 +1372,7 @@ async function loadUsers() {
                             <span class="status-badge-inline badge-selling">Khả dụng</span>
                         </td>
                         <td class="text-center">
-                            <button class="btn-action-view" onclick="testUserOnApple('${u.id}')" title="Mở Web Apple với mã User này">
+                            <button class="btn-action-view" onclick="testUserOnApple('${u.id}')" title="Mở ứng dụng demo với mã User này">
                                 <span>Thử Ngay</span>
                             </button>
                         </td>
