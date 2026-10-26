@@ -24,37 +24,39 @@ if (strpos($uri, '/api/') === 0) {
     exit();
 }
 
-if ($uri === '/apple') {
+if ($uri === '/apple' || $uri === '/apple.php') {
     header('Content-Type: text/html; charset=utf-8');
-    readfile(__DIR__ . '/public/apple.html');
+    require __DIR__ . '/public/apple.php';
     exit();
 }
 
-// Static asset routing: /css/..., /js/..., /index.html
+// Static asset routing: /css/..., /js/..., /index.php
 $filePath = __DIR__ . '/public' . $uri;
 
 if ($uri !== '/' && file_exists($filePath) && is_file($filePath)) {
     // Determine content type
     $ext = pathinfo($filePath, PATHINFO_EXTENSION);
     $mimes = [
-        'css' => 'text/css; charset=utf-8',
-        'js' => 'application/javascript; charset=utf-8',
         'json' => 'application/json; charset=utf-8',
         'png' => 'image/png',
         'jpg' => 'image/jpeg',
         'jpeg' => 'image/jpeg',
         'svg' => 'image/svg+xml',
         'ico' => 'image/x-icon',
-        'html' => 'text/html; charset=utf-8'
+        'php' => 'text/html; charset=utf-8'
     ];
     if (isset($mimes[$ext])) {
         header('Content-Type: ' . $mimes[$ext]);
     }
-    readfile($filePath);
+    if ($ext === 'php') {
+        require $filePath;
+    } else {
+        readfile($filePath);
+    }
     exit();
 }
 
-// Default fallback to public/index.html
+// Default fallback to public/index.php
 header('Content-Type: text/html; charset=utf-8');
-readfile(__DIR__ . '/public/index.html');
+require __DIR__ . '/public/index.php';
 exit();

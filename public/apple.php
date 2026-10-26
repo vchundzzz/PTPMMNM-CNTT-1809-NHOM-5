@@ -1,11 +1,12 @@
+<?php header('Content-Type: text/html; charset=utf-8'); ?>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Apple (Việt Nam) — Trang Chủ Thử Nghiệm Tính Năng (Feature Flags)</title>
-  <meta name="description" content="Trang web mô phỏng Apple Store tích hợp hệ thống Feature Flag: Banner iPhone 17, Tỷ lệ Rollout và cơ chế Fallback">
-  <link rel="stylesheet" href="css/apple.css">
+  <title>Ứng Dụng Demo — Thử Nghiệm Tính Năng</title>
+  <meta name="description" content="Ứng dụng demo tích hợp Feature Flag, tỷ lệ rollout và cơ chế fallback">
+  <link rel="stylesheet" href="css/apple.php">
 </head>
 <body>
 
@@ -15,7 +16,7 @@
   <aside class="test-controller-bar" aria-label="Bảng điều khiển thử nghiệm">
     <div class="controller-left">
       <div class="controller-brand">
-        <span>Apple Store Demo (Gọi API PHP)</span>
+        <span>Ứng Dụng Demo (Gọi API PHP)</span>
       </div>
 
       <!-- Chọn User ID thử nghiệm -->
@@ -50,7 +51,7 @@
 
     <div class="controller-right">
       <!-- Công tắc mô phỏng API lỗi (Test Fallback Yêu cầu Kỹ thuật 2) -->
-      <label class="outage-toggle" title="Gạt công tắc để ngắt API và kiểm tra phản ứng của Web Apple">
+      <label class="outage-toggle" title="Gạt công tắc để ngắt API và kiểm tra cơ chế fallback">
         <input type="checkbox" id="toggle-outage" onchange="toggleApiOutage(this.checked)">
         <span>Mô phỏng Lỗi API / Mất mạng</span>
       </label>
@@ -63,20 +64,16 @@
   </aside>
 
   <!-- ===================================================================
-       2. THANH MENU CHUẨN APPLE (APPLE GLOBAL NAVIGATION)
+       2. THANH MENU ỨNG DỤNG
        =================================================================== -->
   <header class="apple-nav">
-    <nav class="apple-nav-inner" aria-label="Menu Apple">
-      <a href="#">Cửa Hàng</a>
-      <a href="#">Mac</a>
-      <a href="#">iPad</a>
-      <a href="#">iPhone</a>
-      <a href="#">Watch</a>
-      <a href="#">AirPods</a>
-      <a href="#">TV &amp; Nhà</a>
-      <a href="#">Giải Trí</a>
-      <a href="#">Phụ Kiện</a>
-      <a href="#">Hỗ Trợ</a>
+    <nav class="apple-nav-inner" aria-label="Menu ứng dụng">
+      <a href="#">Tổng quan</a>
+      <a href="#">Sản phẩm</a>
+      <a href="#">Dịch vụ</a>
+      <a href="#">Tài khoản</a>
+      <a href="#">Báo cáo</a>
+      <a href="#">Hỗ trợ</a>
     </nav>
   </header>
 
@@ -85,7 +82,7 @@
     <div class="outage-alert">
       <div>
         <strong>CẢNH BÁO: MÁY CHỦ API KHÔNG PHẢN HỒI (MÔ PHỎNG SẬP MẠNG HOẶC LỖI 503)</strong><br>
-        <span style="font-size: 13px;">Web Apple tự động chuyển sang đọc <strong>Giá Trị Dự Phòng (Fallback: TẮT các tính năng mới)</strong>. Web vẫn hoạt động bình thường, không bị gián đoạn hay crash trang!</span>
+        <span style="font-size: 13px;">Ứng dụng tự động chuyển sang đọc <strong>Giá Trị Dự Phòng (Fallback: TẮT các tính năng mới)</strong>. Hệ thống vẫn hoạt động bình thường!</span>
       </div>
     </div>
   </div>
@@ -95,13 +92,13 @@
        =================================================================== -->
   <section class="sub-promo-bar" id="apple-promo-bar">
     <div class="sub-promo-item" id="flag-box-apple_pay_0percent" style="display: none;">
-      <span><strong>Trả góp 0% Apple Pay:</strong> Kỳ hạn 12 tháng liên kết các ngân hàng hàng đầu.</span>
+      <span><strong>Ưu đãi thanh toán:</strong> Hỗ trợ nhiều phương thức thanh toán.</span>
     </div>
     <div class="sub-promo-item" id="flag-box-express_delivery_2h" style="display: none;">
       <span><strong>Giao hàng hỏa tốc 2 giờ:</strong> Nhận hàng ngay tại TP.HCM &amp; Hà Nội.</span>
     </div>
     <div class="sub-promo-item" id="flag-box-trade_in_bonus" style="display: none;">
-      <span><strong>Thu cũ đổi mới:</strong> Trợ giá lên đời iPhone 17 đến 5.000.000đ.</span>
+      <span><strong>Chương trình khuyến mãi:</strong> Ưu đãi dành cho khách hàng đủ điều kiện.</span>
     </div>
   </section>
 
@@ -114,17 +111,17 @@
       <div id="flag-box-tet_holiday_theme" style="display: none;">
         <div class="tet-badge">
           <span>🌸</span>
-          <span>CHÀO XUÂN ẤT TỴ 2026 — ĐÓN TẾT CÙNG APPLE STORE</span>
+          <span>CHƯƠNG TRÌNH KHUYẾN MÃI MÙA LỄ 2026</span>
           <span>🧧</span>
         </div>
       </div>
 
       <!-- Banner iPhone 17 (Tính năng 1: banner_iphone_17) -->
       <div id="flag-box-banner_iphone_17">
-        <h1 class="hero-title">iPhone 17 Pro</h1>
-        <h2 class="hero-subtitle">Đỉnh Cao Titanium. Trí Tuệ Apple Intelligence.</h2>
+        <h1 class="hero-title">Tính Năng Mới</h1>
+        <h2 class="hero-subtitle">Trải nghiệm được cá nhân hóa theo cấu hình.</h2>
         <p class="hero-desc">
-          Chip xử lý Apple A19 Pro 2nm siêu mạnh mẽ. Hệ thống 3 camera 48MP tiềm vọng quang học 10x. Thời lượng pin kỷ lục suốt cả ngày.
+          Nội dung này được bật theo quy tắc rollout và nhóm người dùng được cấu hình trong hệ thống.
         </p>
       </div>
 
@@ -142,8 +139,8 @@
         <div class="iphone-17-mockup">
           <div class="dynamic-island"></div>
           <div class="screen-content">
-            <h4>iPhone 17 Pro Max</h4>
-            <p>Titanium Tự Nhiên &amp; Xanh Biển Đậm</p>
+            <h4>Phiên bản tính năng</h4>
+            <p>Cấu hình tiêu chuẩn</p>
           </div>
         </div>
       </div>
@@ -153,7 +150,7 @@
          5. BENTO GRID: CÁC DỊCH VỤ & TÍNH NĂNG APPLE (FLAGS 4, 5, 8, 9, 10)
          =================================================================== -->
     <section class="apple-grid-container" id="details">
-      <h3 class="section-heading">Trải Nghiệm Độc Quyền Tại Apple Store</h3>
+      <h3 class="section-heading">Các Dịch Vụ Và Tính Năng</h3>
       
       <div class="apple-bento-grid">
         <!-- Tính năng 4: ai_accessories -->
@@ -171,7 +168,7 @@
           <div>
             <div class="card-tag">Miễn Phí Cá Nhân Hóa</div>
             <h4 class="card-title">Khắc Tên &amp; Emoji Bằng Laser</h4>
-            <p class="card-desc">Khắc chữ ký, biểu tượng may mắn hoặc tên của bạn lên hộp sạc AirPods và Apple Pencil Pro.</p>
+            <p class="card-desc">Tùy chỉnh nội dung hiển thị theo thông tin và quyền của người dùng.</p>
           </div>
         </div>
 
@@ -179,8 +176,8 @@
         <div class="bento-card" id="flag-box-gift_card_custom" style="display: none;">
           <div>
             <div class="card-tag">Quà Tặng Tinh Tế</div>
-            <h4 class="card-title">Apple Gift Card</h4>
-            <p class="card-desc">Thẻ quà tặng mua sắm mọi sản phẩm và dịch vụ iCloud, Apple Music phiên bản giới hạn.</p>
+            <h4 class="card-title">Mã Ưu Đãi</h4>
+            <p class="card-desc">Mã ưu đãi được áp dụng theo điều kiện của chương trình.</p>
           </div>
           <div class="card-visual">🎁</div>
         </div>
@@ -190,11 +187,13 @@
           <div>
             <div class="card-tag">Hỗ Trợ Chuyên Gia</div>
             <h4 class="card-title">Genius Bar Trực Tuyến 1:1</h4>
-            <p class="card-desc">Kết nối video trực tiếp cùng chuyên viên Apple để được giải đáp thắc mắc kỹ thuật ngay tại nhà.</p>
+            <p class="card-desc">Kết nối với bộ phận hỗ trợ để được giải đáp các vấn đề kỹ thuật.</p>
           </div>
           <div class="card-visual">🧑‍💻</div>
         </div>
       </div>
+
+      <div id="dynamic-feature-flags" class="apple-bento-grid" style="margin-top: 18px;"></div>
     </section>
 
     <!-- ===================================================================
@@ -239,6 +238,6 @@
     </section>
   </main>
 
-  <script src="js/apple.js"></script>
+  <script src="js/apple.php"></script>
 </body>
 </html>

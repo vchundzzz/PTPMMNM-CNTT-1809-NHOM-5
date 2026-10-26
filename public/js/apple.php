@@ -1,3 +1,4 @@
+<?php header('Content-Type: application/javascript; charset=utf-8'); ?>
 /**
  * ===================================================================
  * APPLE DEMO CLIENT APPLICATION (JQUERY-FREE, CLEAN JAVASCRIPT)
@@ -89,7 +90,7 @@ async function loadAppleFeatureFlags() {
             throw new Error('MÔ PHỎNG LỖI MẠNG: Máy chủ API /api/evaluate.php không phản hồi (HTTP 503)');
         }
 
-        const url = `/api/evaluate.php?user=${encodeURIComponent(currentUser)}&env=${encodeURIComponent(currentEnv)}`;
+        const url = `api/evaluate.php?user=${encodeURIComponent(currentUser)}&env=${encodeURIComponent(currentEnv)}`;
         const res = await fetch(url);
         if (!res.ok) {
             throw new Error(`Máy chủ trả về mã lỗi HTTP: ${res.status}`);
@@ -189,6 +190,8 @@ function applyFlagsToAppleUI(flags, isFallback) {
 
     // 10. Hỗ trợ trực tiếp Genius Bar (genius_bar_live)
     setElementVisibility('flag-box-genius_bar_live', flags['genius_bar_live']?.enabled);
+
+    renderDynamicFeatureFlags(flags);
 }
 
 function setElementVisibility(elementId, isVisible) {
@@ -196,6 +199,42 @@ function setElementVisibility(elementId, isVisible) {
     if (el) {
         el.style.display = isVisible ? 'block' : 'none';
     }
+}
+
+function renderDynamicFeatureFlags(flags) {
+    const container = document.getElementById('dynamic-feature-flags');
+    if (!container) return;
+
+    const fixedKeys = new Set([
+        'banner_iphone_17', 'btn_preorder_17', 'tet_holiday_theme',
+        'ai_accessories', 'laser_engraving', 'apple_pay_0percent',
+        'express_delivery_2h', 'trade_in_bonus', 'gift_card_custom',
+        'genius_bar_live'
+    ]);
+
+    const dynamicFlags = Object.entries(flags).filter(([key, info]) => {
+        return !fixedKeys.has(key) && info && info.enabled;
+    });
+
+    container.innerHTML = dynamicFlags.map(([key, info]) => `
+        <div class="bento-card" id="flag-box-${escapeHtml(key)}">
+            <div>
+                <div class="card-tag">TÍNH NĂNG ĐƯỢC KÍCH HOẠT</div>
+                <h4 class="card-title">${escapeHtml(info.name || key)}</h4>
+                <p class="card-desc">${escapeHtml(info.description || 'Tính năng đang được áp dụng theo cấu hình.')}</p>
+            </div>
+            <div class="card-visual">✓</div>
+        </div>
+    `).join('');
+}
+
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
 
 /**
@@ -232,5 +271,5 @@ function renderInspectorTable(tbody, flags, isFallback) {
 }
 
 function alertPreorderSuccess() {
-    alert('🎉 Chúc mừng! Bạn đã kích hoạt tính năng đặt trước iPhone 17 Pro Max sớm và được áp dụng phiếu quà tặng 2.000.000đ từ Apple Store!');
+    alert('🎉 Chúc mừng! Bạn đã kích hoạt tính năng và nhận được ưu đãi theo cấu hình.');
 }
