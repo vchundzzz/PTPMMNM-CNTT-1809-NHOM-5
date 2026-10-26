@@ -29,7 +29,7 @@
         </button>
 
         <!-- Nút Xem website mở ứng dụng Apple Demo -->
-        <a href="/apple.php" target="_blank" class="view-website-link" title="Mở trang chủ Web Apple Store gọi API bật/tắt">
+        <a href="apple.php" target="_blank" class="view-website-link" title="Mở trang chủ Web Apple Store gọi API bật/tắt">
           <span>Xem Web Apple Demo</span>
         </a>
       </div>
@@ -133,7 +133,7 @@
 
       <!-- MỤC 3: ỨNG DỤNG CLIENT DEMO -->
       <li>
-        <a href="/apple.php" target="_blank" title="Mở trang chủ Apple Store gọi API đánh giá cờ">
+        <a href="apple.php" target="_blank" title="Mở trang chủ Apple Store gọi API đánh giá cờ">
           <span class="menu-text">XEM WEB APPLE DEMO</span>
         </a>
       </li>

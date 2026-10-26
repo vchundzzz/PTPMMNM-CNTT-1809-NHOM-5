@@ -170,7 +170,7 @@ async function loadProducts() {
     const moduleVal = moduleSelect ? moduleSelect.value : 'all';
 
     try {
-        let url = `/api/products.php?module=${encodeURIComponent(moduleVal)}`;
+        let url = `api/products.php?module=${encodeURIComponent(moduleVal)}`;
         if (searchVal) url += `&search=${encodeURIComponent(searchVal)}`;
 
         const res = await fetch(url);
@@ -327,7 +327,7 @@ async function quickToggleProduct(id, field, value) {
         const payload = {};
         payload[field] = value ? 1 : 0;
 
-        const res = await fetch(`/api/products.php?id=${encodeURIComponent(id)}`, {
+        const res = await fetch(`api/products.php?id=${encodeURIComponent(id)}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -378,7 +378,7 @@ async function applyBulkAction() {
     }
 
     try {
-        const res = await fetch(`/api/products.php?action=bulk`, {
+        const res = await fetch(`api/products.php?action=bulk`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -446,7 +446,7 @@ async function submitCreateProduct() {
     }
 
     try {
-        const res = await fetch(`/api/products.php`, {
+        const res = await fetch(`api/products.php`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -518,7 +518,7 @@ async function submitEditProduct() {
     }
 
     try {
-        const res = await fetch(`/api/products.php?id=${encodeURIComponent(id)}`, {
+        const res = await fetch(`api/products.php?id=${encodeURIComponent(id)}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -588,7 +588,7 @@ async function deleteProduct(id, name) {
     }
 
     try {
-        const res = await fetch(`/api/products.php?id=${encodeURIComponent(id)}`, {
+        const res = await fetch(`api/products.php?id=${encodeURIComponent(id)}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -615,7 +615,7 @@ async function deleteProduct(id, name) {
 // =============================================================
 async function loadFlags() {
     try {
-        const res = await fetch(`/api/flags.php?env=${encodeURIComponent(appState.env)}`);
+        const res = await fetch(`api/flags.php?env=${encodeURIComponent(appState.env)}`);
         const json = await res.json();
 
         if (json.status === 'success') {
@@ -720,7 +720,7 @@ async function updateFlagWhitelist(key, whitelistVal) {
 
 async function updateFlagData(key, payload) {
     try {
-        const res = await fetch(`/api/flags.php?env=${encodeURIComponent(appState.env)}&key=${encodeURIComponent(key)}`, {
+        const res = await fetch(`api/flags.php?env=${encodeURIComponent(appState.env)}&key=${encodeURIComponent(key)}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -776,7 +776,7 @@ async function submitCreateFlag() {
     }
 
     try {
-        const res = await fetch(`/api/flags.php?env=${encodeURIComponent(appState.env)}`, {
+        const res = await fetch(`api/flags.php?env=${encodeURIComponent(appState.env)}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -811,7 +811,7 @@ async function deleteFlag(key) {
     }
 
     try {
-        const res = await fetch(`/api/flags.php?env=${encodeURIComponent(appState.env)}&key=${encodeURIComponent(key)}`, {
+        const res = await fetch(`api/flags.php?env=${encodeURIComponent(appState.env)}&key=${encodeURIComponent(key)}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -837,7 +837,7 @@ async function deleteFlag(key) {
 // =============================================================
 async function loadVersions() {
     try {
-        const res = await fetch(`/api/versions.php?action=list&env=${encodeURIComponent(appState.env)}`);
+        const res = await fetch(`api/versions.php?action=list&env=${encodeURIComponent(appState.env)}`);
         const json = await res.json();
         if (json.status === 'success') {
             appState.versions = json.data || [];
@@ -917,7 +917,7 @@ async function submitPublishVersion() {
     }
 
     try {
-        const res = await fetch(`/api/versions.php?action=publish&env=${encodeURIComponent(appState.env)}`, {
+        const res = await fetch(`api/versions.php?action=publish&env=${encodeURIComponent(appState.env)}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -981,7 +981,7 @@ async function reloadDiffModal() {
     tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px;">Đang phân tích khác biệt...</td></tr>`;
 
     try {
-        const res = await fetch(`/api/versions.php?action=diff&v1=${encodeURIComponent(v1)}&v2=${encodeURIComponent(v2)}&env=${encodeURIComponent(appState.env)}`);
+        const res = await fetch(`api/versions.php?action=diff&v1=${encodeURIComponent(v1)}&v2=${encodeURIComponent(v2)}&env=${encodeURIComponent(appState.env)}`);
         const json = await res.json();
         if (!res.ok) {
             alertBox.style.background = '#f8d7da';
@@ -1044,7 +1044,7 @@ async function submitRollbackVersion() {
     }
 
     try {
-        const res = await fetch(`/api/versions.php?action=rollback&env=${encodeURIComponent(appState.env)}`, {
+        const res = await fetch(`api/versions.php?action=rollback&env=${encodeURIComponent(appState.env)}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1075,7 +1075,7 @@ async function submitRollbackVersion() {
 // =============================================================
 async function loadHistory() {
     try {
-        const res = await fetch(`/api/history.php?env=${encodeURIComponent(appState.env)}`);
+        const res = await fetch(`api/history.php?env=${encodeURIComponent(appState.env)}`);
         const json = await res.json();
         if (json.status === 'success') {
             renderHistoryTable(json.data || []);
@@ -1117,7 +1117,7 @@ function renderHistoryTable(historyList) {
 }
 
 function exportConfigJson() {
-    window.location.href = `/api/import_export.php?action=export&env=${encodeURIComponent(appState.env)}&download=1`;
+    window.location.href = `api/import_export.php?action=export&env=${encodeURIComponent(appState.env)}&download=1`;
 }
 
 function openImportModal() {
@@ -1159,7 +1159,7 @@ async function submitImportConfig() {
 
     try {
         const parsed = JSON.parse(rawJson);
-        const res = await fetch(`/api/import_export.php?action=import&env=${encodeURIComponent(appState.env)}`, {
+        const res = await fetch(`api/import_export.php?action=import&env=${encodeURIComponent(appState.env)}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1202,7 +1202,7 @@ async function runAutomatedTests() {
     wrapper.innerHTML = `<div style="text-align:center; padding:25px; color:#555;">⏳ Đang thực thi 5 phép thử tự động...</div>`;
 
     try {
-        const res = await fetch(`/api/test_runner.php?env=${encodeURIComponent(appState.env)}`);
+        const res = await fetch(`api/test_runner.php?env=${encodeURIComponent(appState.env)}`);
         const json = await res.json();
 
         let html = `
@@ -1244,18 +1244,18 @@ async function runScenario1() {
     `;
 
     try {
-        await fetch(`/api/flags.php?env=${encodeURIComponent(appState.env)}`, {
+        await fetch(`api/flags.php?env=${encodeURIComponent(appState.env)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-User-Role': 'sua', 'X-User-Name': 'admin' },
             body: JSON.stringify({ key: 'demo_promo_tet', name: 'Ưu Đãi Tết Apple', percentage: 80, whitelist: 'U0001' })
         });
         logBox.innerHTML += `<div>Bước 1 xong: Đã tạo cờ [demo_promo_tet] trong bản nháp.</div>`;
 
-        const resEval = await fetch(`/api/evaluate.php?user=U0001&flag=demo_promo_tet&env=${encodeURIComponent(appState.env)}`);
+        const resEval = await fetch(`api/evaluate.php?user=U0001&flag=demo_promo_tet&env=${encodeURIComponent(appState.env)}`);
         const evalJson = await resEval.json();
         logBox.innerHTML += `<div>Bước 2 xong: Đánh giá user U0001 nhận kết quả [${evalJson.enabled ? 'BẬT' : 'TẮT'}].</div>`;
 
-        const resPub = await fetch(`/api/versions.php?action=publish&env=${encodeURIComponent(appState.env)}`, {
+        const resPub = await fetch(`api/versions.php?action=publish&env=${encodeURIComponent(appState.env)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-User-Role': 'sua', 'X-User-Name': 'admin' },
             body: JSON.stringify({ title: 'Phát hành Demo Tình Huống 1', reason: 'Hoàn thành chu trình Tình Huống 1 Mục 5', author: 'admin' })
@@ -1280,12 +1280,12 @@ async function runScenario2() {
     `;
 
     try {
-        await fetch(`/api/flags.php?env=${encodeURIComponent(appState.env)}&key=banner_iphone_17`, {
+        await fetch(`api/flags.php?env=${encodeURIComponent(appState.env)}&key=banner_iphone_17`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'X-User-Role': 'sua', 'X-User-Name': 'admin' },
             body: JSON.stringify({ percentage: 90, reason: 'Tăng lên 90% thử nghiệm quá tải' })
         });
-        const resPub = await fetch(`/api/versions.php?action=publish&env=${encodeURIComponent(appState.env)}`, {
+        const resPub = await fetch(`api/versions.php?action=publish&env=${encodeURIComponent(appState.env)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-User-Role': 'sua', 'X-User-Name': 'admin' },
             body: JSON.stringify({ title: 'Bản sự cố 90%', reason: 'Bản thử nghiệm phát sinh lỗi quá tải', author: 'admin' })
@@ -1293,11 +1293,11 @@ async function runScenario2() {
         const pubJson = await resPub.json();
         logBox.innerHTML += `<div>Đã phát hành bản sự cố [${pubJson.version_tag}].</div>`;
 
-        const resDiff = await fetch(`/api/versions.php?action=diff&v1=v1&v2=${pubJson.version_tag}&env=${encodeURIComponent(appState.env)}`);
+        const resDiff = await fetch(`api/versions.php?action=diff&v1=v1&v2=${pubJson.version_tag}&env=${encodeURIComponent(appState.env)}`);
         const diffJson = await resDiff.json();
         logBox.innerHTML += `<div>So sánh Diff: Tìm thấy ${diffJson.total_differences} cờ bị thay đổi tỷ lệ.</div>`;
 
-        const resRoll = await fetch(`/api/versions.php?action=rollback&env=${encodeURIComponent(appState.env)}`, {
+        const resRoll = await fetch(`api/versions.php?action=rollback&env=${encodeURIComponent(appState.env)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-User-Role': 'sua', 'X-User-Name': 'admin' },
             body: JSON.stringify({ version: 'v1', reason: 'Tình huống 2: Khôi phục khẩn cấp về bản v1 an toàn', author: 'admin' })
@@ -1339,7 +1339,7 @@ async function loadUsers() {
     const pageInfo = document.getElementById('users-page-info');
 
     try {
-        const url = `/api/users.php?page=${appState.usersPage}&limit=${appState.usersLimit}&search=${encodeURIComponent(appState.userSearch)}&group=${encodeURIComponent(groupVal)}`;
+        const url = `api/users.php?page=${appState.usersPage}&limit=${appState.usersLimit}&search=${encodeURIComponent(appState.userSearch)}&group=${encodeURIComponent(groupVal)}`;
         const res = await fetch(url);
         const json = await res.json();
 

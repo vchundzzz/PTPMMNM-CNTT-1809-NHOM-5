@@ -90,7 +90,7 @@ async function loadAppleFeatureFlags() {
             throw new Error('MÔ PHỎNG LỖI MẠNG: Máy chủ API /api/evaluate.php không phản hồi (HTTP 503)');
         }
 
-        const url = `/api/evaluate.php?user=${encodeURIComponent(currentUser)}&env=${encodeURIComponent(currentEnv)}`;
+        const url = `api/evaluate.php?user=${encodeURIComponent(currentUser)}&env=${encodeURIComponent(currentEnv)}`;
         const res = await fetch(url);
         if (!res.ok) {
             throw new Error(`Máy chủ trả về mã lỗi HTTP: ${res.status}`);

@@ -27,14 +27,28 @@ Trang Web Admin (Quản trị danh mục & Cấu hình)  →  Database SQLite  �
 
 ## 🚀 2. Hướng Dẫn Khởi Động Nhanh (1-Click)
 
-### Cách 1: Chạy bằng file Batch (Windows)
+### Cách 1: Chạy cùng XAMPP (khuyến nghị trên Windows)
+
+1. Đặt toàn bộ thư mục dự án vào `C:\xampp\htdocs\`.
+2. Mở XAMPP Control Panel và bấm **Start** ở dòng **Apache**.
+3. Mở đường dẫn sau trong trình duyệt:
+
+```text
+http://localhost/PTPMMNM-CNTT-1809-NHOM-5/
+```
+
+Apache sẽ tự dùng `index.php` ở thư mục gốc, ánh xạ giao diện trong `public/`,
+API trong `api/` và các tài nguyên CSS/JavaScript tương ứng. Không cần chạy
+thêm lệnh PHP riêng.
+
+### Cách 2: Chạy bằng file Batch (Windows)
 Nhấp đúp chuột vào tệp:
 ```cmd
 run.bat
 ```
 *(Hệ thống tự động nhận diện PHP từ XAMPP hoặc biến môi trường PATH, mở trình duyệt tại `http://localhost:8000`)*.
 
-### Cách 2: Khởi động thủ công qua lệnh PHP
+### Cách 3: Khởi động thủ công qua lệnh PHP
 Mở Terminal/PowerShell tại thư mục dự án và chạy:
 ```bash
 php -S localhost:8000 router.php
