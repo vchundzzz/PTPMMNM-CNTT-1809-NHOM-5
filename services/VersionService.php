@@ -18,10 +18,23 @@ class VersionService
         init_session_data();
         $flags    = $_SESSION['ff_data']['flags'] ?? [];
         $versions = $_SESSION['ff_data']['versions'] ?? [];
-        $count    = count($versions) + 1;
-        $minor    = $count;                    // v1.0, v1.1, …
+        $sequence = (int)($_SESSION['ff_data']['version_sequence'] ?? 0);
+        foreach ($versions as $existing) {
+            if (preg_match('/^v(\d+)$/', (string)($existing['tag'] ?? ''), $matches)) {
+                $sequence = max($sequence, (int)$matches[1]);
+            }
+            if (preg_match('/^v1\.(\d+)\.0$/', (string)($existing['version_number'] ?? ''), $matches)) {
+                $sequence = max($sequence, (int)$matches[1]);
+            }
+            if (preg_match('/^ver_(\d+)$/', (string)($existing['id'] ?? ''), $matches)) {
+                $sequence = max($sequence, (int)$matches[1]);
+            }
+        }
+        $sequence++;
+        $_SESSION['ff_data']['version_sequence'] = $sequence;
+        $minor    = $sequence;
         $ver_num  = "v1.$minor.0";
-        $tag      = 'v' . ($count + 3);       // v4, v5, … (tiếp nối v3 hiện có)
+        $tag      = 'v' . $sequence;
 
         $snapshot = [];
         foreach ($flags as $key => $flag) {
@@ -33,7 +46,7 @@ class VersionService
         }
 
         $version = [
-            'id'             => sprintf('ver_%03d', count($versions) + 1),
+            'id'             => sprintf('ver_%03d', $sequence),
             'version_number' => $ver_num,
             'tag'            => $tag,
             'status'         => 'Lưu trữ',
@@ -55,6 +68,58 @@ class VersionService
         );
 
         return $version;
+    }
+
+    /**
+     * Xóa một snapshot khỏi lịch sử mà không thay đổi cấu hình cờ đang chạy.
+     */
+    public static function deleteSnapshot(string $tag): bool
+    {
+        init_session_data();
+        $versions = $_SESSION['ff_data']['versions'] ?? [];
+        $version_key = null;
+        $version = null;
+
+        foreach ($versions as $key => $candidate) {
+            if ((string)$key === $tag || (string)($candidate['tag'] ?? '') === $tag) {
+                $version_key = $key;
+                $version = $candidate;
+                break;
+            }
+        }
+
+        if ($version_key === null || $version === null) {
+            return false;
+        }
+
+        $sequence = (int)($_SESSION['ff_data']['version_sequence'] ?? 0);
+        foreach ([
+            (string)($version['tag'] ?? ''),
+            (string)($version['version_number'] ?? ''),
+            (string)($version['id'] ?? ''),
+        ] as $identifier) {
+            if (preg_match('/^v(\d+)$/', $identifier, $matches)
+                || preg_match('/^v1\.(\d+)\.0$/', $identifier, $matches)
+                || preg_match('/^ver_(\d+)$/', $identifier, $matches)) {
+                $sequence = max($sequence, (int)$matches[1]);
+            }
+        }
+        $_SESSION['ff_data']['version_sequence'] = $sequence;
+        unset($_SESSION['ff_data']['versions'][$version_key]);
+        append_audit_log(
+            'XÓA_PHIÊN_BẢN',
+            (string)($version['version_number'] ?? $tag),
+            'Còn trong lịch sử',
+            'Đã xóa',
+            sprintf(
+                'Xóa snapshot %s (%s) trên môi trường %s',
+                $tag,
+                $version['version_number'] ?? $tag,
+                $version['environment'] ?? 'không xác định'
+            )
+        );
+
+        return true;
     }
 
     /**

@@ -91,7 +91,10 @@ foreach ($flag_keys as $f_key) {
 
 // Shortcut biến trạng thái bật/tắt của từng cờ
 $is_fast_pay    = !empty($eval_results['thanh_toan_nhanh']['data']['enabled']);
-$is_dark_mode   = !empty($eval_results['giao_dien_toi']['data']['enabled']);
+// Keep storefront colors consistent between testing and staging.
+$is_dark_mode   = true;
+// Keep the admin controller light regardless of the storefront's dark-mode flag.
+$is_console_dark_mode = false;
 $is_reviews     = !empty($eval_results['danh_gia_san_pham']['data']['enabled']);
 $is_wishlist    = !empty($eval_results['danh_sach_yeu_thich']['data']['enabled']);
 $is_chat        = !empty($eval_results['ho_tro_truc_tuyen']['data']['enabled']);
@@ -1366,17 +1369,17 @@ require_once __DIR__ . '/includes/header.php';
    TESTING CONTROLLER CONSOLE (ANT DESIGN & APPLE DEV STYLE)
    ============================================================ */
 .ff-console-panel {
-  background: <?= $is_dark_mode ? '#181b24' : '#ffffff' ?>;
-  border: 1px solid <?= $is_dark_mode ? 'rgba(56, 189, 248, 0.25)' : '#e2e8f0' ?>;
+  background: <?= $is_console_dark_mode ? '#181b24' : '#ffffff' ?>;
+  border: 1px solid <?= $is_console_dark_mode ? 'rgba(56, 189, 248, 0.25)' : '#e2e8f0' ?>;
   border-radius: 18px;
-  box-shadow: <?= $is_dark_mode ? '0 12px 36px rgba(0,0,0,0.5)' : '0 10px 30px -5px rgba(0, 0, 0, 0.07), 0 4px 12px rgba(0, 0, 0, 0.04)' ?>;
+  box-shadow: <?= $is_console_dark_mode ? '0 12px 36px rgba(0,0,0,0.5)' : '0 10px 30px -5px rgba(0, 0, 0, 0.07), 0 4px 12px rgba(0, 0, 0, 0.04)' ?>;
   margin-bottom: 2rem;
   overflow: hidden;
   transition: all 0.3s ease;
 }
 
 .ff-console-header {
-  background: <?= $is_dark_mode ? 'linear-gradient(135deg, #0b1329 0%, #172554 100%)' : 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' ?>;
+  background: <?= $is_console_dark_mode ? 'linear-gradient(135deg, #0b1329 0%, #172554 100%)' : 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' ?>;
   padding: 1.15rem 1.6rem;
   display: flex;
   justify-content: space-between;
@@ -1440,8 +1443,8 @@ require_once __DIR__ . '/includes/header.php';
 
 .ff-console-body {
   padding: 1.4rem 1.6rem;
-  background: <?= $is_dark_mode ? '#141722' : '#f8fafc' ?>;
-  border-bottom: 1px solid <?= $is_dark_mode ? '#232938' : '#e2e8f0' ?>;
+  background: <?= $is_console_dark_mode ? '#141722' : '#f8fafc' ?>;
+  border-bottom: 1px solid <?= $is_console_dark_mode ? '#232938' : '#e2e8f0' ?>;
 }
 
 .ff-form-grid {
@@ -1465,7 +1468,7 @@ require_once __DIR__ . '/includes/header.php';
 .ff-field-label {
   font-size: 0.8rem;
   font-weight: 700;
-  color: <?= $is_dark_mode ? '#cbd5e1' : '#334155' ?>;
+  color: <?= $is_console_dark_mode ? '#cbd5e1' : '#334155' ?>;
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -1477,9 +1480,9 @@ require_once __DIR__ . '/includes/header.php';
   width: 100%;
   padding: 0.65rem 0.95rem;
   border-radius: 10px;
-  border: 1px solid <?= $is_dark_mode ? '#334155' : '#cbd5e1' ?>;
-  background: <?= $is_dark_mode ? '#1e2433' : '#ffffff' ?>;
-  color: <?= $is_dark_mode ? '#f1f5f9' : '#0f172a' ?>;
+  border: 1px solid <?= $is_console_dark_mode ? '#334155' : '#cbd5e1' ?>;
+  background: <?= $is_console_dark_mode ? '#1e2433' : '#ffffff' ?>;
+  color: <?= $is_console_dark_mode ? '#f1f5f9' : '#0f172a' ?>;
   font-size: 0.88rem;
   font-weight: 500;
   transition: all 0.2s ease;
@@ -1520,12 +1523,12 @@ require_once __DIR__ . '/includes/header.php';
   gap: 0.5rem;
   padding: 0.6rem 0.85rem;
   border-radius: 10px;
-  border: 1px dashed <?= $simulate_error ? '#ef4444' : ($is_dark_mode ? '#334155' : '#cbd5e1') ?>;
-  background: <?= $simulate_error ? 'rgba(239, 68, 68, 0.08)' : ($is_dark_mode ? '#1a202c' : '#ffffff') ?>;
+  border: 1px dashed <?= $simulate_error ? '#ef4444' : ($is_console_dark_mode ? '#334155' : '#cbd5e1') ?>;
+  background: <?= $simulate_error ? 'rgba(239, 68, 68, 0.08)' : ($is_console_dark_mode ? '#1a202c' : '#ffffff') ?>;
   cursor: pointer;
   font-size: 0.82rem;
   font-weight: 600;
-  color: <?= $simulate_error ? '#ef4444' : ($is_dark_mode ? '#94a3b8' : '#64748b') ?>;
+  color: <?= $simulate_error ? '#ef4444' : ($is_console_dark_mode ? '#94a3b8' : '#64748b') ?>;
   transition: all 0.2s ease;
 }
 
@@ -1537,7 +1540,7 @@ require_once __DIR__ . '/includes/header.php';
 .ff-pills-row {
   margin-top: 1.15rem;
   padding-top: 1rem;
-  border-top: 1px dashed <?= $is_dark_mode ? '#2d3748' : '#e2e8f0' ?>;
+  border-top: 1px dashed <?= $is_console_dark_mode ? '#2d3748' : '#e2e8f0' ?>;
   display: flex;
   align-items: center;
   gap: 0.55rem;
@@ -1554,13 +1557,13 @@ require_once __DIR__ . '/includes/header.php';
   font-weight: 600;
   text-decoration: none;
   transition: all 0.2s ease;
-  background: <?= $is_dark_mode ? '#1e2433' : '#ffffff' ?>;
-  color: <?= $is_dark_mode ? '#94a3b8' : '#475569' ?>;
-  border: 1px solid <?= $is_dark_mode ? '#334155' : '#e2e8f0' ?>;
+  background: <?= $is_console_dark_mode ? '#1e2433' : '#ffffff' ?>;
+  color: <?= $is_console_dark_mode ? '#94a3b8' : '#475569' ?>;
+  border: 1px solid <?= $is_console_dark_mode ? '#334155' : '#e2e8f0' ?>;
 }
 
 .ff-quick-pill:hover {
-  background: <?= $is_dark_mode ? '#2d3748' : '#f1f5f9' ?>;
+  background: <?= $is_console_dark_mode ? '#2d3748' : '#f1f5f9' ?>;
   color: #0284c7;
   border-color: #38bdf8;
   transform: translateY(-1px);
@@ -1577,7 +1580,7 @@ require_once __DIR__ . '/includes/header.php';
 /* CARDS GRID */
 .ff-cards-section {
   padding: 1.4rem 1.6rem;
-  background: <?= $is_dark_mode ? '#12151f' : '#ffffff' ?>;
+  background: <?= $is_console_dark_mode ? '#12151f' : '#ffffff' ?>;
 }
 
 .ff-grid-10 {
@@ -1587,9 +1590,9 @@ require_once __DIR__ . '/includes/header.php';
 }
 
 .ff-card-item {
-  background: <?= $is_dark_mode ? '#1a1f2d' : '#ffffff' ?>;
+  background: <?= $is_console_dark_mode ? '#1a1f2d' : '#ffffff' ?>;
   border-radius: 12px;
-  border: 1px solid <?= $is_dark_mode ? '#283246' : '#e2e8f0' ?>;
+  border: 1px solid <?= $is_console_dark_mode ? '#283246' : '#e2e8f0' ?>;
   padding: 0.95rem 1.05rem;
   display: flex;
   flex-direction: column;
@@ -1608,13 +1611,13 @@ require_once __DIR__ . '/includes/header.php';
 
 .ff-card-item.enabled {
   border-left: 4px solid #10b981;
-  background: <?= $is_dark_mode ? 'linear-gradient(135deg, #1a2233 0%, #162426 100%)' : 'linear-gradient(135deg, #ffffff 60%, #f0fdf4 100%)' ?>;
+  background: <?= $is_console_dark_mode ? 'linear-gradient(135deg, #1a2233 0%, #162426 100%)' : 'linear-gradient(135deg, #ffffff 60%, #f0fdf4 100%)' ?>;
 }
 
 .ff-card-item.disabled {
   border-left: 4px solid #94a3b8;
   opacity: 0.88;
-  background: <?= $is_dark_mode ? '#161924' : '#fafafa' ?>;
+  background: <?= $is_console_dark_mode ? '#161924' : '#fafafa' ?>;
 }
 
 .ff-card-item.highlight {
@@ -1665,14 +1668,14 @@ require_once __DIR__ . '/includes/header.php';
 .ff-card-desc {
   font-size: 0.85rem;
   font-weight: 600;
-  color: <?= $is_dark_mode ? '#f1f5f9' : '#1e293b' ?>;
+  color: <?= $is_console_dark_mode ? '#f1f5f9' : '#1e293b' ?>;
   line-height: 1.35;
 }
 
 .ff-card-meta {
   font-size: 0.72rem;
-  color: <?= $is_dark_mode ? '#94a3b8' : '#64748b' ?>;
-  background: <?= $is_dark_mode ? 'rgba(0,0,0,0.25)' : '#f1f5f9' ?>;
+  color: <?= $is_console_dark_mode ? '#94a3b8' : '#64748b' ?>;
+  background: <?= $is_console_dark_mode ? 'rgba(0,0,0,0.25)' : '#f1f5f9' ?>;
   padding: 0.35rem 0.6rem;
   border-radius: 6px;
   display: flex;
@@ -1836,7 +1839,7 @@ $total_count = count($eval_results);
 
     <!-- Quick User Pills -->
     <div class="ff-pills-row">
-      <span style="font-size: 0.78rem; font-weight: 700; color: <?= $is_dark_mode ? '#94a3b8' : '#64748b' ?>; display: inline-flex; align-items: center; gap: 4px;">
+      <span style="font-size: 0.78rem; font-weight: 700; color: <?= $is_console_dark_mode ? '#94a3b8' : '#64748b' ?>; display: inline-flex; align-items: center; gap: 4px;">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
         Chuyển nhanh khách hàng mẫu:
       </span>
@@ -1857,7 +1860,7 @@ $total_count = count($eval_results);
   <!-- 10 FEATURE FLAGS STATUS MATRIX (ANT DESIGN CARDS GRID) -->
   <div class="ff-cards-section">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
-      <div style="font-size: 0.82rem; font-weight: 700; color: <?= $is_dark_mode ? '#cbd5e1' : '#475569' ?>; text-transform: uppercase; letter-spacing: 0.03em; display: flex; align-items: center; gap: 0.5rem;">
+      <div style="font-size: 0.82rem; font-weight: 700; color: <?= $is_console_dark_mode ? '#cbd5e1' : '#475569' ?>; text-transform: uppercase; letter-spacing: 0.03em; display: flex; align-items: center; gap: 0.5rem;">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
         <span>Kết quả đánh giá 10 cờ tính năng cho [ <strong style="color: #0284c7;"><?= e($current_user_id) ?></strong> &bull; <strong style="color: #2563eb;"><?= strtoupper(e($current_env)) ?></strong> ]:</span>
       </div>

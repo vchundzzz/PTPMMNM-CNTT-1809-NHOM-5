@@ -15,6 +15,8 @@ class PermissionService
         'admin' => [
             'view_all' => true,
             'create_flag' => true,
+            'create_version' => true,
+            'delete_version' => true,
             'edit_flag' => true,
             'delete_flag' => true,
             'toggle_flag' => true,
@@ -30,6 +32,8 @@ class PermissionService
         'editor' => [
             'view_all' => true,
             'create_flag' => true,
+            'create_version' => true,
+            'delete_version' => false,
             'edit_flag' => true,
             'delete_flag' => false,
             'toggle_flag' => true,
@@ -45,6 +49,8 @@ class PermissionService
         'viewer' => [
             'view_all' => true,
             'create_flag' => false,
+            'create_version' => false,
+            'delete_version' => false,
             'edit_flag' => false,
             'delete_flag' => false,
             'toggle_flag' => false,
@@ -112,6 +118,14 @@ class PermissionService
             'create_flag' => [
                 'name' => 'Tạo cờ tính năng mới',
                 'description' => 'Tạo mới bản nháp cờ tính năng trong môi trường',
+            ],
+            'create_version' => [
+                'name' => 'Tạo snapshot phiên bản',
+                'description' => 'Lưu snapshot cấu hình cờ hiện tại của môi trường đang chọn',
+            ],
+            'delete_version' => [
+                'name' => 'Xóa phiên bản cấu hình',
+                'description' => 'Xóa snapshot phiên bản khỏi lịch sử cấu hình',
             ],
             'edit_flag' => [
                 'name' => 'Chỉnh sửa cờ tính năng',
