@@ -1,0 +1,145 @@
+/**
+ * Web Feature Flag Management System
+ * assets/css/responsive.css - Tối ưu hiển thị đa thiết bị (Desktop, Tablet, Mobile)
+ */
+
+/* ==========================================================================
+   TABLET & MOBILE (Màn hình dưới 1024px)
+   ========================================================================== */
+@media (max-width: 1024px) {
+  :root {
+    --sidebar-width: 260px;
+  }
+
+  .app-sidebar {
+    transform: translateX(-100%);
+    box-shadow: none;
+    z-index: 1000;
+  }
+
+  .app-sidebar.mobile-open {
+    transform: translateX(0);
+    box-shadow: 0 0 25px rgba(0, 0, 0, 0.4);
+  }
+
+  .sidebar-backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(2px);
+    z-index: 999;
+  }
+
+  .sidebar-backdrop.show {
+    display: block;
+  }
+
+  .app-main {
+    margin-left: 0 !important;
+  }
+
+  .sidebar-toggle-btn {
+    display: flex !important;
+  }
+
+  .content-wrapper {
+    padding: 1.25rem 1.5rem;
+  }
+}
+
+/* ==========================================================================
+   MOBILE PHONES (Màn hình dưới 768px)
+   ========================================================================== */
+@media (max-width: 768px) {
+  .app-topbar {
+    padding: 0 1rem;
+  }
+
+  .breadcrumb-nav {
+    display: none; /* Ẩn breadcrumb trên điện thoại nhỏ để thoáng giao diện */
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .page-title {
+    font-size: 1.35rem;
+  }
+
+  .page-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .page-actions .btn {
+    flex: 1;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .filter-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-left, .filter-right {
+    width: 100%;
+  }
+
+  .search-input-wrapper {
+    min-width: 100%;
+    width: 100%;
+  }
+
+  .filter-left .form-select,
+  .filter-right .btn {
+    width: 100%;
+  }
+
+  .user-info-text {
+    display: none; /* Chỉ giữ avatar trên màn hình nhỏ */
+  }
+
+  .content-wrapper {
+    padding: 1rem;
+  }
+
+  .app-footer {
+    flex-direction: column;
+    gap: 0.75rem;
+    text-align: center;
+  }
+
+  .modal-dialog {
+    max-width: 95%;
+  }
+}
+
+/* ==========================================================================
+   EXTRA SMALL (Màn hình dưới 480px)
+   ========================================================================== */
+@media (max-width: 480px) {
+  .stat-card {
+    padding: 1rem;
+  }
+
+  .stat-value {
+    font-size: 1.65rem;
+  }
+
+  .env-tab-btn {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.75rem;
+  }
+}
