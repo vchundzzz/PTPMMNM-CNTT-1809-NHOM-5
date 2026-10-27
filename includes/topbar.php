@@ -64,6 +64,20 @@ $env_label = $current_env === 'testing' ? 'Kiểm thử' : 'Vận hành';
         </div>
 
         <div class="dropdown-divider"></div>
+        <div style="padding:0.35rem 0.75rem;font-size:0.7rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">
+          Chuyển đổi vai trò:
+        </div>
+        <a href="?switch_user=admin" class="dropdown-item <?= (($current_user['role']??'')==='admin')?'active':'' ?>">
+          👑 <span>Admin (Quản trị viên)</span>
+        </a>
+        <a href="?switch_user=editor" class="dropdown-item <?= (($current_user['role']??'')==='editor')?'active':'' ?>">
+          ✏️ <span>Biên tập viên (Editor)</span>
+        </a>
+        <a href="?switch_user=viewer" class="dropdown-item <?= (($current_user['role']??'')==='viewer')?'active':'' ?>">
+          👁️ <span>Viewer (Chỉ xem)</span>
+        </a>
+
+        <div class="dropdown-divider"></div>
 
         <a href="?reset_demo_data=1" class="dropdown-item"
            onclick="return confirm('Khôi phục toàn bộ dữ liệu về trạng thái ban đầu?')">

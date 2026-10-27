@@ -106,7 +106,8 @@ $cur_page = basename($_SERVER['PHP_SELF'] ?? '');
         <a href="demo-app.php" class="nav-link <?= ($cur_page==='demo-app.php')?'active':'' ?>" style="color:#69b1ff">
           <!-- shopping-cart icon -->
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-          <span>Ứng dụng thử nghiệm</span>
+          <span>Web Demo CDS STORE </span>
+          <span style="margin-left:auto;font-size:.65rem;background:#ef4444;color:#fff;padding:.1rem .4rem;border-radius:99px;font-weight:700;">AAR</span>
         </a>
       </li>
     </ul>

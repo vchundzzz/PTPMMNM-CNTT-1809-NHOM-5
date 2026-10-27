@@ -121,18 +121,18 @@ $can_rollback   = PermissionService::currentUserCan('rollback_version');
           </td>
           <td style="text-align:center">
             <div class="action-icons" style="justify-content:center">
-              <!-- So sánh -->
-              <a href="version-compare.php?v=<?= urlencode($v['tag'] ?? $v['id']) ?>" class="action-icon-btn" title="Xem & so sánh snapshot">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              <!-- Xem & so sánh (Ant Design EyeOutlined) -->
+              <a href="version-compare.php?v=<?= urlencode($v['tag'] ?? $v['id']) ?>" class="action-icon-btn action-view" title="Xem & so sánh snapshot" aria-label="Xem & so sánh snapshot">
+                <svg viewBox="64 64 896 896" fill="currentColor"><path d="M942.2 486.2C847.4 286.5 704.1 186 512 186c-192.2 0-335.4 100.5-430.2 300.3a60.3 60.3 0 0 0 0 51.5C176.6 737.5 319.9 838 512 838c192.2 0 335.4-100.5 430.2-300.3 7.7-16.2 7.7-35 0-51.5zM512 766c-161.3 0-279.4-81.8-362.7-254C232.6 339.8 350.7 258 512 258c161.3 0 279.4 81.8 362.7 254C791.5 684.2 673.4 766 512 766zm-4-422c-97.2 0-176 78.8-176 176s78.8 176 176 176 176-78.8 176-176-78.8-176-176-176zm0 288c-61.9 0-112-50.1-112-112s50.1-112 112-112 112 50.1 112 112-50.1 112-112 112z"/></svg>
               </a>
-              <!-- Khôi phục -->
+              <!-- Khôi phục (Ant Design RollbackOutlined) -->
               <?php if ($can_rollback && !$is_current): ?>
               <form method="POST" style="display:inline" onsubmit="return confirm('Khôi phục về <?= e($v['version_number'] ?? $v['tag']) ?>?\nCấu hình hiện tại sẽ bị ghi đè.')">
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="rollback">
                 <input type="hidden" name="version_tag" value="<?= e($v['tag'] ?? $v['id']) ?>">
-                <button type="submit" class="action-icon-btn success" title="Khôi phục phiên bản này">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3"/></svg>
+                <button type="submit" class="action-icon-btn success action-restore" title="Khôi phục phiên bản này" aria-label="Khôi phục phiên bản này">
+                  <svg viewBox="64 64 896 896" fill="currentColor"><path d="M758.2 839.1C851.8 765.9 912 651.9 912 524 912 303.1 732.9 124 512 124s-400 179.1-400 400c0 101.4 37.8 194 100.2 264.4l41.8-41.8C198.8 680.1 168 596.5 168 524c0-189.9 154.1-344 344-344s344 154.1 344 344c0 109.8-51.6 207.6-131.7 270.6l33.9 44.5zM358.4 693.3L192 859.7l-45.3-45.3 166.4-166.4 45.3 45.3z"/></svg>
                 </button>
               </form>
               <?php endif; ?>

@@ -127,6 +127,7 @@ $env_label   = $current_env === 'testing' ? 'Kiểm thử' : 'Vận hành';
 $can_create = PermissionService::currentUserCan('create_flag');
 $can_toggle = PermissionService::currentUserCan('toggle_flag');
 $can_delete = PermissionService::currentUserCan('delete_flag');
+$can_edit   = PermissionService::currentUserCan('toggle_flag');
 ?>
 
 <div class="page-header">
@@ -247,24 +248,24 @@ $can_delete = PermissionService::currentUserCan('delete_flag');
           </td>
           <td style="text-align:center">
             <div class="action-icons" style="justify-content:center">
-              <!-- Xem chi tiết -->
-              <a href="flag-detail.php?key=<?= urlencode($flag['key']) ?>" class="action-icon-btn" title="Xem chi tiết">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <!-- Xem chi tiết (Ant Design EyeOutlined) -->
+              <a href="flag-detail.php?key=<?= urlencode($flag['key']) ?>" class="action-icon-btn action-view" title="Xem chi tiết" aria-label="Xem chi tiết">
+                <svg viewBox="64 64 896 896" fill="currentColor"><path d="M942.2 486.2C847.4 286.5 704.1 186 512 186c-192.2 0-335.4 100.5-430.2 300.3a60.3 60.3 0 0 0 0 51.5C176.6 737.5 319.9 838 512 838c192.2 0 335.4-100.5 430.2-300.3 7.7-16.2 7.7-35 0-51.5zM512 766c-161.3 0-279.4-81.8-362.7-254C232.6 339.8 350.7 258 512 258c161.3 0 279.4 81.8 362.7 254C791.5 684.2 673.4 766 512 766zm-4-422c-97.2 0-176 78.8-176 176s78.8 176 176 176 176-78.8 176-176-78.8-176-176-176zm0 288c-61.9 0-112-50.1-112-112s50.1-112 112-112 112 50.1 112 112-50.1 112-112 112z"/></svg>
               </a>
-              <!-- Đổi tỷ lệ rollout -->
+              <!-- Chỉnh sửa cấu hình & Tỷ lệ (Ant Design EditOutlined / Cây bút) -->
               <?php if ($can_toggle): ?>
-              <button class="action-icon-btn" title="Đổi tỷ lệ triển khai" onclick="openRolloutModal('<?= e($flag['key']) ?>',<?= $pct ?>)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+              <button class="action-icon-btn action-edit" title="Chỉnh sửa cấu hình & Tỷ lệ triển khai" onclick="openRolloutModal('<?= e($flag['key']) ?>',<?= $pct ?>)">
+                <svg viewBox="64 64 896 896" fill="currentColor"><path d="M257.7 752c2 0 4-.2 6-.5L431.9 722c2-.4 3.9-1.3 5.3-2.8l423.9-423.9a9.96 9.96 0 0 0 0-14.1L694.9 114.9c-1.9-1.9-4.4-2.9-7.1-2.9s-5.2 1-7.1 2.9L256.8 538.8c-1.5 1.5-2.4 3.3-2.8 5.3l-29.5 168.2a33.5 33.5 0 0 0 9.4 29.8c6.6 6.4 14.9 9.9 23.8 9.9zm67.4-174.4L687.8 215l57.2 57.2-362.7 362.6-68.9 12 11.7-69.2zM752 688H144c-17.7 0-32 14.3-32 32v120c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8V720c0-17.7-14.3-32-32-32z"/></svg>
               </button>
               <?php endif; ?>
-              <!-- Xóa cờ -->
+              <!-- Xóa cờ (Ant Design DeleteOutlined) -->
               <?php if ($can_delete): ?>
               <form method="POST" action="flags.php" style="display:inline" onsubmit="return confirm('Xác nhận xóa cờ [<?= e($flag['key']) ?>]? Thao tác này không thể hoàn tác.')">
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="delete">
                 <input type="hidden" name="flag_key" value="<?= e($flag['key']) ?>">
-                <button type="submit" class="action-icon-btn danger" title="Xóa cờ">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                <button type="submit" class="action-icon-btn danger action-delete" title="Xóa cờ">
+                  <svg viewBox="64 64 896 896" fill="currentColor"><path d="M864 256H736v-80c0-35.3-28.7-64-64-64H352c-35.3 0-64 28.7-64 64v80H160c-17.7 0-32 14.3-32 32v32c0 4.4 3.6 8 8 8h60.5l49.1 530.6C249.2 884.2 284.9 912 326.6 912h370.8c41.7 0 77.4-27.8 81-73.4L827.5 328H888c4.4 0 8-3.6 8-8v-32c0-17.7-14.3-32-32-32zM360 200h304v56H360v-56zm366.7 632.7c-1.2 15.2-13.1 23.3-26.7 23.3H324c-13.6 0-25.5-8.1-26.7-23.3L249.8 328h524.4l-47.5 504.7zM432 400c17.7 0 32 14.3 32 32v304c0 17.7-14.3 32-32 32s-32-14.3-32-32V432c0-17.7 14.3-32 32-32zm160 0c17.7 0 32 14.3 32 32v304c0 17.7-14.3 32-32 32s-32-14.3-32-32V432c0-17.7 14.3-32 32-32z"/></svg>
                 </button>
               </form>
               <?php endif; ?>

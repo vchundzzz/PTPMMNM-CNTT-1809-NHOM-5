@@ -189,6 +189,26 @@ if (isset($_GET['switch_env']) && in_array($_GET['switch_env'], ['testing', 'sta
     exit;
 }
 
+if (isset($_GET['switch_user']) && in_array($_GET['switch_user'], ['admin', 'editor', 'viewer'], true)) {
+    $u = $_GET['switch_user'];
+    $members = $_SESSION['ff_data']['members'] ?? [];
+    if (isset($members[$u])) {
+        $acc = $members[$u];
+        $_SESSION['user'] = [
+            'id'         => $acc['id'],
+            'username'   => $acc['username'],
+            'name'       => $acc['name'],
+            'email'      => $acc['email'],
+            'role'       => $acc['role'],
+            'role_title' => $acc['role_title'],
+            'avatar'     => $acc['avatar'],
+        ];
+        set_flash('success', 'Đã chuyển sang tài khoản: ' . $acc['name'] . ' (' . $acc['role_title'] . ')');
+    }
+    header('Location: ' . strtok($_SERVER['REQUEST_URI'], '?'));
+    exit;
+}
+
 if (isset($_GET['reset_demo_data']) && $_GET['reset_demo_data'] === '1') {
     reset_session_data();
     set_flash('success', 'Đã khôi phục toàn bộ dữ liệu về trạng thái ban đầu!');

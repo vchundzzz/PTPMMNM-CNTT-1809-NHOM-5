@@ -255,20 +255,90 @@ input:disabled + .slider { opacity:.5; cursor:not-allowed; }
 .empty-desc  { font-size:.82rem; max-width:360px; margin:0 auto 1rem; }
 
 /* ==============================
-   ACTION ICONS (Ant Design style)
+   ACTION ICONS (Ant Design style with vibrant colors)
    ============================== */
-.action-icons { display:flex; align-items:center; gap:.15rem; }
+.action-icons { display:inline-flex; align-items:center; gap:0.35rem; }
 .action-icon-btn {
-  width:28px; height:28px; border-radius:var(--radius-sm);
-  border:none; background:transparent;
-  display:inline-flex; align-items:center; justify-content:center;
-  cursor:pointer; transition:all var(--transition);
-  color:var(--text-secondary);
+  width: 32px; height: 32px; border-radius: 6px;
+  border: 1px solid transparent;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 15px; text-decoration: none;
+  background: var(--bg-card);
 }
-.action-icon-btn svg { width:15px; height:15px; }
-.action-icon-btn:hover { background:var(--border-subtle); color:var(--primary); }
-.action-icon-btn.danger:hover { background:var(--danger-light); color:var(--danger); }
-.action-icon-btn.success:hover { background:var(--success-light); color:var(--success); }
+.action-icon-btn svg { width: 16px; height: 16px; display: block; }
+
+/* Ant Design View Icon (Blue #1677ff) */
+.action-icon-btn.action-view,
+.action-icon-btn[title*="Xem"] {
+  color: #1677ff;
+  background: rgba(22, 119, 255, 0.08);
+  border-color: rgba(22, 119, 255, 0.22);
+}
+.action-icon-btn.action-view:hover,
+.action-icon-btn[title*="Xem"]:hover {
+  color: #ffffff;
+  background: #1677ff;
+  border-color: #1677ff;
+  box-shadow: 0 2px 8px rgba(22, 119, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+/* Ant Design Edit Icon (Sunset Orange #fa8c16 / Gold #faad14) */
+.action-icon-btn.action-edit,
+.action-icon-btn[title*="Sửa"],
+.action-icon-btn[title*="Chỉnh sửa"],
+.action-icon-btn[title*="Đổi tỷ lệ"] {
+  color: #fa8c16;
+  background: rgba(250, 140, 22, 0.08);
+  border-color: rgba(250, 140, 22, 0.25);
+}
+.action-icon-btn.action-edit:hover,
+.action-icon-btn[title*="Sửa"]:hover,
+.action-icon-btn[title*="Chỉnh sửa"]:hover,
+.action-icon-btn[title*="Đổi tỷ lệ"]:hover {
+  color: #ffffff;
+  background: #fa8c16;
+  border-color: #fa8c16;
+  box-shadow: 0 2px 8px rgba(250, 140, 22, 0.4);
+  transform: translateY(-1px);
+}
+
+/* Ant Design Delete Icon (Dusty Red #ff4d4f) */
+.action-icon-btn.danger,
+.action-icon-btn.action-delete,
+.action-icon-btn[title*="Xóa"] {
+  color: #ff4d4f;
+  background: rgba(255, 77, 79, 0.08);
+  border-color: rgba(255, 77, 79, 0.25);
+}
+.action-icon-btn.danger:hover,
+.action-icon-btn.action-delete:hover,
+.action-icon-btn[title*="Xóa"]:hover {
+  color: #ffffff;
+  background: #ff4d4f;
+  border-color: #ff4d4f;
+  box-shadow: 0 2px 8px rgba(255, 77, 79, 0.4);
+  transform: translateY(-1px);
+}
+
+/* Ant Design Success / Restore Icon (Polar Green #52c41a) */
+.action-icon-btn.success,
+.action-icon-btn.action-restore,
+.action-icon-btn[title*="Khôi phục"] {
+  color: #52c41a;
+  background: rgba(82, 196, 26, 0.08);
+  border-color: rgba(82, 196, 26, 0.25);
+}
+.action-icon-btn.success:hover,
+.action-icon-btn.action-restore:hover,
+.action-icon-btn[title*="Khôi phục"]:hover {
+  color: #ffffff;
+  background: #52c41a;
+  border-color: #52c41a;
+  box-shadow: 0 2px 8px rgba(82, 196, 26, 0.4);
+  transform: translateY(-1px);
+}
 
 /* ==============================
    CONFIRM DIALOG (inline)
