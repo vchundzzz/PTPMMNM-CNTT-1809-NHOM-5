@@ -18,25 +18,79 @@ if (!isset($flags[$key])) {
 }
 
 $current_env = get_active_env();
+$mode = $_GET['mode'] ?? 'edit';
+$read_only = $mode === 'view';
+$return_to = in_array($_GET['return_to'] ?? '', ['dashboard.php', 'flags.php'], true)
+    ? $_GET['return_to']
+    : 'flags.php';
 
 /* ============================================================
    XỬ LÝ POST: lưu cấu hình chi tiết (tỷ lệ, nhóm, override)
    ============================================================ */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
-        set_flash('error', 'CSRF không hợp lệ.'); header('Location: flag-detail.php?key='.urlencode($key)); exit;
+        set_flash('error', 'CSRF không hợp lệ.');
+        header('Location: ' . $return_to);
+        exit;
     }
-    PermissionService::enforce('edit_flag');
+    if ($read_only) {
+        http_response_code(403);
+        exit('Chế độ chỉ xem không cho phép lưu thay đổi.');
+    }
+    $current_config = $_SESSION['ff_data']['flags'][$key]['environments'][$current_env];
+    $can_edit_config = PermissionService::currentUserCan('edit_flag');
+    $can_toggle = PermissionService::currentUserCan('toggle_flag');
+    $posted_name = trim((string)($_POST['name'] ?? $flags[$key]['name']));
+    $posted_description = trim((string)($_POST['description'] ?? $flags[$key]['description']));
+    $posted_pct = max(0, min(100, (int)($_POST['rollout_percentage'] ?? $current_config['rollout_percentage'] ?? 0)));
+    $posted_enabled = !empty($_POST['enabled']);
+    $posted_groups = $_POST['target_groups'] ?? [];
+    $posted_groups = array_values(array_filter($posted_groups, fn($g) => isset($groups_all[$g])));
+    $posted_overrides = trim((string)($_POST['user_overrides_raw'] ?? ''));
 
-    $pct     = max(0, min(100, (int)($_POST['rollout_percentage'] ?? 0)));
-    $enabled = !empty($_POST['enabled']);
-    $sel_grp = $_POST['target_groups'] ?? [];
-    $sel_grp = array_filter($sel_grp, fn($g) => isset($groups_all[$g]));
+    $config_changed = $can_edit_config && (
+        $posted_name !== ($flags[$key]['name'] ?? '')
+        || $posted_description !== ($flags[$key]['description'] ?? '')
+        || $posted_groups !== ($current_config['target_groups'] ?? [])
+        || $posted_overrides !== implode("\n", array_map(
+            static fn($uid, $state): string => "$uid = " . ($state ? 'bật' : 'tắt'),
+            array_keys($current_config['user_overrides'] ?? []),
+            $current_config['user_overrides'] ?? []
+        ))
+    );
+    $toggle_changed = $can_toggle && (
+        $posted_pct !== (int)($current_config['rollout_percentage'] ?? 0)
+        || $posted_enabled !== !empty($current_config['enabled'])
+    );
+
+    if ($config_changed && !$can_edit_config) {
+        PermissionService::enforce('edit_flag');
+    }
+    if ($toggle_changed && !$can_toggle) {
+        PermissionService::enforce('toggle_flag');
+    }
+    if (!$config_changed && !$toggle_changed) {
+        set_flash('info', 'Không có thay đổi nào cần lưu.');
+        header('Location: ' . $return_to);
+        exit;
+    }
+
+    $name = $can_edit_config ? $posted_name : (string)($flags[$key]['name'] ?? '');
+    $description = $can_edit_config ? $posted_description : (string)($flags[$key]['description'] ?? '');
+    if ($can_edit_config && $name === '') {
+        set_flash('error', 'Tên hiển thị không được để trống.');
+        header('Location: flag-detail.php?key=' . urlencode($key) . '&mode=edit&return_to=' . urlencode($return_to));
+        exit;
+    }
+
+    $pct = $can_toggle ? $posted_pct : (int)($current_config['rollout_percentage'] ?? 0);
+    $enabled = $can_toggle ? $posted_enabled : !empty($current_config['enabled']);
+    $sel_grp = $can_edit_config ? $posted_groups : ($current_config['target_groups'] ?? []);
 
     // Parse user overrides
-    $raw_ov   = trim((string)($_POST['user_overrides_raw'] ?? ''));
+    $raw_ov = $can_edit_config ? $posted_overrides : '';
     $new_ov   = [];
-    if (!empty($raw_ov)) {
+    if ($can_edit_config && !empty($raw_ov)) {
         foreach (explode("\n", $raw_ov) as $line) {
             $line = trim($line);
             if (preg_match('/^(KH\d+)\s*[=:]\s*(true|false|1|0|bật|tắt)/i', $line, $m)) {
@@ -47,10 +101,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    $old_pct = $_SESSION['ff_data']['flags'][$key]['environments'][$current_env]['rollout_percentage'] ?? 0;
+    $old_pct = $current_config['rollout_percentage'] ?? 0;
+    $old_name = $flags[$key]['name'] ?? '';
+    if (!$can_edit_config) {
+        $new_ov = $current_config['user_overrides'] ?? [];
+    }
+    $_SESSION['ff_data']['flags'][$key]['name'] = $name;
+    $_SESSION['ff_data']['flags'][$key]['description'] = $description;
     $_SESSION['ff_data']['flags'][$key]['environments'][$current_env] = array_merge(
-        $_SESSION['ff_data']['flags'][$key]['environments'][$current_env],
+        $current_config,
         [
+            'name'               => $name,
+            'description'        => $description,
             'enabled'            => $enabled,
             'rollout_percentage' => $pct,
             'status'             => $enabled ? 'Đã phát hành' : 'Bản nháp',
@@ -60,10 +122,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'updated_by'         => get_authenticated_user()['username'] ?? 'admin',
         ]
     );
-    append_audit_log('SỬA_CẤU_HÌNH', $key, "Tỷ lệ: $old_pct%", "Tỷ lệ: $pct% | " . ($enabled?'Bật':'Tắt'),
+    append_audit_log('SỬA_CẤU_HÌNH', $key, "Tên: $old_name | Tỷ lệ: $old_pct%", "Tên: $name | Tỷ lệ: $pct% | " . ($enabled?'Bật':'Tắt'),
         trim((string)($_POST['change_reason'] ?? 'Cập nhật từ trang chi tiết')));
     set_flash('success', "Đã lưu cấu hình cờ [$key] thành công.");
-    header('Location: flag-detail.php?key='.urlencode($key)); exit;
+    header('Location: ' . $return_to);
+    exit;
 }
 
 /* ============================================================
@@ -89,9 +152,15 @@ $breadcrumbs = [
 ];
 require_once __DIR__ . '/includes/header.php';
 
-$can_edit = PermissionService::currentUserCan('edit_flag');
+$can_edit = PermissionService::currentUserCan('edit_flag') && !$read_only;
+$can_toggle = PermissionService::currentUserCan('toggle_flag') && !$read_only;
+$can_modify = $can_edit || $can_toggle;
 ?>
 
+<a href="<?= e($return_to) ?>" class="detail-back-link" title="Quay lại danh sách" aria-label="Quay lại danh sách">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+  <span>Quay lại</span>
+</a>
 <div class="page-header">
   <div>
     <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.2rem">
@@ -102,23 +171,22 @@ $can_edit = PermissionService::currentUserCan('edit_flag');
       Mã cờ: <span class="font-mono"><?= e($flag['key']) ?></span> &bull; Môi trường: <?= render_env_badge($current_env) ?>
     </p>
   </div>
-  <div class="page-actions">
-    <a href="flags.php" class="btn btn-secondary">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-      Quay lại
-    </a>
-  </div>
 </div>
 
-<?php if (!$can_edit): ?>
+<?php if ($read_only || !$can_modify): ?>
   <div class="alert alert-warning">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-    Bạn đang ở chế độ <strong>Chỉ xem</strong>. Không có quyền chỉnh sửa cấu hình cờ này.
+    <?php if ($read_only): ?>
+      Bạn đang ở chế độ <strong>Chỉ xem</strong>. Hãy mở Chi tiết để chỉnh sửa khi có quyền.
+    <?php else: ?>
+      Bạn không có quyền chỉnh sửa cấu hình cờ này.
+    <?php endif; ?>
   </div>
 <?php endif; ?>
 
-<form method="POST" action="flag-detail.php?key=<?= urlencode($key) ?>">
+<form method="POST" action="flag-detail.php?key=<?= urlencode($key) ?>&mode=edit&return_to=<?= urlencode($return_to) ?>" class="<?= $can_modify ? 'flag-detail-edit-form' : '' ?>">
   <?= csrf_field() ?>
+  <input type="hidden" name="return_to" value="<?= e($return_to) ?>">
 
   <div style="display:grid;grid-template-columns:2fr 1fr;gap:1.25rem">
     <!-- Cột trái: Cấu hình -->
@@ -130,7 +198,7 @@ $can_edit = PermissionService::currentUserCan('edit_flag');
         <div class="card-body">
           <div class="form-group">
             <label class="form-label">Tên hiển thị</label>
-            <input type="text" class="form-control" value="<?= e($flag['name']) ?>" readonly>
+            <input type="text" name="name" class="form-control" value="<?= e($flag['name']) ?>" <?= !$can_edit ? 'readonly' : '' ?>>
           </div>
           <div class="form-group">
             <label class="form-label">Mã cờ (Key)</label>
@@ -138,7 +206,7 @@ $can_edit = PermissionService::currentUserCan('edit_flag');
           </div>
           <div class="form-group" style="margin-bottom:0">
             <label class="form-label">Mô tả</label>
-            <textarea class="form-control" rows="2" readonly><?= e($flag['description']) ?></textarea>
+            <textarea name="description" class="form-control" rows="2" <?= !$can_edit ? 'readonly' : '' ?>><?= e($flag['description']) ?></textarea>
           </div>
         </div>
       </div>
@@ -152,7 +220,7 @@ $can_edit = PermissionService::currentUserCan('edit_flag');
             <label class="form-label">Trạng thái kích hoạt</label>
             <div style="display:flex;align-items:center;gap:.75rem">
               <label class="switch">
-                <input type="checkbox" name="enabled" <?= $on?'checked':'' ?> <?= !$can_edit?'disabled':'' ?>>
+                <input type="checkbox" name="enabled" <?= $on?'checked':'' ?> <?= !$can_toggle?'disabled':'' ?>>
                 <span class="slider"></span>
               </label>
               <span style="font-weight:600;color:<?= $on?'var(--success)':'var(--text-secondary)' ?>"><?= $on?'Đang bật':'Đang tắt' ?></span>
@@ -164,7 +232,7 @@ $can_edit = PermissionService::currentUserCan('edit_flag');
             <label class="form-label">Tỷ lệ triển khai: <strong id="pctDisplay"><?= $pct ?></strong>%</label>
             <input type="range" name="rollout_percentage" min="0" max="100" step="10" value="<?= $pct ?>"
                    oninput="document.getElementById('pctDisplay').textContent=this.value"
-                   <?= !$can_edit?'disabled':'' ?> style="width:100%;margin:.5rem 0">
+                   <?= !$can_toggle?'disabled':'' ?> style="width:100%;margin:.5rem 0">
             <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--text-muted)">
               <span>0%</span><span>10%</span><span>50%</span><span>100%</span>
             </div>
@@ -193,7 +261,7 @@ $can_edit = PermissionService::currentUserCan('edit_flag');
       <!-- Card: Ngoại lệ cá nhân -->
       <div class="card">
         <div class="card-header">
-          <h2 class="card-title">Ngoại lệ cá nhân (User Override)</h2>
+          <h2 class="card-title">Ngoại lệ cá nhân</h2>
         </div>
         <div class="card-body">
           <label class="form-label">Danh sách ngoại lệ (mỗi dòng một khách hàng)</label>
@@ -220,7 +288,7 @@ $can_edit = PermissionService::currentUserCan('edit_flag');
         </div>
       </div>
 
-      <?php if ($can_edit): ?>
+      <?php if ($can_modify): ?>
       <!-- Lý do thay đổi -->
       <div class="card">
         <div class="card-body">
@@ -228,12 +296,12 @@ $can_edit = PermissionService::currentUserCan('edit_flag');
             <label class="form-label">Lý do thay đổi</label>
             <input type="text" name="change_reason" class="form-control" placeholder="Nhập lý do thay đổi">
           </div>
-          <div style="display:flex;gap:.75rem">
+          <div class="flag-detail-submit-actions">
             <button type="submit" class="btn btn-primary">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
               Lưu cấu hình
             </button>
-            <a href="flag-detail.php?key=<?= urlencode($key) ?>" class="btn btn-secondary">Hủy thay đổi</a>
+            <a href="<?= e($return_to) ?>" class="btn btn-secondary">Hủy thay đổi</a>
           </div>
         </div>
       </div>
@@ -258,7 +326,7 @@ $can_edit = PermissionService::currentUserCan('edit_flag');
         <div class="card-body">
           <div class="form-group">
             <label class="form-label">Mã khách hàng thử</label>
-            <input type="text" id="testUserId" class="form-control font-mono" value="KH1" placeholder="Nhập mã khách hàng thử">
+            <input type="text" id="testUserId" class="form-control font-mono" value="KH1" placeholder="Nhập mã khách hàng thử" readonly>
           </div>
           <button type="button" class="btn btn-secondary" style="width:100%" onclick="quickTest()">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -276,6 +344,38 @@ $can_edit = PermissionService::currentUserCan('edit_flag');
     </div>
   </div>
 </form>
+
+<style>
+.flag-detail-edit-form { padding-bottom: 5rem; }
+.flag-detail-submit-actions {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: var(--sidebar-width, 0);
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: .75rem;
+  min-height: 4rem;
+  padding: .75rem 1.5rem;
+  border-top: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, .96);
+  box-shadow: 0 -4px 16px rgba(15, 23, 42, .08);
+  backdrop-filter: blur(8px);
+}
+
+@media (max-width: 768px) {
+  .flag-detail-submit-actions {
+    left: 0;
+    right: 0;
+    padding-right: 1rem;
+    padding-left: 1rem;
+  }
+
+  .flag-detail-submit-actions .btn { flex: 1; }
+}
+</style>
 
 <script>
 function quickTest() {

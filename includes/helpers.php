@@ -178,6 +178,77 @@ function render_env_badge(string $env): string
     return '<span class="badge badge-neutral">' . e(ucfirst($env)) . '</span>';
 }
 
+/**
+ * Paginate an array while preserving its original keys.
+ *
+ * @return array{items: array, page: int, pages: int, total: int, start: int, end: int}
+ */
+function paginate_items(array $items, int $page = 1, int $per_page = 10): array
+{
+    $per_page = max(1, $per_page);
+    $total = count($items);
+    $pages = max(1, (int)ceil($total / $per_page));
+    $page = min(max(1, $page), $pages);
+    $offset = ($page - 1) * $per_page;
+
+    return [
+        'items' => array_slice($items, $offset, $per_page, true),
+        'page' => $page,
+        'pages' => $pages,
+        'total' => $total,
+        'start' => $total > 0 ? $offset + 1 : 0,
+        'end' => min($offset + $per_page, $total),
+    ];
+}
+
+function render_pagination(
+    int $total,
+    int $page,
+    int $per_page,
+    string $base_url,
+    string $label = 'danh sách'
+): string {
+    $pagination = paginate_items(array_fill(0, $total, null), $page, $per_page);
+    if ($pagination['pages'] <= 1) {
+        return '';
+    }
+
+    $query = $_GET;
+    unset($query['page']);
+    $page_url = static function (int $target_page) use ($base_url, $query): string {
+        $params = $query;
+        $params['page'] = $target_page;
+        return $base_url . '?' . http_build_query($params);
+    };
+
+    $numbers = [1, $pagination['pages']];
+    for ($number = max(1, $pagination['page'] - 2); $number <= min($pagination['pages'], $pagination['page'] + 2); $number++) {
+        $numbers[] = $number;
+    }
+    $numbers = array_values(array_unique($numbers));
+    sort($numbers);
+
+    $html = '<div class="pagination-wrap"><span class="pagination-summary">Hiển thị '
+        . $pagination['start'] . ' - ' . $pagination['end'] . ' trong tổng số '
+        . $total . ' ' . e($label) . '</span><nav class="pagination" aria-label="Phân trang '
+        . e($label) . '">';
+    $previous = 0;
+    $html .= '<a class="pagination-link' . ($pagination['page'] <= 1 ? ' disabled' : '') . '" href="'
+        . e($page_url(max(1, $pagination['page'] - 1))) . '" aria-label="Trang trước">&lsaquo;</a>';
+    foreach ($numbers as $number) {
+        if ($previous > 0 && $number > $previous + 1) {
+            $html .= '<span class="pagination-link disabled" aria-hidden="true">&hellip;</span>';
+        }
+        $html .= '<a class="pagination-link' . ($number === $pagination['page'] ? ' active' : '') . '" href="'
+            . e($page_url($number)) . '"' . ($number === $pagination['page'] ? ' aria-current="page"' : '') . '>'
+            . $number . '</a>';
+        $previous = $number;
+    }
+    $html .= '<a class="pagination-link' . ($pagination['page'] >= $pagination['pages'] ? ' disabled' : '') . '" href="'
+        . e($page_url(min($pagination['pages'], $pagination['page'] + 1))) . '" aria-label="Trang sau">&rsaquo;</a>';
+    return $html . '</nav></div>';
+}
+
 /* ============================================================
    XỬ LÝ URL NHANH (switch env / role / reset)
    ============================================================ */

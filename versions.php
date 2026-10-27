@@ -68,6 +68,8 @@ require_once __DIR__ . '/includes/header.php';
 $versions    = array_values($_SESSION['ff_data']['versions'] ?? []);
 // Mới nhất lên đầu
 usort($versions, fn($a,$b) => strcmp($b['created_at'],$a['created_at']));
+$versions_pagination = paginate_items($versions, (int)($_GET['page'] ?? 1), 10);
+$page_versions = $versions_pagination['items'];
 
 $env_label      = $current_env === 'testing' ? 'Kiểm thử' : 'Vận hành';
 $can_create_ver = PermissionService::currentUserCan('create_version');
@@ -121,13 +123,13 @@ $rollback_count = count(array_filter(
 .version-env.testing { border-color:#fde68a; background:#fffbeb; color:#b45309; }
 .version-user { display:inline-flex; padding:.2rem .55rem; border:1px solid #e2e8f0; border-radius:999px; background:#f8fafc; color:#64748b; font-size:.68rem; }
 .version-actions { display:flex; justify-content:center; gap:.35rem; }
-.version-action { display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border:1px solid #bfdbfe; border-radius:8px; background:#eff6ff; color:#1677ff; cursor:pointer; }
+.version-action { display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border:none; border-radius:8px; background:transparent; color:#1677ff; cursor:pointer; }
 .version-action svg { width:17px; height:17px; }
-.version-action:hover { border-color:#60a5fa; background:#dbeafe; }
-.version-action.restore { border-color:#bbf7d0; background:#effcf3; color:#16a34a; }
-.version-action.restore:hover { border-color:#86efac; background:#dcfce7; }
-.version-action.delete { border-color:#fecaca; background:#fff1f2; color:#dc2626; }
-.version-action.delete:hover { border-color:#fca5a5; background:#ffe4e6; }
+.version-action:hover { background:transparent; }
+.version-action.restore { background:transparent; color:#16a34a; }
+.version-action.restore:hover { background:transparent; }
+.version-action.delete { background:transparent; color:#dc2626; }
+.version-action.delete:hover { background:transparent; }
 .version-empty { padding:2.5rem 1rem; text-align:center; }
 .version-empty strong { display:block; margin-bottom:.3rem; color:#334155; }
 .version-empty span { color:#8290a4; font-size:.8rem; }
@@ -201,11 +203,11 @@ $rollback_count = count(array_filter(
           <th>Môi trường</th>
           <th>Người tạo</th>
           <th>Thời gian tạo</th>
-          <th style="text-align:center">Thao tác</th>
+          <th style="text-align:center">Chức năng</th>
         </tr>
       </thead>
       <tbody>
-        <?php foreach ($versions as $v):
+        <?php foreach ($page_versions as $v):
           $is_current = ($v['status'] ?? '') === 'Đang dùng';
           $version_env = $v['environment'] ?? $current_env;
         ?>
@@ -233,7 +235,7 @@ $rollback_count = count(array_filter(
           <td><?= format_date($v['created_at'] ?? '') ?></td>
           <td style="text-align:center">
             <div class="version-actions">
-              <a href="version-compare.php?v=<?= urlencode($v['tag'] ?? $v['id']) ?>" class="version-action" title="Xem & so sánh snapshot" aria-label="Xem & so sánh snapshot">
+              <a href="version-compare.php?v=<?= urlencode($v['tag'] ?? $v['id']) ?>" class="version-action" title="Xem chi tiết" aria-label="Xem chi tiết">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
               </a>
               <?php if ($can_rollback && !$is_current): ?>
@@ -241,7 +243,7 @@ $rollback_count = count(array_filter(
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="rollback">
                 <input type="hidden" name="version_tag" value="<?= e($v['tag'] ?? $v['id']) ?>">
-                <button type="submit" class="version-action restore" title="Khôi phục phiên bản này" aria-label="Khôi phục phiên bản này">
+                <button type="submit" class="version-action restore" title="Khôi phục phiên bản" aria-label="Khôi phục phiên bản">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 2.64-6.36L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>
                 </button>
               </form>
@@ -258,7 +260,7 @@ $rollback_count = count(array_filter(
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="delete_version">
                 <input type="hidden" name="version_tag" value="<?= e($version_tag) ?>">
-                <button type="submit" class="version-action delete" title="Xóa phiên bản" aria-label="Xóa phiên bản">
+                <button type="submit" class="version-action delete" title="Xóa" aria-label="Xóa">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v5M14 11v5"/></svg>
                 </button>
               </form>
@@ -273,6 +275,7 @@ $rollback_count = count(array_filter(
       </tbody>
     </table>
   </div>
+  <?= render_pagination($versions_pagination['total'], $versions_pagination['page'], 10, 'versions.php', 'phiên bản') ?>
 </section>
 
 <!-- Modal tạo phiên bản -->

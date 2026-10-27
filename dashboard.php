@@ -66,6 +66,8 @@ uasort($sorted_flags, function ($a, $b) use ($current_env) {
     $timeB = $b['environments'][$current_env]['updated_at'] ?? '';
     return strcmp($timeB, $timeA);
 });
+$flags_pagination = paginate_items($sorted_flags, (int)($_GET['flags_page'] ?? 1), 10);
+$paged_flags = $flags_pagination['items'];
 ?>
 
 <!-- Tiêu đề trang & Thao tác nhanh -->
@@ -84,14 +86,6 @@ uasort($sorted_flags, function ($a, $b) use ($current_env) {
         <line x1="5" y1="12" x2="19" y2="12"></line>
       </svg>
       <span>Quản lý tính năng</span>
-    </a>
-    <a href="demo-app.php" class="btn btn-secondary">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-        <circle cx="9" cy="21" r="1"></circle>
-        <circle cx="20" cy="21" r="1"></circle>
-        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-      </svg>
-      <span>Web Demo 3AE </span>
     </a>
   </div>
 </div>
@@ -326,18 +320,18 @@ uasort($sorted_flags, function ($a, $b) use ($current_env) {
       <thead>
         <tr>
           <th>Tên tính năng</th>
-          <th>Mã định danh (Key)</th>
+          <th>Mã định danh</th>
           <th>Môi trường</th>
           <th>Trạng thái</th>
           <th>Tỷ lệ triển khai</th>
           <th>Nhóm áp dụng</th>
           <th>Cập nhật bởi</th>
           <th>Thời gian</th>
-          <th style="text-align: right;">Thao tác</th>
+          <th style="text-align: right;">Chức năng</th>
         </tr>
       </thead>
       <tbody>
-        <?php foreach ($sorted_flags as $flag): 
+        <?php foreach ($paged_flags as $flag):
             $env_cfg = $flag['environments'][$current_env] ?? [];
             $is_enabled = !empty($env_cfg['enabled']);
             $rollout = (int)($env_cfg['rollout_percentage'] ?? 0);
@@ -368,7 +362,7 @@ uasort($sorted_flags, function ($a, $b) use ($current_env) {
               </div>
             </td>
             <td>
-              <div class="rollout-container">
+              <div class="rollout-container" aria-label="Tỷ lệ triển khai <?= $rollout ?>%">
                 <div class="progress-bar-wrap">
                   <div class="progress-fill <?= ($rollout === 100) ? 'full' : '' ?>" style="width: <?= $rollout ?>%;"></div>
                 </div>
@@ -390,10 +384,10 @@ uasort($sorted_flags, function ($a, $b) use ($current_env) {
             </td>
             <td style="text-align: right; white-space: nowrap;">
               <div class="action-icons" style="justify-content: flex-end;">
-                <a href="flag-detail.php?key=<?= urlencode($flag['key']) ?>" class="action-icon-btn action-view" title="Xem chi tiết" aria-label="Xem chi tiết">
+                <a href="flag-detail.php?key=<?= urlencode($flag['key']) ?>&mode=view&return_to=dashboard.php" class="action-icon-btn action-view" title="Xem chi tiết" aria-label="Xem chi tiết">
                   <svg viewBox="64 64 896 896" fill="currentColor"><path d="M942.2 486.2C847.4 286.5 704.1 186 512 186c-192.2 0-335.4 100.5-430.2 300.3a60.3 60.3 0 0 0 0 51.5C176.6 737.5 319.9 838 512 838c192.2 0 335.4-100.5 430.2-300.3 7.7-16.2 7.7-35 0-51.5zM512 766c-161.3 0-279.4-81.8-362.7-254C232.6 339.8 350.7 258 512 258c161.3 0 279.4 81.8 362.7 254C791.5 684.2 673.4 766 512 766zm-4-422c-97.2 0-176 78.8-176 176s78.8 176 176 176 176-78.8 176-176-78.8-176-176-176zm0 288c-61.9 0-112-50.1-112-112s50.1-112 112-112 112 50.1 112 112-50.1 112-112 112z"/></svg>
                 </a>
-                <a href="flag-detail.php?key=<?= urlencode($flag['key']) ?>" class="action-icon-btn action-edit" title="Chỉnh sửa cờ" aria-label="Chỉnh sửa cờ">
+                <a href="flag-detail.php?key=<?= urlencode($flag['key']) ?>&mode=edit&return_to=dashboard.php" class="action-icon-btn action-edit" title="Chỉnh sửa" aria-label="Chỉnh sửa">
                   <svg viewBox="64 64 896 896" fill="currentColor"><path d="M257.7 752c2 0 4-.2 6-.5L431.9 722c2-.4 3.9-1.3 5.3-2.8l423.9-423.9a9.96 9.96 0 0 0 0-14.1L694.9 114.9c-1.9-1.9-4.4-2.9-7.1-2.9s-5.2 1-7.1 2.9L256.8 538.8c-1.5 1.5-2.4 3.3-2.8 5.3l-29.5 168.2a33.5 33.5 0 0 0 9.4 29.8c6.6 6.4 14.9 9.9 23.8 9.9zm67.4-174.4L687.8 215l57.2 57.2-362.7 362.6-68.9 12 11.7-69.2zM752 688H144c-17.7 0-32 14.3-32 32v120c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8V720c0-17.7-14.3-32-32-32z"/></svg>
                 </a>
               </div>
@@ -403,6 +397,25 @@ uasort($sorted_flags, function ($a, $b) use ($current_env) {
       </tbody>
     </table>
   </div>
+  <?php if ($flags_pagination['pages'] > 1): ?>
+    <div class="pagination-wrap">
+      <span class="pagination-summary">Hiển thị <?= $flags_pagination['start'] ?> - <?= $flags_pagination['end'] ?> trong tổng số <?= $flags_pagination['total'] ?> cờ tính năng</span>
+      <nav class="pagination" aria-label="Phân trang cờ tính năng">
+        <?php
+        $flags_query = $_GET;
+        unset($flags_query['flags_page']);
+        $flags_url = static function (int $page) use ($flags_query): string {
+            return 'dashboard.php?' . http_build_query($flags_query + ['flags_page' => $page]);
+        };
+        ?>
+        <a class="pagination-link <?= $flags_pagination['page'] <= 1 ? 'disabled' : '' ?>" href="<?= e($flags_url(max(1, $flags_pagination['page'] - 1))) ?>" aria-label="Trang trước">&lsaquo;</a>
+        <?php for ($page_number = 1; $page_number <= $flags_pagination['pages']; $page_number++): ?>
+          <a class="pagination-link <?= $page_number === $flags_pagination['page'] ? 'active' : '' ?>" href="<?= e($flags_url($page_number)) ?>" <?= $page_number === $flags_pagination['page'] ? 'aria-current="page"' : '' ?>><?= $page_number ?></a>
+        <?php endfor; ?>
+        <a class="pagination-link <?= $flags_pagination['page'] >= $flags_pagination['pages'] ? 'disabled' : '' ?>" href="<?= e($flags_url(min($flags_pagination['pages'], $flags_pagination['page'] + 1))) ?>" aria-label="Trang sau">&rsaquo;</a>
+      </nav>
+    </div>
+  <?php endif; ?>
 </div>
 
 <!-- Lịch sử hoạt động gần đây (Audit Logs Stream) -->

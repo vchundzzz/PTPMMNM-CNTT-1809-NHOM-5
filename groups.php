@@ -16,6 +16,14 @@ require_once __DIR__ . '/includes/header.php';
 
 $groups = $_SESSION['ff_data']['groups'] ?? [];
 $all_users = generate_fake_users();
+$selected_group = trim((string)($_GET['group'] ?? ''));
+if ($selected_group !== '') {
+    $all_users = array_values(array_filter($all_users, static function (array $user) use ($selected_group): bool {
+        return ($user['group_id'] ?? '') === $selected_group;
+    }));
+}
+$users_pagination = paginate_items($all_users, (int)($_GET['page'] ?? 1), 25);
+$page_users = $users_pagination['items'];
 ?>
 
 <div class="page-header">
@@ -57,10 +65,10 @@ $all_users = generate_fake_users();
           <strong class="font-mono" style="color: var(--primary); font-size: 0.9rem;"><?= e($group['range']) ?></strong>
         </div>
 
-        <button type="button" class="btn btn-secondary btn-sm" style="width: 100%;" onclick="filterUserTable('<?= e($grp_id) ?>')">
+        <a href="groups.php?group=<?= urlencode($grp_id) ?>" class="btn btn-secondary btn-sm" style="width: 100%;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           Xem thành viên
-        </button>
+        </a>
       </div>
     </div>
   <?php endforeach; ?>
@@ -95,9 +103,7 @@ $all_users = generate_fake_users();
       </thead>
       <tbody>
         <?php 
-        // Hiển thị 50 user đầu tiên để tải trang mượt mà
-        $preview_users = array_slice($all_users, 0, 50);
-        foreach ($preview_users as $usr): 
+        foreach ($page_users as $usr):
         ?>
           <tr data-group="<?= e($usr['group_id']) ?>">
             <td><span class="font-mono"><?= e($usr['id']) ?></span></td>
@@ -106,7 +112,7 @@ $all_users = generate_fake_users();
             <td><span class="badge badge-neutral"><?= e($usr['group_name']) ?></span></td>
             <td style="text-align: right;">
               <a href="demo-app.php?user_id=<?= urlencode($usr['id']) ?>" class="btn btn-secondary btn-sm">
-                Mở ứng dụng thử
+                Mở ứng dụng
               </a>
             </td>
           </tr>
@@ -115,8 +121,10 @@ $all_users = generate_fake_users();
     </table>
   </div>
   <div class="card-footer" style="font-size: 0.82rem; color: var(--text-muted);">
-    Đang hiển thị mẫu 50 / 1.000 khách hàng. Sử dụng ô tìm kiếm để tra cứu bất kỳ mã nào từ KH1 đến KH1000.
+    Hiển thị <?= $users_pagination['start'] ?> - <?= $users_pagination['end'] ?> trong tổng số <?= $users_pagination['total'] ?> khách hàng<?= $selected_group !== '' ? ' của nhóm ' . e($selected_group) : '' ?>.
+    <?= $selected_group === '' ? 'Sử dụng ô tìm kiếm để tra cứu bất kỳ mã nào từ KH1 đến KH1000.' : '<a href="groups.php">Xem tất cả khách hàng</a>.' ?>
   </div>
+  <?= render_pagination($users_pagination['total'], $users_pagination['page'], 25, 'groups.php', 'khách hàng') ?>
 </div>
 
 <script>
@@ -124,21 +132,6 @@ $all_users = generate_fake_users();
     initTableSearch('userSearchInput', 'usersTable');
   });
 
-  function filterUserTable(groupId) {
-    const input = document.getElementById('userSearchInput');
-    if (input) {
-      input.value = '';
-    }
-    const rows = document.querySelectorAll('#usersTable tbody tr');
-    rows.forEach(row => {
-      if (row.getAttribute('data-group') === groupId) {
-        row.style.display = '';
-      } else {
-        row.style.display = 'none';
-      }
-    });
-    showToast(`Đã lọc danh sách theo nhóm: [${groupId}]`, 'info');
-  }
 </script>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

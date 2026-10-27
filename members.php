@@ -16,6 +16,8 @@ require_once __DIR__ . '/includes/header.php';
 
 $members = $_SESSION['ff_data']['members'] ?? [];
 $matrix = PermissionService::getPermissionsMatrix();
+$members_pagination = paginate_items($members, (int)($_GET['page'] ?? 1), 10);
+$page_members = $members_pagination['items'];
 ?>
 
 <div class="page-header">
@@ -53,7 +55,7 @@ $matrix = PermissionService::getPermissionsMatrix();
         </tr>
       </thead>
       <tbody>
-        <?php foreach ($members as $username => $member): ?>
+        <?php foreach ($page_members as $username => $member): ?>
           <tr>
             <td>
               <div style="display: flex; align-items: center; gap: 0.75rem;">
@@ -78,13 +80,14 @@ $matrix = PermissionService::getPermissionsMatrix();
       </tbody>
     </table>
   </div>
+  <?= render_pagination($members_pagination['total'], $members_pagination['page'], 10, 'members.php', 'thành viên') ?>
 </div>
 
 <!-- Bảng Ma trận Quyền hạn (Permissions Matrix) -->
 <div class="card">
   <div class="card-header">
     <div>
-      <h2 class="card-title">Ma trận quyền hạn chi tiết (Phía Server kiểm tra)</h2>
+      <h2 class="card-title">Ma trận quyền hạn chi tiết</h2>
       <div class="card-subtitle">Quy tắc phân quyền được thực thi chặt chẽ ở lớp dịch vụ PermissionService.php</div>
     </div>
   </div>

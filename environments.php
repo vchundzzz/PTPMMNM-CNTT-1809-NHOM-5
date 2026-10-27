@@ -21,7 +21,7 @@ $current_env = get_active_env();
 
 <div class="page-header">
   <div>
-    <h1 class="page-title">Môi trường triển khai (Environments)</h1>
+    <h1 class="page-title">Môi trường triển khai</h1>
     <p class="page-description">
       Quản lý độc lập trạng thái và tỷ lệ rollout của các tính năng trên từng môi trường.
     </p>

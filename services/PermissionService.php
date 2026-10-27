@@ -148,11 +148,11 @@ class PermissionService
                 'description' => 'Thêm, sửa thành viên và chỉ định vai trò quản trị, biên tập hoặc xem',
             ],
             'import_config' => [
-                'name' => 'Nhập file cấu hình JSON',
+                'name' => 'Nhập file cấu hình',
                 'description' => 'Tải lên và kiểm định file cấu hình thay thế',
             ],
             'export_config' => [
-                'name' => 'Xuất file cấu hình JSON',
+                'name' => 'Xuất file cấu hình',
                 'description' => 'Tải xuống bản sao lưu cấu hình toàn bộ hệ thống',
             ],
         ];
