@@ -1024,6 +1024,46 @@ require_once __DIR__ . '/includes/header.php';
   gap: 1.5rem;
 }
 
+.tz-advanced-search {
+  max-width: 1200px;
+  margin: 0 auto 2rem;
+  padding: 1.25rem;
+  border: 1px solid <?= $is_dark_mode ? '#444448' : '#e2e8f0' ?>;
+  border-radius: 18px;
+  background: <?= $is_dark_mode ? '#29292c' : '#ffffff' ?>;
+}
+.tz-advanced-search-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .75rem;
+  margin-bottom: 1rem;
+}
+.tz-advanced-search-title { color: <?= $is_dark_mode ? '#fff' : '#111827' ?>; font-size: 1.05rem; font-weight: 800; }
+.tz-advanced-search-subtitle { color: <?= $is_dark_mode ? '#a1a1aa' : '#64748b' ?>; font-size: .8rem; margin-top: .2rem; }
+.tz-advanced-search-grid { display: grid; grid-template-columns: 2fr repeat(3, 1fr); gap: .75rem; }
+.tz-advanced-search-field { display: flex; flex-direction: column; gap: .35rem; }
+.tz-advanced-search-field label { color: <?= $is_dark_mode ? '#d4d4d8' : '#475569' ?>; font-size: .75rem; font-weight: 700; }
+.tz-advanced-search-field input,
+.tz-advanced-search-field select {
+  width: 100%;
+  min-height: 38px;
+  padding: .5rem .65rem;
+  border: 1px solid <?= $is_dark_mode ? '#52525b' : '#cbd5e1' ?>;
+  border-radius: 8px;
+  background: <?= $is_dark_mode ? '#18181b' : '#fff' ?>;
+  color: <?= $is_dark_mode ? '#fff' : '#111827' ?>;
+}
+.tz-advanced-search-check { display: flex; align-items: center; gap: .45rem; color: <?= $is_dark_mode ? '#d4d4d8' : '#475569' ?>; font-size: .8rem; }
+.tz-advanced-search-actions { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-top: .9rem; }
+.tz-advanced-search-buttons { display: flex; align-items: center; gap: .5rem; }
+.tz-advanced-search-button { border: 1px solid #0071e3; border-radius: 8px; padding: .5rem .85rem; background: #0071e3; color: #fff; font-weight: 700; cursor: pointer; }
+.tz-advanced-search-button:hover { background: #005bb5; border-color: #005bb5; }
+.tz-advanced-search-result { color: <?= $is_dark_mode ? '#a1a1aa' : '#64748b' ?>; font-size: .8rem; }
+.tz-advanced-search-empty { display: none; max-width: 1200px; margin: -1rem auto 2rem; padding: 1rem; text-align: center; color: <?= $is_dark_mode ? '#d4d4d8' : '#475569' ?>; }
+@media (max-width: 900px) { .tz-advanced-search-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .tz-advanced-search-grid { grid-template-columns: 1fr; } .tz-advanced-search-header, .tz-advanced-search-actions { align-items: flex-start; flex-direction: column; } }
+
 .tz-product-card {
   background: <?= $is_dark_mode ? '#323232' : '#ffffff' ?>;
   border: 1px solid <?= $is_dark_mode ? '#444448' : '#e2e8f0' ?>;
@@ -1717,7 +1757,7 @@ require_once __DIR__ . '/includes/header.php';
         <polyline points="2 17 12 22 22 17"></polyline>
         <polyline points="2 12 12 17 22 12"></polyline>
       </svg>
-      <span>Quản lý 10 Cờ tính năng</span>
+      <span>Quản lý 11 Cờ tính năng</span>
     </a>
   </div>
 </div>
@@ -1875,17 +1915,17 @@ $total_count = count($eval_results);
     <div class="ff-grid-10">
       <?php 
       $flag_ui_labels = [
-          'thanh_toan_nhanh'      => ['title' => 'Nút Mua 1-Chạm CDS STORE Express', 'icon' => '⚡'],
-          'giao_dien_toi'         => ['title' => 'Giao diện than chì CDS STORE Dark Mode', 'icon' => '🌙'],
-          'danh_gia_san_pham'     => ['title' => 'Đánh giá sao & ảnh thực tế unbox', 'icon' => '⭐'],
-          'danh_sach_yeu_thich'   => ['title' => 'Lưu sản phẩm yêu thích (Wishlist)', 'icon' => '❤️'],
-          'ho_tro_truc_tuyen'     => ['title' => 'Chuyên viên Apple CDS STORE 24/7', 'icon' => '💬'],
-          'ma_giam_gia'           => ['title' => 'Tự động áp voucher CDS18', 'icon' => '🔥'],
-          'goi_y_san_pham'        => ['title' => 'Gợi ý combo phụ kiện Apple bằng AI', 'icon' => '✨'],
-          'tim_kiem_nang_cao'     => ['title' => 'Bộ lọc đa tiêu chí (Model, Giá, GB)', 'icon' => '🔍'],
-          'theo_doi_don_hang'     => ['title' => 'Tra cứu đơn hàng thời gian thực', 'icon' => '🚚'],
-          'tich_diem_thanh_vien'  => ['title' => 'Tích điểm hội viên CDS STORE Member', 'icon' => '💎'],
-          'banner_quang_cao'      => ['title' => 'Banner quảng cáo trang chủ (Hero Slider)', 'icon' => '🖼️'],
+          'thanh_toan_nhanh'      => ['title' => 'Nút Mua 1-Chạm CDS STORE Express', 'icon' => ''],
+          'giao_dien_toi'         => ['title' => 'Giao diện than chì CDS STORE Dark Mode', 'icon' => ''],
+          'danh_gia_san_pham'     => ['title' => 'Đánh giá sao & ảnh thực tế unbox', 'icon' => ''],
+          'danh_sach_yeu_thich'   => ['title' => 'Lưu sản phẩm yêu thích (Wishlist)', 'icon' => ''],
+          'ho_tro_truc_tuyen'     => ['title' => 'Chuyên viên Apple CDS STORE 24/7', 'icon' => ''],
+          'ma_giam_gia'           => ['title' => 'Tự động áp voucher CDS18', 'icon' => ''],
+          'goi_y_san_pham'        => ['title' => 'Gợi ý combo phụ kiện Apple bằng AI', 'icon' => ''],
+          'tim_kiem_nang_cao'     => ['title' => 'Tìm kiếm nâng cao đa tiêu chí', 'icon' => ''],
+          'theo_doi_don_hang'     => ['title' => 'Tra cứu đơn hàng thời gian thực', 'icon' => ''],
+          'tich_diem_thanh_vien'  => ['title' => 'Tích điểm hội viên CDS STORE Member', 'icon' => ''],
+          'banner_quang_cao'      => ['title' => 'Banner quảng cáo trang chủ (Hero Slider)', 'icon' => ''],
       ];
 
       foreach ($eval_results as $f_key => $res): 
@@ -2124,6 +2164,86 @@ $total_count = count($eval_results);
     <?php endforeach; ?>
   </div>
 
+  <?php if ($is_adv_filter): ?>
+    <section class="tz-advanced-search" aria-labelledby="advancedSearchTitle">
+      <div class="tz-advanced-search-header">
+        <div>
+          <div class="tz-advanced-search-title" id="advancedSearchTitle">Tìm kiếm nâng cao</div>
+          <div class="tz-advanced-search-subtitle">Kết hợp nhiều tiêu chí để tìm đúng sản phẩm CDS STORE</div>
+        </div>
+        <span class="tz-advanced-search-result" id="advancedSearchResult">Hiển thị toàn bộ sản phẩm</span>
+      </div>
+      <div class="tz-advanced-search-grid">
+        <div class="tz-advanced-search-field">
+          <label for="advancedSearchKeyword">Từ khóa / model / thông số</label>
+          <input type="search" id="advancedSearchKeyword" placeholder="Nhập từ khóa tìm kiếm">
+        </div>
+        <div class="tz-advanced-search-field">
+          <label for="advancedSearchCategory">Danh mục</label>
+          <select id="advancedSearchCategory">
+            <option value="all">Tất cả danh mục</option>
+            <option value="iphone">iPhone</option>
+            <option value="mac">Mac</option>
+            <option value="ipad">iPad</option>
+            <option value="watch">Apple Watch</option>
+          </select>
+        </div>
+        <div class="tz-advanced-search-field">
+          <label for="advancedSearchSeries">Dòng máy</label>
+          <select id="advancedSearchSeries">
+            <option value="all">Tất cả dòng máy</option>
+          </select>
+        </div>
+        <div class="tz-advanced-search-field">
+          <label for="advancedSearchCapacity">Dung lượng</label>
+          <select id="advancedSearchCapacity">
+            <option value="all">Tất cả dung lượng</option>
+            <option value="128GB">128GB</option>
+            <option value="256GB">256GB</option>
+            <option value="512GB">512GB</option>
+            <option value="1TB">1TB</option>
+            <option value="2TB">2TB</option>
+          </select>
+        </div>
+        <div class="tz-advanced-search-field">
+          <label for="advancedSearchMinPrice">Giá từ (VNĐ)</label>
+          <input type="number" id="advancedSearchMinPrice" min="0" step="100000" placeholder="Nhập giá từ">
+        </div>
+        <div class="tz-advanced-search-field">
+          <label for="advancedSearchMaxPrice">Giá đến (VNĐ)</label>
+          <input type="number" id="advancedSearchMaxPrice" min="0" step="100000" placeholder="Nhập giá đến">
+        </div>
+        <div class="tz-advanced-search-field">
+          <label for="advancedSearchRating">Đánh giá tối thiểu</label>
+          <select id="advancedSearchRating">
+            <option value="0">Tất cả đánh giá</option>
+            <option value="4">Từ 4 sao</option>
+            <option value="4.5">Từ 4.5 sao</option>
+            <option value="4.8">Từ 4.8 sao</option>
+          </select>
+        </div>
+        <div class="tz-advanced-search-field">
+          <label for="advancedSearchSort">Sắp xếp</label>
+          <select id="advancedSearchSort">
+            <option value="default">Mặc định</option>
+            <option value="price-asc">Giá thấp đến cao</option>
+            <option value="price-desc">Giá cao đến thấp</option>
+            <option value="rating-desc">Đánh giá cao nhất</option>
+            <option value="name-asc">Tên A-Z</option>
+          </select>
+        </div>
+      </div>
+      <div class="tz-advanced-search-actions">
+        <label class="tz-advanced-search-check"><input type="checkbox" id="advancedSearchNewOnly"> Chỉ xem sản phẩm mới</label>
+        <div class="tz-advanced-search-buttons">
+          <button type="button" class="tz-advanced-search-button" onclick="applyAdvancedSearch()">Lọc</button>
+          <button type="button" class="tz-series-btn" onclick="resetAdvancedSearch()">Xóa bộ lọc</button>
+        </div>
+      </div>
+    </section>
+    <div class="tz-advanced-search-empty" id="advancedSearchEmpty">Không tìm thấy sản phẩm phù hợp với các tiêu chí đã chọn.</div>
+  <?php endif; ?>
+
   <!-- ========================================================================
        MỤC 1: IPHONE (SECTION IPHONE CHUẨN CDS STORE)
        ======================================================================== -->
@@ -2147,7 +2267,7 @@ $total_count = count($eval_results);
     <!-- Lưới sản phẩm iPhone -->
     <div class="tz-product-grid" id="iphoneGrid">
       <?php foreach ($iphone_products as $p): ?>
-        <div class="tz-product-card" data-series="<?= e($p['series']) ?>" data-product-id="<?= e($p['id']) ?>">
+        <div class="tz-product-card" data-series="<?= e($p['series']) ?>" data-category="<?= e($p['category']) ?>" data-product-id="<?= e($p['id']) ?>" data-product-name="<?= e($p['name']) ?>" data-price="<?= (int)preg_replace('/\D+/', '', $p['price']) ?>" data-capacities="<?= e(implode(',', $p['capacities'] ?? [])) ?>" data-rating="<?= e((string)$p['rating']) ?>" data-is-new="<?= !empty($p['is_new']) ? '1' : '0' ?>">
           
           <!-- Thumbnail ảnh sản phẩm chính hãng -->
           <div class="tz-product-thumb">
@@ -2258,7 +2378,7 @@ $total_count = count($eval_results);
     <!-- Lưới sản phẩm Mac -->
     <div class="tz-product-grid" id="macGrid">
       <?php foreach ($mac_products as $p): ?>
-        <div class="tz-product-card" data-series="<?= e($p['series']) ?>" data-product-id="<?= e($p['id']) ?>">
+        <div class="tz-product-card" data-series="<?= e($p['series']) ?>" data-category="<?= e($p['category']) ?>" data-product-id="<?= e($p['id']) ?>" data-product-name="<?= e($p['name']) ?>" data-price="<?= (int)preg_replace('/\D+/', '', $p['price']) ?>" data-capacities="<?= e(implode(',', $p['capacities'] ?? [])) ?>" data-rating="<?= e((string)$p['rating']) ?>" data-is-new="<?= !empty($p['is_new']) ? '1' : '0' ?>">
           <div class="tz-product-thumb">
             <?php if (!empty($p['is_new'])): ?>
               <span class="tz-badge-new">Mới</span>
@@ -2341,7 +2461,7 @@ $total_count = count($eval_results);
     <!-- Lưới sản phẩm iPad -->
     <div class="tz-product-grid" id="ipadGrid">
       <?php foreach ($ipad_products as $p): ?>
-        <div class="tz-product-card" data-series="<?= e($p['series']) ?>" data-product-id="<?= e($p['id']) ?>">
+        <div class="tz-product-card" data-series="<?= e($p['series']) ?>" data-category="<?= e($p['category']) ?>" data-product-id="<?= e($p['id']) ?>" data-product-name="<?= e($p['name']) ?>" data-price="<?= (int)preg_replace('/\D+/', '', $p['price']) ?>" data-capacities="<?= e(implode(',', $p['capacities'] ?? [])) ?>" data-rating="<?= e((string)$p['rating']) ?>" data-is-new="<?= !empty($p['is_new']) ? '1' : '0' ?>">
           <div class="tz-product-thumb">
             <?php if (!empty($p['is_new'])): ?>
               <span class="tz-badge-new">Mới</span>
@@ -2422,7 +2542,7 @@ $total_count = count($eval_results);
     <!-- Lưới sản phẩm Watch -->
     <div class="tz-product-grid" id="watchGrid">
       <?php foreach ($watch_products as $p): ?>
-        <div class="tz-product-card" data-series="<?= e($p['series']) ?>" data-product-id="<?= e($p['id']) ?>">
+        <div class="tz-product-card" data-series="<?= e($p['series']) ?>" data-category="<?= e($p['category']) ?>" data-product-id="<?= e($p['id']) ?>" data-product-name="<?= e($p['name']) ?>" data-price="<?= (int)preg_replace('/\D+/', '', $p['price']) ?>" data-capacities="<?= e(implode(',', $p['capacities'] ?? [])) ?>" data-rating="<?= e((string)$p['rating']) ?>" data-is-new="<?= !empty($p['is_new']) ? '1' : '0' ?>">
           <div class="tz-product-thumb">
             <?php if (!empty($p['is_new'])): ?>
               <span class="tz-badge-new">Mới</span>
@@ -3081,7 +3201,105 @@ setInterval(() => {
 }, 1000);
 
 // --------------------------------------------------------------------------
-// 3. LỌC PHÂN KHÚC SERIES THEO TỪNG DANH MỤC (IPHONE, MAC, IPAD, WATCH)
+// 3. TÌM KIẾM NÂNG CAO ĐA TIÊU CHÍ TRÊN TOÀN BỘ CDS STORE
+// --------------------------------------------------------------------------
+const advancedSearchCards = () => Array.from(document.querySelectorAll('.tz-product-card[data-category]'));
+
+function normalizeSearchText(value) {
+  return String(value || '').toLocaleLowerCase('vi').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+function updateAdvancedSeriesOptions() {
+  const select = document.getElementById('advancedSearchSeries');
+  if (!select) return;
+  const current = select.value;
+  const series = [...new Set(advancedSearchCards().map(card => card.dataset.series).filter(Boolean))].sort();
+  select.innerHTML = '<option value="all">Tất cả dòng máy</option>' + series.map(item => `<option value="${escapeHtml(item)}">${escapeHtml(item)}</option>`).join('');
+  select.value = series.includes(current) ? current : 'all';
+}
+
+function applyAdvancedSearch() {
+  const keyword = normalizeSearchText(document.getElementById('advancedSearchKeyword')?.value);
+  const category = document.getElementById('advancedSearchCategory')?.value || 'all';
+  const series = document.getElementById('advancedSearchSeries')?.value || 'all';
+  const capacity = document.getElementById('advancedSearchCapacity')?.value || 'all';
+  const minPrice = Number(document.getElementById('advancedSearchMinPrice')?.value || 0);
+  const maxPrice = Number(document.getElementById('advancedSearchMaxPrice')?.value || 0);
+  const minRating = Number(document.getElementById('advancedSearchRating')?.value || 0);
+  const newOnly = Boolean(document.getElementById('advancedSearchNewOnly')?.checked);
+  const sort = document.getElementById('advancedSearchSort')?.value || 'default';
+  const cards = advancedSearchCards();
+  let matched = 0;
+
+  cards.forEach(card => {
+    const name = normalizeSearchText(`${card.dataset.productName} ${card.dataset.capacities} ${card.dataset.series}`);
+    const price = Number(card.dataset.price || 0);
+    const rating = Number(card.dataset.rating || 0);
+    const capacities = (card.dataset.capacities || '').split(',');
+    const visible = (!keyword || name.includes(keyword))
+      && (category === 'all' || card.dataset.category === category)
+      && (series === 'all' || card.dataset.series === series)
+      && (capacity === 'all' || capacities.includes(capacity))
+      && (!minPrice || price >= minPrice)
+      && (!maxPrice || price <= maxPrice)
+      && rating >= minRating
+      && (!newOnly || card.dataset.isNew === '1');
+    card.style.display = visible ? 'flex' : 'none';
+    if (visible) matched++;
+  });
+
+  document.querySelectorAll('.tz-product-grid').forEach(grid => {
+    const hasVisibleCards = Array.from(grid.querySelectorAll('.tz-product-card')).some(card => card.style.display !== 'none');
+    grid.closest('[id^="sec-"]')?.style.setProperty('display', hasVisibleCards ? '' : 'none');
+  });
+
+  const sortedCards = [...cards].sort((a, b) => {
+    if (sort === 'price-asc') return Number(a.dataset.price) - Number(b.dataset.price);
+    if (sort === 'price-desc') return Number(b.dataset.price) - Number(a.dataset.price);
+    if (sort === 'rating-desc') return Number(b.dataset.rating) - Number(a.dataset.rating);
+    if (sort === 'name-asc') return normalizeSearchText(a.dataset.productName).localeCompare(normalizeSearchText(b.dataset.productName), 'vi');
+    return 0;
+  });
+  if (sort !== 'default') {
+    sortedCards.forEach(card => card.parentElement?.appendChild(card));
+  }
+
+  const result = document.getElementById('advancedSearchResult');
+  const empty = document.getElementById('advancedSearchEmpty');
+  if (result) result.textContent = `Đang hiển thị ${matched}/${cards.length} sản phẩm`;
+  if (empty) empty.style.display = matched ? 'none' : 'block';
+}
+
+function resetAdvancedSearch() {
+  ['advancedSearchKeyword', 'advancedSearchMinPrice', 'advancedSearchMaxPrice'].forEach(id => {
+    const input = document.getElementById(id);
+    if (input) input.value = '';
+  });
+  ['advancedSearchCategory', 'advancedSearchSeries', 'advancedSearchCapacity', 'advancedSearchRating', 'advancedSearchSort'].forEach(id => {
+    const input = document.getElementById(id);
+    if (input) input.value = id === 'advancedSearchRating' ? '0' : (id === 'advancedSearchSort' ? 'default' : 'all');
+  });
+  const newOnly = document.getElementById('advancedSearchNewOnly');
+  if (newOnly) newOnly.checked = false;
+  applyAdvancedSearch();
+}
+
+function initAdvancedSearch() {
+  if (!document.getElementById('advancedSearchKeyword')) return;
+  updateAdvancedSeriesOptions();
+  document.getElementById('advancedSearchKeyword')?.addEventListener('keydown', event => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      applyAdvancedSearch();
+    }
+  });
+  applyAdvancedSearch();
+}
+
+initAdvancedSearch();
+
+// --------------------------------------------------------------------------
+// 4. LỌC PHÂN KHÚC SERIES THEO TỪNG DANH MỤC (IPHONE, MAC, IPAD, WATCH)
 // --------------------------------------------------------------------------
 function filterBySeries(series, btn, category) {
   const parent = btn.parentElement;

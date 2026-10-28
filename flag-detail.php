@@ -344,7 +344,7 @@ $can_modify = $can_edit || $can_toggle;
         <div class="card-body">
           <div class="form-group">
             <label class="form-label">Mã khách hàng thử</label>
-            <input type="text" id="testUserId" class="form-control font-mono" value="KH1" placeholder="Nhập mã khách hàng thử" readonly>
+            <input type="text" id="testUserId" class="form-control font-mono" value="KH1" placeholder="Nhập mã khách hàng thử">
           </div>
           <button type="button" class="btn btn-secondary" style="width:100%" onclick="quickTest()">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>

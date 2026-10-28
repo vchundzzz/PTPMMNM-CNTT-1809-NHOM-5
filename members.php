@@ -141,6 +141,7 @@ require_once __DIR__ . '/includes/header.php';
 $members = $_SESSION['ff_data']['members'] ?? [];
 $matrix = PermissionService::getPermissionsMatrix();
 $can_manage = PermissionService::currentUserCan('manage_members');
+$can_view_passwords = PermissionService::currentUserCan('view_member_passwords');
 $members_pagination = paginate_items($members, (int)($_GET['page'] ?? 1), 10);
 $page_members = $members_pagination['items'];
 ?>
@@ -202,15 +203,27 @@ $page_members = $members_pagination['items'];
               <span class="font-mono" style="font-weight: 600; color: var(--primary);"><?= e((string)($member['username'] ?? $username)) ?></span>
             </td>
             <td>
+              <?php if ($can_view_passwords): ?>
               <div style="display: inline-flex; align-items: center; gap: 0.4rem;">
                 <span class="font-mono pwd-mask" data-pwd="<?= e((string)($member['password'] ?? '')) ?>">••••••••</span>
-                <button type="button" class="action-icon-btn" style="width: 26px; height: 26px;" onclick="togglePwdView(this)" title="Hiện / Ẩn mật khẩu">
+                <button type="button" class="action-icon-btn" style="width: 26px; height: 26px;" data-member-password="<?= e((string)($member['password'] ?? '')) ?>" onclick="togglePwdView(this)" title="Hiện / Ẩn mật khẩu">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                     <circle cx="12" cy="12" r="3"></circle>
                   </svg>
                 </button>
               </div>
+              <?php else: ?>
+                <div style="display: inline-flex; align-items: center; gap: 0.4rem;">
+                  <span class="font-mono pwd-mask">••••••••</span>
+                  <button type="button" class="action-icon-btn" style="width: 26px; height: 26px;" onclick="togglePwdView(this, false)" title="Hiện / Ẩn mật khẩu">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                  </button>
+                </div>
+              <?php endif; ?>
             </td>
             <td>
               <span style="color: var(--text-secondary);"><?= e($member['email'] ?? '') ?></span>
@@ -231,7 +244,7 @@ $page_members = $members_pagination['items'];
                     onclick='openMemberModal(<?= json_encode([
                         "id" => $member["id"] ?? "",
                         "username" => $member["username"] ?? $username,
-                        "password" => $member["password"] ?? "",
+                        "password" => $can_view_passwords ? ($member["password"] ?? "") : "",
                         "name" => $member["name"] ?? "",
                         "email" => $member["email"] ?? "",
                         "role" => $member["role"] ?? "viewer",
@@ -369,10 +382,14 @@ $page_members = $members_pagination['items'];
 </div>
 
 <script>
-function togglePwdView(btn) {
+function togglePwdView(btn, canView = true) {
+  if (!canView) {
+    alert('Vai trò tài khoản không có quyền xem mật khẩu.');
+    return;
+  }
   const span = btn.parentElement.querySelector('.pwd-mask');
   if (!span) return;
-  const real = span.getAttribute('data-pwd') || '';
+  const real = btn.getAttribute('data-member-password') || '';
   if (span.textContent === '••••••••') {
     span.textContent = real;
   } else {

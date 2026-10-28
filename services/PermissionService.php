@@ -25,6 +25,7 @@ class PermissionService
             'manage_projects' => true,
             'manage_environments' => true,
             'manage_members' => true,
+            'view_member_passwords' => true,
             'manage_groups' => true,
             'import_config' => true,
             'export_config' => true,
@@ -42,6 +43,7 @@ class PermissionService
             'manage_projects' => false,
             'manage_environments' => false,
             'manage_members' => false,
+            'view_member_passwords' => false,
             'manage_groups' => true,
             'import_config' => false,
             'export_config' => true,
@@ -59,6 +61,7 @@ class PermissionService
             'manage_projects' => false,
             'manage_environments' => false,
             'manage_members' => false,
+            'view_member_passwords' => false,
             'manage_groups' => false,
             'import_config' => false,
             'export_config' => true, // Cho phép Viewer tải file cấu hình về xem
@@ -146,6 +149,10 @@ class PermissionService
             'manage_members' => [
                 'name' => 'Quản lý thành viên & Phân quyền',
                 'description' => 'Thêm, sửa thành viên và chỉ định vai trò quản trị, biên tập hoặc xem',
+            ],
+            'view_member_passwords' => [
+                'name' => 'Xem mật khẩu thành viên',
+                'description' => 'Hiển thị mật khẩu tài khoản trong danh sách và biểu mẫu chỉnh sửa',
             ],
             'import_config' => [
                 'name' => 'Nhập file cấu hình',
