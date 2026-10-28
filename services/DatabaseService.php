@@ -207,12 +207,31 @@ class DatabaseService
 
         $pdo->beginTransaction();
         try {
-            $stmt = $pdo->prepare("INSERT INTO flags (id, `key`, name, description, project_id, created_at, updated_at) VALUES (?, ?, ?, ?, 'prj_ecommerce', ?, ?)");
+            $maxId = (string)$pdo->query("SELECT MAX(id) FROM flags WHERE id LIKE 'flg_%'")->fetchColumn();
+            if (preg_match('/^flg_(\d+)$/', $maxId, $m)) {
+                $id = sprintf('flg_%03d', (int)$m[1] + 1);
+            }
+            $user = $data['updated_by'] ?? 'admin';
+
+            $stmt = $pdo->prepare("
+                INSERT INTO flags (id, `key`, name, description, project_id, created_at, updated_at)
+                VALUES (?, ?, ?, ?, 'prj_ecommerce', ?, ?)
+                ON DUPLICATE KEY UPDATE
+                    name = VALUES(name),
+                    description = VALUES(description),
+                    updated_at = VALUES(updated_at)
+            ");
             $stmt->execute([$id, $key, $name, $desc, $now, $now]);
 
-            $feStmt = $pdo->prepare("INSERT INTO flag_environments (flag_key, environment, enabled, rollout_percentage, status, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?)");
-            $feStmt->execute([$key, 'testing', 0, 0, 'Bản nháp', $now, 'admin']);
-            $feStmt->execute([$key, 'staging', 0, 0, 'Bản nháp', $now, 'admin']);
+            $feStmt = $pdo->prepare("
+                INSERT INTO flag_environments (flag_key, environment, enabled, rollout_percentage, status, updated_at, updated_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE
+                    updated_at = VALUES(updated_at),
+                    updated_by = VALUES(updated_by)
+            ");
+            $feStmt->execute([$key, 'testing', 0, 0, 'Bản nháp', $now, $user]);
+            $feStmt->execute([$key, 'staging', 0, 0, 'Bản nháp', $now, $user]);
 
             $pdo->commit();
             return true;
@@ -355,6 +374,137 @@ class DatabaseService
     }
 
     /**
+     * Xác thực đăng nhập trực tiếp từ bảng members trong MySQL và cập nhật last_login
+     */
+    public static function authenticateMember(string $username, string $password): ?array
+    {
+        $pdo = Database::getConnection();
+        if (!$pdo) return null;
+
+        try {
+            $stmt = $pdo->prepare("SELECT * FROM members WHERE username = ? LIMIT 1");
+            $stmt->execute([trim($username)]);
+            $acc = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$acc) return null;
+
+            $dbPass = (string)($acc['password'] ?? '');
+            $matched = ($dbPass === $password) || (strlen($dbPass) >= 60 && password_verify($password, $dbPass));
+            if (!$matched) return null;
+
+            $now = date('Y-m-d H:i:s');
+            $upd = $pdo->prepare("UPDATE members SET last_login = ? WHERE id = ?");
+            $upd->execute([$now, $acc['id']]);
+            $acc['last_login'] = $now;
+
+            return $acc;
+        } catch (Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Thêm mới hoặc cập nhật thành viên trong bảng members MySQL
+     */
+    public static function saveMember(array $m): bool
+    {
+        $pdo = Database::getConnection();
+        if (!$pdo) return false;
+
+        try {
+            $now = date('Y-m-d H:i:s');
+            $stmt = $pdo->prepare("
+                INSERT INTO members (id, username, password, name, email, role, role_title, avatar, created_at, last_login)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE
+                    username = VALUES(username),
+                    password = VALUES(password),
+                    name = VALUES(name),
+                    email = VALUES(email),
+                    role = VALUES(role),
+                    role_title = VALUES(role_title),
+                    avatar = VALUES(avatar)
+            ");
+            return $stmt->execute([
+                $m['id'],
+                $m['username'],
+                $m['password'],
+                $m['name'],
+                $m['email'] ?? ($m['username'] . '@featuremanager.local'),
+                $m['role'] ?? 'viewer',
+                $m['role_title'] ?? 'Viewer',
+                $m['avatar'] ?? strtoupper(substr($m['username'], 0, 2)),
+                $m['created_at'] ?? $now,
+                $m['last_login'] ?? null,
+            ]);
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Xóa thành viên khỏi bảng members MySQL
+     */
+    public static function deleteMember(string $idOrUsername): bool
+    {
+        $pdo = Database::getConnection();
+        if (!$pdo) return false;
+
+        try {
+            $stmt = $pdo->prepare("DELETE FROM members WHERE id = ? OR username = ?");
+            return $stmt->execute([$idOrUsername, $idOrUsername]);
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Khôi phục cấu hình cờ trên môi trường từ snapshot phiên bản trong MySQL
+     */
+    public static function rollbackVersion(array $snapshot, string $env, string $actor = 'admin'): bool
+    {
+        $pdo = Database::getConnection();
+        if (!$pdo) return false;
+
+        $now = date('Y-m-d H:i:s');
+        $pdo->beginTransaction();
+        try {
+            $stmt = $pdo->prepare("
+                UPDATE flag_environments
+                SET enabled = ?, rollout_percentage = ?, status = ?, updated_at = ?, updated_by = ?
+                WHERE flag_key = ? AND environment = ?
+            ");
+            foreach ($snapshot as $key => $cfg) {
+                $en = !empty($cfg['enabled']) ? 1 : 0;
+                $pct = (int)($cfg['rollout_percentage'] ?? 0);
+                $status = $en ? 'Đã phát hành' : 'Bản nháp';
+                $stmt->execute([$en, $pct, $status, $now, $actor, $key, $env]);
+            }
+            $pdo->commit();
+            return true;
+        } catch (Throwable $e) {
+            $pdo->rollBack();
+            return false;
+        }
+    }
+
+    /**
+     * Tải danh sách khách hàng từ bảng customers trong MySQL
+     */
+    public static function loadCustomers(): ?array
+    {
+        $pdo = Database::getConnection();
+        if (!$pdo) return null;
+
+        try {
+            $stmt = $pdo->query("SELECT id, name, email, group_id, group_name FROM customers");
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            return !empty($rows) ? $rows : null;
+        } catch (Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
      * Xóa phiên bản khỏi MySQL
      */
     public static function deleteVersion(string $tag): bool
@@ -378,6 +528,56 @@ class DatabaseService
     }
 
     /**
+     * Lưu hoặc cập nhật nhóm khách hàng mục tiêu (target_groups) vào MySQL
+     */
+    public static function saveGroup(array $g): bool
+    {
+        $pdo = Database::getConnection();
+        if (!$pdo) return false;
+
+        try {
+            $stmt = $pdo->prepare("
+                INSERT INTO target_groups (id, name, description, range_label, user_count, min_index, max_index)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE
+                    name = VALUES(name),
+                    description = VALUES(description),
+                    range_label = VALUES(range_label),
+                    user_count = VALUES(user_count),
+                    min_index = VALUES(min_index),
+                    max_index = VALUES(max_index)
+            ");
+            return $stmt->execute([
+                $g['id'],
+                $g['name'],
+                $g['description'] ?? '',
+                $g['range'] ?? ($g['range_label'] ?? ''),
+                (int)($g['user_count'] ?? 0),
+                (int)($g['min_index'] ?? 1),
+                (int)($g['max_index'] ?? 100),
+            ]);
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Xóa nhóm khách hàng khỏi MySQL
+     */
+    public static function deleteGroup(string $id): bool
+    {
+        $pdo = Database::getConnection();
+        if (!$pdo) return false;
+
+        try {
+            $stmt = $pdo->prepare("DELETE FROM target_groups WHERE id = ?");
+            return $stmt->execute([$id]);
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
      * Thêm nhật ký hoạt động
      */
     public static function addAuditLog(array $log): bool
@@ -385,23 +585,41 @@ class DatabaseService
         $pdo = Database::getConnection();
         if (!$pdo) return false;
 
-        $id = $log['id'] ?? ('log_' . uniqid());
-        $stmt = $pdo->prepare("
-            INSERT INTO audit_logs (id, actor, role, `action`, target, old_value, new_value, reason, created_at, version)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ");
-        return $stmt->execute([
-            $id,
-            $log['actor'] ?? 'admin',
-            $log['role'] ?? 'admin',
-            $log['action'] ?? 'THAY_ĐỔI',
-            $log['target'] ?? '',
-            $log['old_value'] ?? '',
-            $log['new_value'] ?? '',
-            $log['reason'] ?? '',
-            $log['created_at'] ?? date('Y-m-d H:i:s'),
-            $log['version'] ?? 'v3'
-        ]);
+        try {
+            $maxId = (string)$pdo->query("SELECT MAX(id) FROM audit_logs WHERE id LIKE 'log_%'")->fetchColumn();
+            $nextNum = 1;
+            if (preg_match('/^log_(\d+)$/', $maxId, $m)) {
+                $nextNum = (int)$m[1] + 1;
+            }
+            $id = sprintf('log_%03d', $nextNum);
+
+            $stmt = $pdo->prepare("
+                INSERT INTO audit_logs (id, actor, role, `action`, target, old_value, new_value, reason, created_at, version)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE
+                    actor = VALUES(actor),
+                    `action` = VALUES(`action`),
+                    target = VALUES(target),
+                    old_value = VALUES(old_value),
+                    new_value = VALUES(new_value),
+                    reason = VALUES(reason),
+                    created_at = VALUES(created_at)
+            ");
+            return $stmt->execute([
+                $id,
+                $log['actor'] ?? 'admin',
+                $log['role'] ?? 'admin',
+                $log['action'] ?? 'THAY_ĐỔI',
+                $log['target'] ?? '',
+                $log['old_value'] ?? '',
+                $log['new_value'] ?? '',
+                $log['reason'] ?? '',
+                $log['created_at'] ?? date('Y-m-d H:i:s'),
+                $log['version'] ?? 'v3'
+            ]);
+        } catch (Throwable $e) {
+            return false;
+        }
     }
 
     /**

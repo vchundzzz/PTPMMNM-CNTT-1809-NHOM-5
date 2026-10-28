@@ -66,7 +66,7 @@ uasort($sorted_flags, function ($a, $b) use ($current_env) {
     $timeB = $b['environments'][$current_env]['updated_at'] ?? '';
     return strcmp($timeB, $timeA);
 });
-$flags_pagination = paginate_items($sorted_flags, (int)($_GET['flags_page'] ?? 1), 10);
+$flags_pagination = paginate_items($sorted_flags, (int)($_GET['flags_page'] ?? 1), 20);
 $paged_flags = $flags_pagination['items'];
 ?>
 
@@ -79,7 +79,15 @@ $paged_flags = $flags_pagination['items'];
       <strong style="color: var(--primary); text-transform: uppercase;"><?= e($current_env) ?></strong>.
     </p>
   </div>
-  <div class="page-actions">
+  <div class="page-actions" style="display: flex; gap: 0.5rem; align-items: center;">
+    <a href="setup.php" class="btn btn-secondary">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <ellipse cx="12" cy="5" rx="9" ry="3"/>
+        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+      </svg>
+      <span>CSDL MySQL</span>
+    </a>
     <a href="flags.php" class="btn btn-primary">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
         <line x1="12" y1="5" x2="12" y2="19"></line>

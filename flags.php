@@ -28,11 +28,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (isset($_SESSION['ff_data']['flags'][$key])) {
             $cur = !empty($_SESSION['ff_data']['flags'][$key]['environments'][$env]['enabled']);
             $new = !$cur;
+            $user = get_authenticated_user()['username'] ?? 'admin';
             $_SESSION['ff_data']['flags'][$key]['environments'][$env]['enabled']    = $new;
             $_SESSION['ff_data']['flags'][$key]['environments'][$env]['updated_at'] = date('Y-m-d H:i:s');
-            $_SESSION['ff_data']['flags'][$key]['environments'][$env]['updated_by'] = get_authenticated_user()['username'] ?? 'admin';
+            $_SESSION['ff_data']['flags'][$key]['environments'][$env]['updated_by'] = $user;
             // Cập nhật trạng thái hiển thị
             $_SESSION['ff_data']['flags'][$key]['environments'][$env]['status'] = $new ? 'Đã phát hành' : 'Bản nháp';
+
+            // Đồng bộ trực tiếp vào CSDL MySQL
+            try {
+                require_once __DIR__ . '/services/DatabaseService.php';
+                DatabaseService::toggleFlag($key, $env, $new, $user);
+            } catch (Throwable $e) {}
+
             append_audit_log('BẬT_TẮT_CỜ', $key, $cur?'Bật':'Tắt', $new?'Bật':'Tắt', 'Thay đổi trực tiếp từ danh sách');
             set_flash('success', ($new ? 'Đã BẬT' : 'Đã TẮT') . " cờ [$key] trên môi trường " . ($env==='testing'?'Kiểm thử':'Vận hành') . '.');
         }
@@ -76,8 +84,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ],
             ],
         ];
+        try {
+            require_once __DIR__ . '/services/DatabaseService.php';
+            DatabaseService::createFlag([
+                'id'          => sprintf('flg_%03d', $num),
+                'key'         => $key,
+                'name'        => $name,
+                'description' => $desc,
+                'updated_by'  => get_authenticated_user()['username'] ?? 'admin',
+            ]);
+        } catch (Throwable $e) {}
+
         append_audit_log('TẠO_CỜ_MỚI', $key, '-', "[$key] – Bản nháp", 'Tạo mới từ giao diện danh sách');
-        set_flash('success', "Đã tạo cờ tính năng [$key] thành công (bản nháp).");
+        set_flash('success', "Đã tạo cờ tính năng [$key] và lưu vào CSDL MySQL thành công.");
         header('Location: flags.php'); exit;
     }
 
@@ -87,12 +106,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $key = trim($_POST['flag_key'] ?? '');
         $pct = max(0, min(100, (int)($_POST['rollout_percentage'] ?? 0)));
         if (isset($_SESSION['ff_data']['flags'][$key])) {
+            $user = get_authenticated_user()['username'] ?? 'admin';
             $old = $_SESSION['ff_data']['flags'][$key]['environments'][$env]['rollout_percentage'] ?? 0;
             $_SESSION['ff_data']['flags'][$key]['environments'][$env]['rollout_percentage'] = $pct;
             $_SESSION['ff_data']['flags'][$key]['environments'][$env]['updated_at'] = date('Y-m-d H:i:s');
-            $_SESSION['ff_data']['flags'][$key]['environments'][$env]['updated_by'] = get_authenticated_user()['username'] ?? 'admin';
+            $_SESSION['ff_data']['flags'][$key]['environments'][$env]['updated_by'] = $user;
+
+            try {
+                require_once __DIR__ . '/services/DatabaseService.php';
+                DatabaseService::updateRollout($key, $env, $pct, $user);
+            } catch (Throwable $e) {}
+
             append_audit_log('CẬP_NHẬT_TỶ_LỆ', $key, "Tỷ lệ: $old%", "Tỷ lệ: $pct%", 'Điều chỉnh trực tiếp từ danh sách');
-            set_flash('success', "Đã cập nhật tỷ lệ triển khai cờ [$key] → $pct%.");
+            set_flash('success', "Đã cập nhật tỷ lệ triển khai cờ [$key] → $pct% và lưu vào CSDL MySQL.");
         }
         header('Location: flags.php'); exit;
     }
@@ -103,6 +129,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $key = trim($_POST['flag_key'] ?? '');
         if (isset($_SESSION['ff_data']['flags'][$key])) {
             unset($_SESSION['ff_data']['flags'][$key]);
+
+            // Đồng bộ xóa trong CSDL MySQL
+            try {
+                require_once __DIR__ . '/services/DatabaseService.php';
+                DatabaseService::deleteFlag($key);
+            } catch (Throwable $e) {}
+
             append_audit_log('XÓA_CỜ', $key, 'Tồn tại', 'Đã xóa', 'Xóa từ giao diện danh sách');
             set_flash('success', "Đã xóa cờ tính năng [$key].");
         }
@@ -125,6 +158,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             unset($_SESSION['ff_data']['flags'][$key]);
+            try {
+                require_once __DIR__ . '/services/DatabaseService.php';
+                DatabaseService::deleteFlag($key);
+            } catch (Throwable $e) {}
             append_audit_log('XÓA_CỜ', $key, 'Tồn tại', 'Đã xóa', 'Xóa hàng loạt từ giao diện danh sách');
             $deleted++;
         }
@@ -156,7 +193,7 @@ $can_create = PermissionService::currentUserCan('create_flag');
 $can_toggle = PermissionService::currentUserCan('toggle_flag');
 $can_delete = PermissionService::currentUserCan('delete_flag');
 $can_edit   = PermissionService::currentUserCan('toggle_flag');
-$flags_pagination = paginate_items($flags, (int)($_GET['page'] ?? 1), 10);
+$flags_pagination = paginate_items($flags, (int)($_GET['page'] ?? 1), 20);
 $page_flags = $flags_pagination['items'];
 ?>
 
@@ -396,7 +433,7 @@ $page_flags = $flags_pagination['items'];
       </tbody>
     </table>
   </div>
-  <?= render_pagination($flags_pagination['total'], $flags_pagination['page'], 10, 'flags.php', 'cờ tính năng') ?>
+  <?= render_pagination($flags_pagination['total'], $flags_pagination['page'], 20, 'flags.php', 'cờ tính năng') ?>
 </div>
 
 <!-- Modal Tạo cờ mới -->

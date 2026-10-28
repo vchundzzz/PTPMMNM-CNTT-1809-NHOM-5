@@ -157,6 +157,10 @@ $rollback_count = count(array_filter(
     </div>
   </div>
   <div class="version-page-actions">
+    <a href="version-compare.php?v=v1&v2=v3" class="btn btn-secondary" title="So sánh 2 phiên bản cấu hình">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M21 3l-7 7"/><path d="M3 3l7 7"/></svg>
+      <span>So sánh phiên bản</span>
+    </a>
     <?php if ($can_create_ver): ?>
     <button class="btn btn-primary" type="button" onclick="openModal('createVersionModal')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>

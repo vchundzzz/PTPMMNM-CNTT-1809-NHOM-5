@@ -59,6 +59,12 @@ class VersionService
 
         $_SESSION['ff_data']['versions'][$tag] = $version;
 
+        // Đồng bộ snapshot vào CSDL MySQL
+        try {
+            require_once __DIR__ . '/DatabaseService.php';
+            DatabaseService::saveVersion($version);
+        } catch (Throwable $e) {}
+
         append_audit_log(
             'LƯU_PHIÊN_BẢN',
             $ver_num,
@@ -106,6 +112,10 @@ class VersionService
         }
         $_SESSION['ff_data']['version_sequence'] = $sequence;
         unset($_SESSION['ff_data']['versions'][$version_key]);
+        try {
+            require_once __DIR__ . '/DatabaseService.php';
+            DatabaseService::deleteVersion((string)($version['tag'] ?? $tag));
+        } catch (Throwable $e) {}
         append_audit_log(
             'XÓA_PHIÊN_BẢN',
             (string)($version['version_number'] ?? $tag),
@@ -142,6 +152,11 @@ class VersionService
             $_SESSION['ff_data']['flags'][$key]['environments'][$env]['updated_at']         = date('Y-m-d H:i:s');
             $_SESSION['ff_data']['flags'][$key]['environments'][$env]['updated_by']         = $actor;
         }
+
+        try {
+            require_once __DIR__ . '/DatabaseService.php';
+            DatabaseService::rollbackVersion($snapshot, $env, $actor);
+        } catch (Throwable $e) {}
 
         append_audit_log(
             'KHÔI_PHỤC_PHIÊN_BẢN',

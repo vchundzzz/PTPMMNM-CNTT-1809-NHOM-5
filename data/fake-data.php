@@ -15,6 +15,16 @@ function generate_fake_users(): array
     static $cached = null;
     if ($cached !== null) return $cached;
 
+    if (PHP_SAPI !== 'cli') {
+        try {
+            require_once __DIR__ . '/../services/DatabaseService.php';
+            $dbUsers = DatabaseService::loadCustomers();
+            if (!empty($dbUsers)) {
+                return $cached = $dbUsers;
+            }
+        } catch (Throwable $e) {}
+    }
+
     $users = [];
     for ($i = 1; $i <= 1000; $i++) {
         $id = 'KH' . $i;
@@ -416,6 +426,33 @@ function get_initial_fake_data(): array
                     ],
                 ],
             ],
+            'banner_quang_cao' => [
+                'id'          => 'flg_011',
+                'key'         => 'banner_quang_cao',
+                'name'        => 'Banner quảng cáo trang chủ',
+                'description' => 'Hiển thị thanh slider banner khuyến mãi các dòng sản phẩm Apple mới nhất.',
+                'project_id'  => 'prj_ecommerce',
+                'environments' => [
+                    'testing' => [
+                        'enabled'            => true,
+                        'rollout_percentage' => 100,
+                        'status'             => 'Đã phát hành',
+                        'target_groups'      => ['nhom_noibu', 'nhom_beta', 'nhom_chung'],
+                        'user_overrides'     => [],
+                        'updated_at'         => '2026-10-27 18:49:29',
+                        'updated_by'         => 'admin',
+                    ],
+                    'staging' => [
+                        'enabled'            => true,
+                        'rollout_percentage' => 100,
+                        'status'             => 'Đã phát hành',
+                        'target_groups'      => ['nhom_noibu', 'nhom_beta', 'nhom_chung'],
+                        'user_overrides'     => [],
+                        'updated_at'         => '2026-10-27 18:49:29',
+                        'updated_by'         => 'admin',
+                    ],
+                ],
+            ],
         ],
 
         // 6. Phiên bản cấu hình
@@ -440,6 +477,7 @@ function get_initial_fake_data(): array
                     'tim_kiem_nang_cao'   => ['enabled' => false, 'rollout_percentage' => 0],
                     'theo_doi_don_hang'   => ['enabled' => false, 'rollout_percentage' => 0],
                     'tich_diem_thanh_vien'=> ['enabled' => false, 'rollout_percentage' => 0],
+                    'banner_quang_cao'    => ['enabled' => true,  'rollout_percentage' => 100],
                 ],
             ],
             'v2' => [
@@ -462,6 +500,7 @@ function get_initial_fake_data(): array
                     'tim_kiem_nang_cao'   => ['enabled' => true,  'rollout_percentage' => 50],
                     'theo_doi_don_hang'   => ['enabled' => false, 'rollout_percentage' => 0],
                     'tich_diem_thanh_vien'=> ['enabled' => false, 'rollout_percentage' => 0],
+                    'banner_quang_cao'    => ['enabled' => true,  'rollout_percentage' => 100],
                 ],
             ],
             'v3' => [
@@ -484,6 +523,7 @@ function get_initial_fake_data(): array
                     'tim_kiem_nang_cao'   => ['enabled' => true,  'rollout_percentage' => 50],
                     'theo_doi_don_hang'   => ['enabled' => false, 'rollout_percentage' => 0],
                     'tich_diem_thanh_vien'=> ['enabled' => false, 'rollout_percentage' => 0],
+                    'banner_quang_cao'    => ['enabled' => true,  'rollout_percentage' => 100],
                 ],
             ],
         ],
@@ -593,35 +633,74 @@ function get_initial_fake_data(): array
 /**
  * Khởi tạo dữ liệu mẫu trong SESSION
  */
-function init_session_data(): void
+function init_session_data(bool $forceReload = false): void
 {
-    if (session_status() === PHP_SESSION_NONE) session_start();
-    if (!isset($_SESSION['ff_data']) || !is_array($_SESSION['ff_data'])) {
-        $_SESSION['ff_data'] = get_initial_fake_data();
+    if (session_status() === PHP_SESSION_NONE) @session_start();
+
+    static $loadedThisRequest = false;
+
+    if (PHP_SAPI !== 'cli' && (!$loadedThisRequest || $forceReload)) {
+        $loadedThisRequest = true;
+        try {
+            require_once __DIR__ . '/../services/DatabaseService.php';
+            $dbData = DatabaseService::loadDataFromDb();
+            if ($dbData !== null && !empty($dbData['flags'])) {
+                $_SESSION['ff_data'] = $dbData;
+            }
+        } catch (Throwable $e) {}
     }
+
+    if (!isset($_SESSION['ff_data']) || !is_array($_SESSION['ff_data']) || count($_SESSION['ff_data']['flags'] ?? []) < 11) {
+        try {
+            require_once __DIR__ . '/../services/DatabaseService.php';
+            $dbData = DatabaseService::loadDataFromDb();
+        } catch (Throwable $e) {
+            $dbData = null;
+        }
+        if ($dbData !== null && count($dbData['flags'] ?? []) >= 11) {
+            $_SESSION['ff_data'] = $dbData;
+        } else {
+            $_SESSION['ff_data'] = get_initial_fake_data();
+        }
+    } elseif (!isset($_SESSION['ff_data']['flags']['banner_quang_cao'])) {
+        $initData = get_initial_fake_data();
+        if (isset($initData['flags']['banner_quang_cao'])) {
+            $_SESSION['ff_data']['flags']['banner_quang_cao'] = $initData['flags']['banner_quang_cao'];
+        }
+    }
+
     if (!isset($_SESSION['current_env'])) {
         $_SESSION['current_env'] = 'testing';
     }
 
-    $account_labels = [
-        'admin' => ['name' => 'Admin', 'role_title' => 'Admin', 'avatar' => 'A'],
-        'editor' => ['name' => 'Biên tập', 'role_title' => 'Biên tập', 'avatar' => 'BT'],
-        'viewer' => ['name' => 'Viewer', 'role_title' => 'Viewer', 'avatar' => 'V'],
-    ];
-    foreach ($account_labels as $username => $labels) {
-        if (isset($_SESSION['ff_data']['members'][$username])) {
-            $_SESSION['ff_data']['members'][$username] = array_merge(
-                $_SESSION['ff_data']['members'][$username],
-                $labels
-            );
-        }
-    }
+    // Đồng bộ thông tin user đang đăng nhập với bảng members mới nhất từ CSDL
+    if (isset($_SESSION['user']) && is_array($_SESSION['user']) && !empty($_SESSION['ff_data']['members'])) {
+        $curId   = $_SESSION['user']['id'] ?? '';
+        $curUser = $_SESSION['user']['username'] ?? '';
+        $matchedMember = null;
 
-    if (isset($_SESSION['user']['username'], $account_labels[$_SESSION['user']['username']])) {
-        $_SESSION['user'] = array_merge(
-            $_SESSION['user'],
-            $account_labels[$_SESSION['user']['username']]
-        );
+        if ($curUser !== '' && isset($_SESSION['ff_data']['members'][$curUser])) {
+            $matchedMember = $_SESSION['ff_data']['members'][$curUser];
+        } else {
+            foreach ($_SESSION['ff_data']['members'] as $m) {
+                if (($m['id'] ?? '') === $curId) {
+                    $matchedMember = $m;
+                    break;
+                }
+            }
+        }
+
+        if ($matchedMember !== null) {
+            $_SESSION['user'] = [
+                'id'         => $matchedMember['id'],
+                'username'   => $matchedMember['username'],
+                'name'       => $matchedMember['name'],
+                'email'      => $matchedMember['email'],
+                'role'       => $matchedMember['role'],
+                'role_title' => $matchedMember['role_title'],
+                'avatar'     => $matchedMember['avatar'],
+            ];
+        }
     }
 }
 
@@ -630,7 +709,19 @@ function init_session_data(): void
  */
 function reset_session_data(): void
 {
-    if (session_status() === PHP_SESSION_NONE) session_start();
+    if (session_status() === PHP_SESSION_NONE) @session_start();
+    if (PHP_SAPI !== 'cli') {
+        try {
+            require_once __DIR__ . '/../services/DatabaseService.php';
+            DatabaseService::importSqlSchema();
+            $dbData = DatabaseService::loadDataFromDb();
+            if ($dbData !== null) {
+                $_SESSION['ff_data'] = $dbData;
+                $_SESSION['current_env'] = 'testing';
+                return;
+            }
+        } catch (Throwable $e) {}
+    }
     $_SESSION['ff_data']     = get_initial_fake_data();
     $_SESSION['current_env'] = 'testing';
 }

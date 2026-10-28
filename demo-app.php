@@ -56,7 +56,7 @@ if (!$can_manage_controller) {
     $highlight_flag = $_GET['highlight'] ?? '';
 }
 
-// Danh sách 10 cờ tính năng đồng bộ với database
+// Danh sách 11 cờ tính năng đồng bộ 100% với CSDL MySQL
 $flag_keys = [
     'thanh_toan_nhanh',
     'giao_dien_toi',
@@ -68,6 +68,7 @@ $flag_keys = [
     'tim_kiem_nang_cao',
     'theo_doi_don_hang',
     'tich_diem_thanh_vien',
+    'banner_quang_cao',
 ];
 
 // --------------------------------------------------------------------------
@@ -103,6 +104,7 @@ $is_ai_recs     = !empty($eval_results['goi_y_san_pham']['data']['enabled']);
 $is_adv_filter  = !empty($eval_results['tim_kiem_nang_cao']['data']['enabled']);
 $is_tracking    = !empty($eval_results['theo_doi_don_hang']['data']['enabled']);
 $is_loyalty     = !empty($eval_results['tich_diem_thanh_vien']['data']['enabled']);
+$is_banner      = !empty($eval_results['banner_quang_cao']['data']['enabled']);
 
 // --------------------------------------------------------------------------
 // 3. DỮ LIỆU BANNER QUẢNG CÁO CDS STORE (HTTP 200 VERIFIED)
@@ -1862,7 +1864,7 @@ $total_count = count($eval_results);
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
       <div style="font-size: 0.82rem; font-weight: 700; color: <?= $is_console_dark_mode ? '#cbd5e1' : '#475569' ?>; text-transform: uppercase; letter-spacing: 0.03em; display: flex; align-items: center; gap: 0.5rem;">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-        <span>Kết quả đánh giá 10 cờ tính năng cho [ <strong style="color: #0284c7;"><?= e($current_user_id) ?></strong> &bull; <strong style="color: #2563eb;"><?= strtoupper(e($current_env)) ?></strong> ]:</span>
+        <span>Kết quả đánh giá <?= $total_count ?> cờ tính năng cho [ <strong style="color: #0284c7;"><?= e($current_user_id) ?></strong> &bull; <strong style="color: #2563eb;"><?= strtoupper(e($current_env)) ?></strong> ]:</span>
       </div>
       <div style="font-size: 0.78rem; color: #94a3b8; display: flex; align-items: center; gap: 4px;">
         <span>Nhấp vào mã cờ để xem chi tiết hoặc</span>
@@ -1883,6 +1885,7 @@ $total_count = count($eval_results);
           'tim_kiem_nang_cao'     => ['title' => 'Bộ lọc đa tiêu chí (Model, Giá, GB)', 'icon' => '🔍'],
           'theo_doi_don_hang'     => ['title' => 'Tra cứu đơn hàng thời gian thực', 'icon' => '🚚'],
           'tich_diem_thanh_vien'  => ['title' => 'Tích điểm hội viên CDS STORE Member', 'icon' => '💎'],
+          'banner_quang_cao'      => ['title' => 'Banner quảng cáo trang chủ (Hero Slider)', 'icon' => '🖼️'],
       ];
 
       foreach ($eval_results as $f_key => $res): 
@@ -1898,10 +1901,16 @@ $total_count = count($eval_results);
               <span><?= e($f_key) ?></span>
             </a>
             <div style="display: flex; align-items: center; gap: 0.35rem;">
-              <span class="ff-badge-status <?= $en ? 'on' : 'off' ?>">
+              <button
+                type="button"
+                class="ff-badge-status <?= $en ? 'on' : 'off' ?>"
+                style="cursor: pointer; border: none;"
+                title="Bấm để Bật / Tắt nhanh cờ <?= e($f_key) ?> và đồng bộ vào CSDL MySQL"
+                onclick="quickToggleDemoFlag('<?= e($f_key) ?>', '<?= e($current_env) ?>')"
+              >
                 <span><?= $en ? '●' : '○' ?></span>
                 <?= $en ? 'ENABLED' : 'DISABLED' ?>
-              </span>
+              </button>
               <a href="flag-detail.php?key=<?= urlencode($f_key) ?>" class="ff-edit-link" title="Chỉnh sửa cấu hình cờ">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
               </a>
@@ -2034,9 +2043,11 @@ $total_count = count($eval_results);
   <?php endif; ?>
 
   <!-- ========================================================================
+       CỜ 11: BANNER QUẢNG CÁO TRANG CHỦ (banner_quang_cao)
        CDS STORE HERO SLIDER (BANNER QUẢNG CÁO CHUẨN AAR)
        ======================================================================== -->
-  <div class="tz-slider-container">
+  <?php if ($is_banner): ?>
+  <div class="tz-slider-container" id="tzHeroBanner">
     <div class="tz-slides" id="tzSlides">
       <?php foreach ($slider_banners as $idx => $banner): ?>
         <div class="tz-slide-item">
@@ -2058,6 +2069,7 @@ $total_count = count($eval_results);
       <?php endforeach; ?>
     </div>
   </div>
+  <?php endif; ?>
 
   <!-- ========================================================================
        KHỐI GIỜ VÀNG FLASHSALE CHẤN ĐỘNG (CDS STORE FLASHSALE)
@@ -2980,8 +2992,34 @@ const APP_FLAGS = {
   ai_recs: <?= $is_ai_recs ? 'true' : 'false' ?>,
   adv_filter: <?= $is_adv_filter ? 'true' : 'false' ?>,
   tracking: <?= $is_tracking ? 'true' : 'false' ?>,
-  loyalty: <?= $is_loyalty ? 'true' : 'false' ?>
+  loyalty: <?= $is_loyalty ? 'true' : 'false' ?>,
+  banner: <?= $is_banner ? 'true' : 'false' ?>
 };
+
+async function quickToggleDemoFlag(flagKey, envKey) {
+  try {
+    const res = await fetch('api/toggle.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': '<?= e(get_csrf_token()) ?>'
+      },
+      body: JSON.stringify({
+        flag_key: flagKey,
+        environment: envKey,
+        csrf_token: '<?= e(get_csrf_token()) ?>'
+      })
+    });
+    const data = await res.json();
+    if (data && data.success) {
+      window.location.reload();
+    } else {
+      alert((data && data.error) ? data.error : 'Không thể bật/tắt cờ tính năng.');
+    }
+  } catch (err) {
+    alert('Lỗi kết nối khi bật/tắt cờ tính năng.');
+  }
+}
 
 // --------------------------------------------------------------------------
 // 1. BANNER SLIDER TỰ ĐỘNG CHUẨN CDS STORE

@@ -1,12 +1,16 @@
 <?php
 /**
  * Web Feature Flag Management System
- * import-export.php - Nhập và Xuất cấu hình hệ thống
+ * import-export.php - Nhập và Xuất cấu hình hệ thống (Đồng bộ trực tiếp với CSDL MySQL)
  */
 
 declare(strict_types=1);
 
 require_once __DIR__ . '/includes/helpers.php';
+require_once __DIR__ . '/services/PermissionService.php';
+require_once __DIR__ . '/services/DatabaseService.php';
+
+require_login();
 
 // Xử lý Xuất file JSON tải về trực tiếp
 if (isset($_GET['action']) && $_GET['action'] === 'export') {
@@ -26,6 +30,89 @@ if (isset($_GET['action']) && $_GET['action'] === 'export') {
     exit;
 }
 
+// Xử lý Nhập file JSON cấu hình và đồng bộ vào MySQL
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['action'] ?? '') === 'import_json') {
+    if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
+        set_flash('error', 'Mã bảo mật CSRF không hợp lệ.');
+        header('Location: import-export.php');
+        exit;
+    }
+
+    PermissionService::enforce('import_config');
+
+    if (empty($_FILES['config_file']['tmp_name']) || !is_uploaded_file($_FILES['config_file']['tmp_name'])) {
+        set_flash('error', 'Vui lòng chọn tệp JSON cấu hình hợp lệ từ máy tính.');
+        header('Location: import-export.php');
+        exit;
+    }
+
+    $rawJson = (string)file_get_contents($_FILES['config_file']['tmp_name']);
+    $decoded = json_decode($rawJson, true);
+
+    if (!is_array($decoded)) {
+        set_flash('error', 'Tệp tải lên không đúng định dạng JSON hợp lệ.');
+        header('Location: import-export.php');
+        exit;
+    }
+
+    $payload = isset($decoded['data']) && is_array($decoded['data']) ? $decoded['data'] : $decoded;
+    if (empty($payload['flags']) || !is_array($payload['flags'])) {
+        set_flash('error', 'Dữ liệu nhập thiếu danh sách cờ tính năng (flags) hợp lệ.');
+        header('Location: import-export.php');
+        exit;
+    }
+
+    // Kiểm tra tính hợp lệ của từng cờ (rollout 0 - 100%)
+    $importedCount = 0;
+    $user = get_authenticated_user()['username'] ?? 'admin';
+
+    foreach ($payload['flags'] as $fKey => $fData) {
+        if (!is_array($fData)) continue;
+        $key  = preg_replace('/[^a-z0-9_]/', '', strtolower((string)($fData['key'] ?? $fKey)));
+        $name = trim((string)($fData['name'] ?? $key));
+        $desc = trim((string)($fData['description'] ?? ''));
+        if ($key === '') continue;
+
+        if (!isset($_SESSION['ff_data']['flags'][$key])) {
+            DatabaseService::createFlag([
+                'id'          => $fData['id'] ?? ('flg_' . uniqid()),
+                'key'         => $key,
+                'name'        => $name,
+                'description' => $desc,
+                'updated_by'  => $user,
+            ]);
+        }
+
+        foreach (['testing', 'staging'] as $envKey) {
+            if (isset($fData['environments'][$envKey]) && is_array($fData['environments'][$envKey])) {
+                $ec = $fData['environments'][$envKey];
+                $en = !empty($ec['enabled']);
+                $pct = max(0, min(100, (int)($ec['rollout_percentage'] ?? 0)));
+                $grps = is_array($ec['target_groups'] ?? null) ? array_values($ec['target_groups']) : [];
+                $ovrs = is_array($ec['user_overrides'] ?? null) ? $ec['user_overrides'] : [];
+
+                DatabaseService::saveFlagDetail($key, $envKey, $name, $desc, $en, $pct, $grps, $ovrs, $user);
+            }
+        }
+        $importedCount++;
+    }
+
+    $_SESSION['ff_data']['flags'] = $payload['flags'];
+    init_session_data(true);
+
+    append_audit_log(
+        'NHẬP_CẤU_HÌNH',
+        'Hệ thống (' . $importedCount . ' cờ)',
+        'Cấu hình trước đó',
+        'Đã nhập từ file JSON',
+        'Nhập và đồng bộ cấu hình từ file JSON vào CSDL MySQL'
+    );
+
+    set_flash('success', "Đã kiểm tra và nhập thành công $importedCount cờ tính năng vào hệ thống & CSDL MySQL!");
+    header('Location: import-export.php');
+    exit;
+}
+
 $page_title = 'Nhập / Xuất cấu hình';
 $breadcrumbs = [
     ['label' => 'Trang chủ', 'url' => 'dashboard.php'],
@@ -33,13 +120,14 @@ $breadcrumbs = [
 ];
 
 require_once __DIR__ . '/includes/header.php';
+$flags_total = count($_SESSION['ff_data']['flags'] ?? []);
 ?>
 
 <div class="page-header">
   <div>
     <h1 class="page-title">Nhập / Xuất cấu hình hệ thống</h1>
     <p class="page-description">
-      Sao lưu toàn bộ cấu hình dự án, môi trường, cờ tính năng và phiên bản.
+      Sao lưu và khôi phục toàn bộ cấu hình dự án, môi trường, cờ tính năng và phiên bản (đồng bộ trực tiếp với CSDL MySQL).
     </p>
   </div>
 </div>
@@ -54,22 +142,23 @@ require_once __DIR__ . '/includes/header.php';
           <polyline points="7 10 12 15 17 10"></polyline>
           <line x1="12" y1="15" x2="12" y2="3"></line>
         </svg>
-        <span>Xuất dữ liệu cấu hình</span>
+        <span>Xuất dữ liệu cấu hình (JSON)</span>
       </h2>
     </div>
     <div class="card-body">
       <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem; line-height: 1.5;">
-        Tải xuống bản sao lưu đầy đủ gồm: 1 dự án, 2 môi trường, 10 tính năng, 3 nhóm người dùng và toàn bộ lịch sử các phiên bản.
+        Tải xuống bản sao lưu đầy đủ gồm: dự án, 2 môi trường, <?= $flags_total ?> tính năng, nhóm người dùng và toàn bộ lịch sử các phiên bản từ CSDL.
       </p>
 
       <div style="background-color: var(--bg-body); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.25rem; font-size: 0.82rem;">
-        <div style="margin-bottom: 0.35rem;">&bull; Định dạng file cấu hình</div>
-        <div style="margin-bottom: 0.35rem;">&bull; Mã hóa: <strong>UTF-8</strong></div>
+        <div style="margin-bottom: 0.35rem;">&bull; Định dạng: <strong>JSON chuẩn (UTF-8)</strong></div>
+        <div style="margin-bottom: 0.35rem;">&bull; Dữ liệu: <strong>Đồng bộ thời gian thực từ MySQL</strong></div>
         <div>&bull; Quyền thực hiện: <strong>Tất cả vai trò</strong></div>
       </div>
 
-      <a href="import-export.php?action=export" class="action-icon-btn action-view" style="width: 100%;" title="Tải xuống cấu hình" aria-label="Tải xuống cấu hình">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+      <a href="import-export.php?action=export" class="btn btn-primary" style="width: 100%; justify-content: center;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+        <span>Tải xuống bản sao lưu (.json)</span>
       </a>
     </div>
   </div>
@@ -83,28 +172,28 @@ require_once __DIR__ . '/includes/header.php';
           <polyline points="17 8 12 3 7 8"></polyline>
           <line x1="12" y1="3" x2="12" y2="15"></line>
         </svg>
-        <span>Nhập dữ liệu cấu hình</span>
+        <span>Nhập dữ liệu cấu hình (JSON)</span>
       </h2>
     </div>
     <div class="card-body">
       <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem; line-height: 1.5;">
-        Tải lên tệp cấu hình để khôi phục. Hệ thống sẽ tự động kiểm tra cấu trúc, kiểu dữ liệu và tỷ lệ hợp lệ từ 0 đến 100%.
+        Tải lên tệp cấu hình <code>.json</code> để khôi phục. Hệ thống tự động kiểm tra cấu trúc, tỷ lệ hợp lệ (0 &ndash; 100%) và ghi trực tiếp vào CSDL MySQL.
       </p>
 
-      <div class="form-group">
-        <label class="form-label">Chọn tệp cấu hình từ máy tính</label>
-        <input type="file" accept=".json" class="form-control" <?= PermissionService::currentUserCan('import_config') ? '' : 'disabled' ?>>
-      </div>
+      <form method="POST" action="import-export.php" enctype="multipart/form-data">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="import_json">
 
-      <button type="button" class="action-icon-btn action-edit" style="width: 100%;" title="Kiểm tra và nhập cấu hình" aria-label="Kiểm tra và nhập cấu hình" onclick="alert('Bộ kiểm tra cấu hình sẽ được bổ sung sau.')" <?= PermissionService::currentUserCan('import_config') ? '' : 'disabled' ?>>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 12 2 2 4-4"/><path d="M20 6 9 17l-5-5"/></svg>
-      </button>
-
-      <?php if (!PermissionService::currentUserCan('import_config')): ?>
-        <div style="margin-top: 0.75rem; font-size: 0.78rem; color: var(--danger);">
-          * Lưu ý: Vai trò hiện tại không có quyền nhập file cấu hình.
+        <div class="form-group">
+          <label class="form-label">Chọn tệp cấu hình từ máy tính (.json)</label>
+          <input type="file" name="config_file" accept=".json" class="form-control" required <?= PermissionService::currentUserCan('import_config') ? '' : 'disabled' ?>>
         </div>
-      <?php endif; ?>
+
+        <button type="submit" class="btn btn-secondary" style="width: 100%; justify-content: center;" <?= PermissionService::currentUserCan('import_config') ? '' : 'disabled' ?>>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 12 2 2 4-4"/><path d="M20 6 9 17l-5-5"/></svg>
+          <span>Kiểm tra & Nhập vào CSDL MySQL</span>
+        </button>
+      </form>
     </div>
   </div>
 </div>

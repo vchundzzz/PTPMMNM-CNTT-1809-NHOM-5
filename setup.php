@@ -26,9 +26,25 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         PermissionService::enforce('create_flag');
         $res = DatabaseService::importSqlSchema();
         if ($res['success']) {
-            set_flash('success', 'Đã khởi tạo và nạp thành công 11 bảng cùng dữ liệu mẫu từ database.sql!');
+            $dbData = DatabaseService::loadDataFromDb();
+            if ($dbData !== null) {
+                $_SESSION['ff_data'] = $dbData;
+            }
+            set_flash('success', 'Đã nạp thành công 11 bảng CSDL từ database.sql và đồng bộ 100% vào hệ thống!');
         } else {
             set_flash('error', 'Lỗi khởi tạo CSDL: ' . $res['message']);
+        }
+        header('Location: setup.php');
+        exit;
+    }
+
+    if ($action === 'sync_from_db') {
+        $dbData = DatabaseService::loadDataFromDb();
+        if ($dbData !== null) {
+            $_SESSION['ff_data'] = $dbData;
+            set_flash('success', 'Đã đồng bộ toàn bộ dữ liệu từ CSDL MySQL sang ứng dụng thành công!');
+        } else {
+            set_flash('error', 'Không thể kết nối CSDL MySQL để đồng bộ: ' . Database::getLastError());
         }
         header('Location: setup.php');
         exit;
@@ -491,6 +507,18 @@ $tableMetadata = [
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
           <span>Khởi tạo / Nạp lại CSDL</span>
+        </button>
+      </form>
+
+      <!-- Nút Đồng bộ từ MySQL vào ứng dụng -->
+      <form method="POST" style="margin:0;">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="sync_from_db">
+        <button type="submit" class="btn btn-secondary" title="Đồng bộ lại toàn bộ dữ liệu mới nhất từ CSDL MySQL vào phiên làm việc">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+          </svg>
+          <span>Đồng bộ từ MySQL</span>
         </button>
       </form>
 

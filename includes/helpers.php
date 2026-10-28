@@ -66,6 +66,31 @@ function require_login(): void
 function attempt_login(string $username, string $password): bool
 {
     $username = trim($username);
+
+    // 1. Ưu tiên xác thực trực tiếp từ bảng members trong CSDL MySQL
+    try {
+        require_once __DIR__ . '/../services/DatabaseService.php';
+        if (Database::isConnected()) {
+            $acc = DatabaseService::authenticateMember($username, $password);
+            if ($acc !== null) {
+                init_session_data(true);
+                $_SESSION['user'] = [
+                    'id'         => $acc['id'],
+                    'username'   => $acc['username'],
+                    'name'       => $acc['name'],
+                    'email'      => $acc['email'],
+                    'role'       => $acc['role'],
+                    'role_title' => $acc['role_title'],
+                    'avatar'     => $acc['avatar'],
+                ];
+                $_SESSION['ff_data']['members'][$acc['username']] = $acc;
+                return true;
+            }
+            return false;
+        }
+    } catch (Throwable $e) {}
+
+    // 2. Fallback qua Session khi MySQL tắt
     $members  = $_SESSION['ff_data']['members'] ?? [];
     if (!isset($members[$username])) return false;
     $acc = $members[$username];
@@ -260,11 +285,19 @@ if (isset($_GET['switch_env']) && in_array($_GET['switch_env'], ['testing', 'sta
     exit;
 }
 
-if (isset($_GET['switch_user']) && in_array($_GET['switch_user'], ['admin', 'editor', 'viewer'], true)) {
-    $u = $_GET['switch_user'];
+if (isset($_GET['switch_user'])) {
+    $u = trim((string)$_GET['switch_user']);
     $members = $_SESSION['ff_data']['members'] ?? [];
-    if (isset($members[$u])) {
-        $acc = $members[$u];
+    $acc = $members[$u] ?? null;
+    if ($acc === null) {
+        foreach ($members as $m) {
+            if (($m['role'] ?? '') === $u || ($m['id'] ?? '') === $u) {
+                $acc = $m;
+                break;
+            }
+        }
+    }
+    if ($acc !== null) {
         $_SESSION['user'] = [
             'id'         => $acc['id'],
             'username'   => $acc['username'],
@@ -300,8 +333,9 @@ function append_audit_log(
     string $version = 'v3'
 ): void {
     $user = get_authenticated_user();
-    $_SESSION['ff_data']['audit_logs'][] = [
-        'id'         => 'log_' . sprintf('%03d', count($_SESSION['ff_data']['audit_logs']) + 1),
+    $log_id = 'log_' . sprintf('%03d', count($_SESSION['ff_data']['audit_logs'] ?? []) + 1);
+    $log_entry = [
+        'id'         => $log_id,
         'actor'      => $user['username'] ?? 'system',
         'role'       => $user['role'] ?? 'admin',
         'action'     => $action,
@@ -312,4 +346,11 @@ function append_audit_log(
         'created_at' => date('Y-m-d H:i:s'),
         'version'    => $version,
     ];
+    $_SESSION['ff_data']['audit_logs'][] = $log_entry;
+
+    // Đồng bộ vào MySQL audit_logs nếu có kết nối CSDL
+    try {
+        require_once __DIR__ . '/../services/DatabaseService.php';
+        DatabaseService::addAuditLog($log_entry);
+    } catch (Throwable $e) {}
 }

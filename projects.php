@@ -63,23 +63,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'status' => $status,
         ];
 
-        // Ghi nhận Audit Log
-        $_SESSION['ff_data']['audit_logs'][] = [
-            'id' => 'log_' . sprintf('%03d', count($_SESSION['ff_data']['audit_logs']) + 1),
-            'actor' => get_authenticated_user()['username'] ?? 'admin',
-            'role' => get_authenticated_user()['role'] ?? 'admin',
-            'action' => ($action === 'create') ? 'CREATE_PROJECT' : 'UPDATE_PROJECT',
-            'target' => $name . " ($key)",
-            'old_value' => ($action === 'edit') ? 'Old Config' : '-',
-            'new_value' => "Status: $status",
-            'reason' => ($action === 'create') ? 'Khởi tạo dự án mới trong hệ thống' : 'Cập nhật thông tin dự án',
-            'created_at' => date('Y-m-d H:i:s'),
-            'version' => 'v3',
-        ];
+        // Đồng bộ vào MySQL projects table
+        try {
+            require_once __DIR__ . '/services/DatabaseService.php';
+            DatabaseService::saveProject($project_id, $key, $name, $description, $status);
+        } catch (Throwable $e) {}
+
+        // Ghi nhận Audit Log đồng bộ vào MySQL
+        append_audit_log(
+            ($action === 'create') ? 'TẠO_DỰ_ÁN' : 'CẬP_NHẬT_DỰ_ÁN',
+            $name . " ($key)",
+            ($action === 'edit') ? 'Cấu hình cũ' : '—',
+            "Trạng thái: $status",
+            ($action === 'create') ? 'Khởi tạo dự án mới và lưu vào CSDL MySQL' : 'Cập nhật thông tin dự án trong CSDL MySQL'
+        );
 
         set_flash('success', ($action === 'create') 
-            ? "Đã tạo thành công dự án: [$name] (Lưu phiên làm việc)" 
-            : "Đã cập nhật thông tin dự án: [$name]");
+            ? "Đã tạo thành công dự án [$name] và lưu trực tiếp vào CSDL MySQL!" 
+            : "Đã cập nhật thông tin dự án [$name] vào CSDL MySQL!");
+        header('Location: projects.php');
+        exit;
+    }
+
+    if ($action === 'delete') {
+        $project_id = trim((string)($_POST['project_id'] ?? ''));
+        if ($project_id !== '' && isset($_SESSION['ff_data']['projects'][$project_id])) {
+            $oldName = $_SESSION['ff_data']['projects'][$project_id]['name'] ?? $project_id;
+            unset($_SESSION['ff_data']['projects'][$project_id]);
+            try {
+                require_once __DIR__ . '/services/DatabaseService.php';
+                DatabaseService::deleteProject($project_id);
+            } catch (Throwable $e) {}
+            append_audit_log('XÓA_DỰ_ÁN', $oldName, 'Tồn tại', 'Đã xóa', 'Xóa dự án khỏi hệ thống và CSDL MySQL');
+            set_flash('success', "Đã xóa dự án [$oldName] khỏi hệ thống và CSDL MySQL.");
+        }
         header('Location: projects.php');
         exit;
     }

@@ -63,11 +63,17 @@ if ($has_explicit_enabled) {
 $user = get_authenticated_user()['username'] ?? 'admin';
 $cur_state = !empty($_SESSION['ff_data']['flags'][$flag_key]['environments'][$env]['enabled']);
 
-// Cập nhật cấu hình
+// Cập nhật cấu hình trong Session
 $_SESSION['ff_data']['flags'][$flag_key]['environments'][$env]['enabled']    = $new_enabled;
 $_SESSION['ff_data']['flags'][$flag_key]['environments'][$env]['status']     = $new_enabled ? 'Đã phát hành' : 'Bản nháp';
 $_SESSION['ff_data']['flags'][$flag_key]['environments'][$env]['updated_at'] = date('Y-m-d H:i:s');
 $_SESSION['ff_data']['flags'][$flag_key]['environments'][$env]['updated_by'] = $user;
+
+// Đồng bộ trực tiếp vào CSDL MySQL
+try {
+    require_once __DIR__ . '/../services/DatabaseService.php';
+    DatabaseService::toggleFlag($flag_key, $env, $new_enabled, $user);
+} catch (Throwable $e) {}
 
 // Ghi audit log
 append_audit_log(

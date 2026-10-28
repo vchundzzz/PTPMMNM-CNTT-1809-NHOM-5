@@ -106,6 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$can_edit_config) {
         $new_ov = $current_config['user_overrides'] ?? [];
     }
+    $user_name = get_authenticated_user()['username'] ?? 'admin';
     $_SESSION['ff_data']['flags'][$key]['name'] = $name;
     $_SESSION['ff_data']['flags'][$key]['description'] = $description;
     $_SESSION['ff_data']['flags'][$key]['environments'][$current_env] = array_merge(
@@ -119,9 +120,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'target_groups'      => array_values($sel_grp),
             'user_overrides'     => $new_ov,
             'updated_at'         => date('Y-m-d H:i:s'),
-            'updated_by'         => get_authenticated_user()['username'] ?? 'admin',
+            'updated_by'         => $user_name,
         ]
     );
+
+    // Đồng bộ chi tiết cờ tính năng vào CSDL MySQL
+    try {
+        require_once __DIR__ . '/services/DatabaseService.php';
+        DatabaseService::saveFlagDetail(
+            $key,
+            $current_env,
+            $name,
+            $description,
+            $enabled,
+            $pct,
+            array_values($sel_grp),
+            $new_ov,
+            $user_name
+        );
+    } catch (Throwable $e) {}
+
     append_audit_log('SỬA_CẤU_HÌNH', $key, "Tên: $old_name | Tỷ lệ: $old_pct%", "Tên: $name | Tỷ lệ: $pct% | " . ($enabled?'Bật':'Tắt'),
         trim((string)($_POST['change_reason'] ?? 'Cập nhật từ trang chi tiết')));
     set_flash('success', "Đã lưu cấu hình cờ [$key] thành công.");
