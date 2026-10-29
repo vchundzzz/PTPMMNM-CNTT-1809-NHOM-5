@@ -30,16 +30,16 @@ include __DIR__ . '/../demo-app.php';
 $html = ob_get_clean();
 
 $has_staging = str_contains($html, 'value="staging" selected');
-$has_fast_pay = str_contains($html, '⚡ Mua ngay 1-Chạm Express');
+$has_fast_pay = str_contains($html, ' Mua ngay 1-Chạm Express');
 echo "4. Web Demo tự động nhận môi trường Vận hành: " . ($has_staging ? 'CHÍNH XÁC' : 'SAI') . "\n";
-echo "5. Khi BẬT cờ: Web Demo hiển thị [⚡ Mua ngay 1-Chạm Express]: " . ($has_fast_pay ? 'CÓ (CHÍNH XÁC)' : 'KHÔNG (LỖI)') . "\n";
+echo "5. Khi BẬT cờ: Web Demo hiển thị [ Mua ngay 1-Chạm Express]: " . ($has_fast_pay ? 'CÓ (CHÍNH XÁC)' : 'KHÔNG (LỖI)') . "\n";
 
 // 5. Thử TẮT trên Staging và kiểm tra Web Demo
 $_SESSION['ff_data']['flags']['thanh_toan_nhanh']['environments']['staging']['enabled'] = false;
 ob_start();
 include __DIR__ . '/../demo-app.php';
 $html_off = ob_get_clean();
-$has_fast_pay_off = str_contains($html_off, '⚡ Mua ngay 1-Chạm Express');
-$has_std_pay = str_contains($html_off, '🛒 Mua ngay (Tiêu chuẩn 3 bước)');
-echo "6. Sau khi TẮT cờ trên Vận hành: [⚡ Mua ngay 1-Chạm Express] biến mất: " . (!$has_fast_pay_off ? 'ĐÚNG' : 'SAI') . "\n";
-echo "7. Web Demo tự động chuyển về [🛒 Mua ngay (Tiêu chuẩn 3 bước)]: " . ($has_std_pay ? 'CÓ (ĐỒNG BỘ 100%)' : 'KHÔNG (LỖI)') . "\n";
+$has_fast_pay_off = str_contains($html_off, ' Mua ngay 1-Chạm Express');
+$has_std_pay = str_contains($html_off, ' Mua ngay (Tiêu chuẩn 3 bước)');
+echo "6. Sau khi TẮT cờ trên Vận hành: [ Mua ngay 1-Chạm Express] biến mất: " . (!$has_fast_pay_off ? 'ĐÚNG' : 'SAI') . "\n";
+echo "7. Web Demo tự động chuyển về [ Mua ngay (Tiêu chuẩn 3 bước)]: " . ($has_std_pay ? 'CÓ (ĐỒNG BỘ 100%)' : 'KHÔNG (LỖI)') . "\n";

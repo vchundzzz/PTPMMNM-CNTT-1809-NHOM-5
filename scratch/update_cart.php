@@ -7,11 +7,11 @@ $target_iphone = <<<'EOD'
             <!-- CỜ 1: QUY TRÌNH MUA 1-CHẠM (thanh_toan_nhanh) -->
             <?php if ($is_fast_pay): ?>
               <button type="button" class="tz-buy-btn fast-pay" onclick="openFastCheckout('<?= e($p['id']) ?>', '<?= e($p['name']) ?>', '<?= e($p['price']) ?>', '<?= e($p['colors'][0]['img'] ?? '') ?>')">
-                <span>⚡ Mua ngay 1-Chạm Express</span>
+                <span> Mua ngay 1-Chạm Express</span>
               </button>
             <?php else: ?>
               <button type="button" class="tz-buy-btn" onclick="openStandardCheckout('<?= e($p['id']) ?>', '<?= e($p['name']) ?>', '<?= e($p['price']) ?>')">
-                <span>🛒 Mua ngay (Tiêu chuẩn 3 bước)</span>
+                <span> Mua ngay (Tiêu chuẩn 3 bước)</span>
               </button>
             <?php endif; ?>
 EOD;
@@ -21,11 +21,11 @@ $replace_iphone = <<<'EOD'
             <div style="display: flex; gap: 0.45rem; width: 100%;">
               <?php if ($is_fast_pay): ?>
                 <button type="button" class="tz-buy-btn fast-pay" style="flex: 1;" onclick="openFastCheckout('<?= e($p['id']) ?>', '<?= e($p['name']) ?>', '<?= e($p['price']) ?>', '<?= e($p['colors'][0]['img'] ?? '') ?>')">
-                  <span>⚡ Mua ngay</span>
+                  <span> Mua ngay</span>
                 </button>
               <?php else: ?>
                 <button type="button" class="tz-buy-btn" style="flex: 1;" onclick="openStandardCheckout('<?= e($p['id']) ?>', '<?= e($p['name']) ?>', '<?= e($p['price']) ?>')">
-                  <span>🛒 Mua ngay</span>
+                  <span> Mua ngay</span>
                 </button>
               <?php endif; ?>
               <button type="button" class="tz-round-btn" style="width: 40px; height: 38px; border-radius: 10px; flex-shrink: 0;" title="Thêm vào giỏ hàng" onclick="addToCart('<?= e($p['id']) ?>', '<?= e($p['name']) ?>', '<?= e($p['price']) ?>', '<?= e($p['colors'][0]['img'] ?? '') ?>')">
@@ -42,11 +42,11 @@ EOD;
 $target_mac = <<<'EOD'
             <?php if ($is_fast_pay): ?>
               <button type="button" class="tz-buy-btn fast-pay" onclick="openFastCheckout('<?= e($p['id']) ?>', '<?= e($p['name']) ?>', '<?= e($p['price']) ?>', '<?= e($p['image']) ?>')">
-                <span>⚡ Mua ngay 1-Chạm Express</span>
+                <span> Mua ngay 1-Chạm Express</span>
               </button>
             <?php else: ?>
               <button type="button" class="tz-buy-btn" onclick="openStandardCheckout('<?= e($p['id']) ?>', '<?= e($p['name']) ?>', '<?= e($p['price']) ?>')">
-                <span>🛒 Mua ngay (Tiêu chuẩn 3 bước)</span>
+                <span> Mua ngay (Tiêu chuẩn 3 bước)</span>
               </button>
             <?php endif; ?>
 EOD;
@@ -55,11 +55,11 @@ $replace_mac = <<<'EOD'
             <div style="display: flex; gap: 0.45rem; width: 100%;">
               <?php if ($is_fast_pay): ?>
                 <button type="button" class="tz-buy-btn fast-pay" style="flex: 1;" onclick="openFastCheckout('<?= e($p['id']) ?>', '<?= e($p['name']) ?>', '<?= e($p['price']) ?>', '<?= e($p['image']) ?>')">
-                  <span>⚡ Mua ngay</span>
+                  <span> Mua ngay</span>
                 </button>
               <?php else: ?>
                 <button type="button" class="tz-buy-btn" style="flex: 1;" onclick="openStandardCheckout('<?= e($p['id']) ?>', '<?= e($p['name']) ?>', '<?= e($p['price']) ?>')">
-                  <span>🛒 Mua ngay</span>
+                  <span> Mua ngay</span>
                 </button>
               <?php endif; ?>
               <button type="button" class="tz-round-btn" style="width: 40px; height: 38px; border-radius: 10px; flex-shrink: 0;" title="Thêm vào giỏ hàng" onclick="addToCart('<?= e($p['id']) ?>', '<?= e($p['name']) ?>', '<?= e($p['price']) ?>', '<?= e($p['image']) ?>')">
@@ -141,7 +141,7 @@ $cart_modal_html = <<<'EOD'
     <div class="modal-body" style="padding: 1.25rem 1.4rem;">
       <!-- Trạng thái giỏ rỗng -->
       <div id="cartEmptyState" style="display: none; text-align: center; padding: 2.5rem 1rem; color: #94a3b8;">
-        <div style="font-size: 3rem; margin-bottom: 0.5rem;">🛒</div>
+        <div style="font-size: 3rem; margin-bottom: 0.5rem;"></div>
         <div style="font-weight: 700; font-size: 1.1rem; color: <?= $is_dark_mode ? '#fff' : '#0f172a' ?>; margin-bottom: 0.35rem;">Giỏ hàng của bạn đang trống</div>
         <div style="font-size: 0.85rem; margin-bottom: 1.25rem;">Hãy khám phá các siêu phẩm Apple chính hãng tại CDS STORE</div>
         <button type="button" class="btn btn-primary" onclick="closeModal('cartModal')">Khám phá sản phẩm ngay</button>
@@ -185,9 +185,9 @@ $cart_modal_html = <<<'EOD'
           </button>
           <button type="button" class="btn btn-primary" style="flex: 1; font-weight: 700; padding: 0.7rem; font-size: 0.95rem; background: <?= $is_fast_pay ? 'linear-gradient(135deg, #f59e0b 0%, #ea580c 100%)' : '#2563eb' ?>; border: none;" onclick="proceedToCheckoutFromCart()">
             <?php if ($is_fast_pay): ?>
-              ⚡ Thanh toán 1-Chạm Express &rarr;
+               Thanh toán 1-Chạm Express &rarr;
             <?php else: ?>
-              🛒 Tiến hành đặt hàng (3 bước) &rarr;
+               Tiến hành đặt hàng (3 bước) &rarr;
             <?php endif; ?>
           </button>
         </div>
@@ -326,15 +326,15 @@ $replace_std_modal = <<<'EOD'
           <div style="display: flex; flex-direction: column; gap: 0.5rem;">
             <label style="border: 1px solid #2997ff; background: rgba(41,151,255,0.08); padding: 0.65rem 0.85rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 0.6rem; font-size: 0.85rem; font-weight: 600;">
               <input type="radio" name="std_pay_method" value="bank" checked>
-              <span>🏦 Chuyển khoản QR Ngân hàng (Miễn phí & Giảm thêm 100k)</span>
+              <span> Chuyển khoản QR Ngân hàng (Miễn phí & Giảm thêm 100k)</span>
             </label>
             <label style="border: 1px solid <?= $is_dark_mode ? '#2d2d3a' : '#e2e8f0' ?>; padding: 0.65rem 0.85rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 0.6rem; font-size: 0.85rem; font-weight: 600;">
               <input type="radio" name="std_pay_method" value="cod">
-              <span>📦 Thanh toán tiền mặt khi nhận hàng (COD)</span>
+              <span> Thanh toán tiền mặt khi nhận hàng (COD)</span>
             </label>
             <label style="border: 1px solid <?= $is_dark_mode ? '#2d2d3a' : '#e2e8f0' ?>; padding: 0.65rem 0.85rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 0.6rem; font-size: 0.85rem; font-weight: 600;">
               <input type="radio" name="std_pay_method" value="installment">
-              <span>💳 Trả góp 0% lãi suất qua thẻ tín dụng (25 ngân hàng)</span>
+              <span> Trả góp 0% lãi suất qua thẻ tín dụng (25 ngân hàng)</span>
             </label>
           </div>
         </div>
@@ -355,7 +355,7 @@ $replace_std_modal = <<<'EOD'
             &larr; Quay lại Địa chỉ
           </button>
           <button type="button" class="btn btn-primary" style="flex: 2; font-weight: 800; background: #16a34a; border: none; padding: 0.75rem;" onclick="handleStandardCheckoutSubmit()">
-            🎉 Xác nhận hoàn tất đặt hàng
+             Xác nhận hoàn tất đặt hàng
           </button>
         </div>
       </div>
@@ -383,7 +383,7 @@ function openStandardCheckout(id, name, price) {
 function handleCheckoutSubmit(e) {
   e.preventDefault();
   closeModal('oneStepCheckoutModal');
-  showToast('🎉 Đặt hàng CDS STORE thành công! Mã đơn: CDS-2026-98845. Shipper sẽ liên hệ qua 0362481351 trong 15 phút.', 'success');
+  showToast(' Đặt hàng CDS STORE thành công! Mã đơn: CDS-2026-98845. Shipper sẽ liên hệ qua 0362481351 trong 15 phút.', 'success');
   const badge = document.getElementById('cartBadgeCount');
   if (badge) badge.textContent = '3';
 }
@@ -404,7 +404,7 @@ function openStandardCheckout(id, name, price) {
 function handleCheckoutSubmit(e) {
   e.preventDefault();
   closeModal('oneStepCheckoutModal');
-  showToast('🎉 Đặt hàng CDS STORE thành công! Mã đơn: CDS-2026-98845. Shipper sẽ liên hệ qua 0362481351 trong 15 phút.', 'success');
+  showToast(' Đặt hàng CDS STORE thành công! Mã đơn: CDS-2026-98845. Shipper sẽ liên hệ qua 0362481351 trong 15 phút.', 'success');
   cartItems = [];
   updateCartUI();
 }
@@ -446,7 +446,7 @@ function goToStandardStep(step) {
 function handleStandardCheckoutSubmit() {
   closeModal('standardCheckoutModal');
   const code = 'CDS-STD-' + Math.floor(10000 + Math.random() * 90000);
-  showToast(`🎉 Đặt hàng CDS STORE thành công qua quy trình 3 bước! Mã đơn: ${code}. Shipper sẽ liên hệ trong 15 phút.`, 'success');
+  showToast(` Đặt hàng CDS STORE thành công qua quy trình 3 bước! Mã đơn: ${code}. Shipper sẽ liên hệ trong 15 phút.`, 'success');
   cartItems = [];
   updateCartUI();
   goToStandardStep(1);
@@ -548,7 +548,6 @@ function updateCartUI() {
             <button type="button" style="width: 26px; height: 26px; border: 1px solid ${itemBorder}; background: ${isDark ? '#272733' : '#f1f5f9'}; color: ${textMain}; border-radius: 4px; cursor: pointer; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;" onclick="changeCartQty('${item.id}', 1)">&plus;</button>
           </div>
           <button type="button" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px; font-size: 1rem;" title="Xóa món" onclick="removeFromCart('${item.id}')">
-            🗑
           </button>
         </div>
       `;
@@ -666,4 +665,3 @@ if ($c7 === $content) {
 
 file_put_contents($file, $content);
 echo "File demo-app.php updated successfully.\n";
-

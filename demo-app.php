@@ -523,7 +523,7 @@ $recommendations = [
         'price' => '10.990.000đ',
         'old_price' => '14.990.000đ',
         'discount' => '-26%',
-        'icon' => '🎧',
+        'icon' => '',
         'image' => 'https://cdn.topzone.vn/Products/Images/54/329161/s16/airpods-max-cong-usb-c-cam-650x650.png',
         'desc' => 'Âm thanh không gian cá nhân hóa & Chống ồn chủ động đỉnh cao'
     ],
@@ -534,7 +534,7 @@ $recommendations = [
         'price' => '4.490.000đ',
         'old_price' => '4.790.000đ',
         'discount' => '-6%',
-        'icon' => '🎵',
+        'icon' => '',
         'image' => 'https://cdn.topzone.vn/Products/Images/54/329161/s16/airpods-max-cong-usb-c-cam-650x650.png',
         'desc' => 'Chip H2, Chế độ Xuyên Âm thông minh & Hộp sạc tích hợp loa tìm kiếm'
     ],
@@ -545,7 +545,7 @@ $recommendations = [
         'price' => '490.000đ',
         'old_price' => '590.000đ',
         'discount' => '-17%',
-        'icon' => '⚡',
+        'icon' => '',
         'image' => 'https://cdnv2.tgdd.vn/webmwg/2024/tz/images/desktop/Phukien_Desk_25.png',
         'desc' => 'Chuẩn sạc nhanh Power Delivery bảo vệ pin tối ưu'
     ],
@@ -556,7 +556,7 @@ $recommendations = [
         'price' => '490.000đ',
         'old_price' => '590.000đ',
         'discount' => '-17%',
-        'icon' => '🔌',
+        'icon' => '',
         'image' => 'https://cdnv2.tgdd.vn/webmwg/2024/tz/images/desktop/Phukien_Desk_25.png',
         'desc' => 'Dây bện dù siêu bền, tương thích mọi thiết bị Apple Type-C'
     ],
@@ -1809,7 +1809,7 @@ $total_count = count($eval_results);
     <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
       <?php if ($simulate_error): ?>
         <span style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 20px; font-weight: 700; padding: 4px 12px; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 6px;">
-          <span>⚠️</span> ĐANG MÔ PHỎNG LỖI API (FALLBACK FALSE)
+          <span></span> ĐANG MÔ PHỎNG LỖI API (FALLBACK FALSE)
         </span>
       <?php else: ?>
         <span style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 20px; font-weight: 600; padding: 4px 12px; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 6px;">
@@ -1832,8 +1832,8 @@ $total_count = count($eval_results);
           <span>1. Môi trường:</span>
         </label>
         <select name="env" class="ff-form-control">
-          <option value="testing" <?= ($current_env === 'testing') ? 'selected' : '' ?>>🧪 Kiểm thử (Testing)</option>
-          <option value="staging" <?= ($current_env === 'staging') ? 'selected' : '' ?>>🚀 Vận hành (Staging)</option>
+          <option value="testing" <?= ($current_env === 'testing') ? 'selected' : '' ?>> Kiểm thử (Testing)</option>
+          <option value="staging" <?= ($current_env === 'staging') ? 'selected' : '' ?>> Vận hành (Staging)</option>
         </select>
       </div>
 
@@ -1931,7 +1931,7 @@ $total_count = count($eval_results);
       foreach ($eval_results as $f_key => $res): 
           $en = !empty($res['data']['enabled']);
           $reason = $res['data']['reason'] ?? '';
-          $flag_info = $flag_ui_labels[$f_key] ?? ['title' => $f_key, 'icon' => '🚩'];
+          $flag_info = $flag_ui_labels[$f_key] ?? ['title' => $f_key, 'icon' => ''];
           $is_highlight = ($highlight_flag === $f_key);
       ?>
         <div class="ff-card-item <?= $en ? 'enabled' : 'disabled' ?> <?= $is_highlight ? 'highlight' : '' ?>">
@@ -2028,7 +2028,7 @@ $total_count = count($eval_results);
       <!-- CỜ 10: TÍCH ĐIỂM HỘI VIÊN CDS STORE MEMBER (tich_diem_thanh_vien) -->
       <?php if ($is_loyalty): ?>
         <button type="button" class="btn btn-ghost btn-sm" style="color: #f59e0b; display: flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.65rem;" onclick="openModal('loyaltyModal')">
-          <span>💎</span>
+          <span></span>
           <span style="font-size: 0.78rem; font-weight: 700;">2.450 Điểm</span>
         </button>
       <?php endif; ?>
@@ -2071,7 +2071,7 @@ $total_count = count($eval_results);
   <?php if ($is_coupon): ?>
     <div style="background: linear-gradient(90deg, #dc2626 0%, #ea580c 100%); color: #ffffff; padding: 0.65rem 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; font-size: 0.88rem;">
       <div style="display: flex; align-items: center; gap: 0.6rem;">
-        <span style="font-size: 1.2rem;">🔥</span>
+        <span style="font-size: 1.2rem;"></span>
         <span>
           <strong>Ưu đãi CDS STORE độc quyền:</strong> Nhập mã <code style="background: rgba(0,0,0,0.35); padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 800; color: #fef08a;">CDS18</code> giảm ngay <strong>1.000.000đ</strong> khi thanh toán online!
         </span>
@@ -2125,7 +2125,7 @@ $total_count = count($eval_results);
       </div>
     </div>
     <div style="font-size: 0.85rem; color: #ffbe0b; font-weight: 700;">
-      ⚡ Giảm đến 50% - Số lượng có hạn - Duy nhất hôm nay tại CDS STORE
+       Giảm đến 50% - Số lượng có hạn - Duy nhất hôm nay tại CDS STORE
     </div>
   </div>
 
@@ -2277,7 +2277,6 @@ $total_count = count($eval_results);
 
             <?php if ($is_wishlist): ?>
               <button type="button" class="tz-wishlist-btn" onclick="toggleWishlist('<?= e($p['id']) ?>', '<?= e($p['name']) ?>', this)" title="Lưu vào danh sách yêu thích">
-                ♥
               </button>
             <?php endif; ?>
 
@@ -2329,7 +2328,7 @@ $total_count = count($eval_results);
               <?php if ($is_reviews): ?>
                 <div class="tz-rating-row" onclick="openReviewsModal('<?= e($p['name']) ?>', <?= $p['rating'] ?>, <?= $p['reviews_count'] ?>)" style="cursor: pointer;" title="Xem đánh giá & ảnh unbox">
                   <?= render_ant_stars($p['rating'], $p['reviews_count'], $is_dark_mode) ?>
-                  <span style="color: #2997ff; font-weight: 600;">Xem ảnh 📸</span>
+                  <span style="color: #2997ff; font-weight: 600;">Xem ảnh </span>
                 </div>
               <?php endif; ?>
 
@@ -2341,11 +2340,11 @@ $total_count = count($eval_results);
             <!-- CỜ 1: QUY TRÌNH MUA 1-CHẠM (thanh_toan_nhanh) -->
             <?php if ($is_fast_pay): ?>
               <button type="button" class="tz-buy-btn fast-pay" onclick="openFastCheckout('<?= e($p['id']) ?>', '<?= e($p['name']) ?>', '<?= e($p['price']) ?>', '<?= e($p['colors'][0]['img'] ?? '') ?>')">
-                <span>⚡ Mua ngay 1-Chạm Express</span>
+                <span> Mua ngay 1-Chạm Express</span>
               </button>
             <?php else: ?>
               <button type="button" class="tz-buy-btn" onclick="openStandardCheckout('<?= e($p['id']) ?>', '<?= e($p['name']) ?>', '<?= e($p['price']) ?>')">
-                <span>🛒 Mua ngay (Tiêu chuẩn 3 bước)</span>
+                <span> Mua ngay (Tiêu chuẩn 3 bước)</span>
               </button>
             <?php endif; ?>
           </div>
@@ -2385,7 +2384,7 @@ $total_count = count($eval_results);
             <?php endif; ?>
 
             <?php if ($is_wishlist): ?>
-              <button type="button" class="tz-wishlist-btn" onclick="toggleWishlist('<?= e($p['id']) ?>', '<?= e($p['name']) ?>', this)">♥</button>
+              <button type="button" class="tz-wishlist-btn" onclick="toggleWishlist('<?= e($p['id']) ?>', '<?= e($p['name']) ?>', this)"></button>
             <?php endif; ?>
 
             <img id="img-<?= e($p['id']) ?>" src="<?= e($p['image']) ?>" alt="<?= e($p['name']) ?>" loading="lazy">
@@ -2414,7 +2413,7 @@ $total_count = count($eval_results);
               <?php if ($is_reviews): ?>
                 <div class="tz-rating-row" onclick="openReviewsModal('<?= e($p['name']) ?>', <?= $p['rating'] ?>, <?= $p['reviews_count'] ?>)" style="cursor: pointer;" title="Xem đánh giá & ảnh unbox">
                   <?= render_ant_stars($p['rating'], $p['reviews_count'], $is_dark_mode) ?>
-                  <span style="color: #2997ff; font-weight: 600;">Xem ảnh 📸</span>
+                  <span style="color: #2997ff; font-weight: 600;">Xem ảnh </span>
                 </div>
               <?php endif; ?>
 
@@ -2425,11 +2424,11 @@ $total_count = count($eval_results);
 
             <?php if ($is_fast_pay): ?>
               <button type="button" class="tz-buy-btn fast-pay" onclick="openFastCheckout('<?= e($p['id']) ?>', '<?= e($p['name']) ?>', '<?= e($p['price']) ?>', '<?= e($p['image']) ?>')">
-                <span>⚡ Mua ngay 1-Chạm Express</span>
+                <span> Mua ngay 1-Chạm Express</span>
               </button>
             <?php else: ?>
               <button type="button" class="tz-buy-btn" onclick="openStandardCheckout('<?= e($p['id']) ?>', '<?= e($p['name']) ?>', '<?= e($p['price']) ?>')">
-                <span>🛒 Mua ngay (Tiêu chuẩn 3 bước)</span>
+                <span> Mua ngay (Tiêu chuẩn 3 bước)</span>
               </button>
             <?php endif; ?>
           </div>
@@ -2468,7 +2467,7 @@ $total_count = count($eval_results);
             <?php endif; ?>
 
             <?php if ($is_wishlist): ?>
-              <button type="button" class="tz-wishlist-btn" onclick="toggleWishlist('<?= e($p['id']) ?>', '<?= e($p['name']) ?>', this)">♥</button>
+              <button type="button" class="tz-wishlist-btn" onclick="toggleWishlist('<?= e($p['id']) ?>', '<?= e($p['name']) ?>', this)"></button>
             <?php endif; ?>
 
             <img id="img-<?= e($p['id']) ?>" src="<?= e($p['image']) ?>" alt="<?= e($p['name']) ?>" loading="lazy">
@@ -2497,7 +2496,7 @@ $total_count = count($eval_results);
               <?php if ($is_reviews): ?>
                 <div class="tz-rating-row" onclick="openReviewsModal('<?= e($p['name']) ?>', <?= $p['rating'] ?>, <?= $p['reviews_count'] ?>)" style="cursor: pointer;" title="Xem đánh giá & ảnh unbox">
                   <?= render_ant_stars($p['rating'], $p['reviews_count'], $is_dark_mode) ?>
-                  <span style="color: #2997ff; font-weight: 600;">Xem ảnh 📸</span>
+                  <span style="color: #2997ff; font-weight: 600;">Xem ảnh </span>
                 </div>
               <?php endif; ?>
 
@@ -2508,11 +2507,11 @@ $total_count = count($eval_results);
 
             <?php if ($is_fast_pay): ?>
               <button type="button" class="tz-buy-btn fast-pay" onclick="openFastCheckout('<?= e($p['id']) ?>', '<?= e($p['name']) ?>', '<?= e($p['price']) ?>', '<?= e($p['image']) ?>')">
-                <span>⚡ Mua ngay 1-Chạm Express</span>
+                <span> Mua ngay 1-Chạm Express</span>
               </button>
             <?php else: ?>
               <button type="button" class="tz-buy-btn" onclick="openStandardCheckout('<?= e($p['id']) ?>', '<?= e($p['name']) ?>', '<?= e($p['price']) ?>')">
-                <span>🛒 Mua ngay (Tiêu chuẩn 3 bước)</span>
+                <span> Mua ngay (Tiêu chuẩn 3 bước)</span>
               </button>
             <?php endif; ?>
           </div>
@@ -2549,7 +2548,7 @@ $total_count = count($eval_results);
             <?php endif; ?>
 
             <?php if ($is_wishlist): ?>
-              <button type="button" class="tz-wishlist-btn" onclick="toggleWishlist('<?= e($p['id']) ?>', '<?= e($p['name']) ?>', this)">♥</button>
+              <button type="button" class="tz-wishlist-btn" onclick="toggleWishlist('<?= e($p['id']) ?>', '<?= e($p['name']) ?>', this)"></button>
             <?php endif; ?>
 
             <img id="img-<?= e($p['id']) ?>" src="<?= e($p['image']) ?>" alt="<?= e($p['name']) ?>" loading="lazy">
@@ -2578,7 +2577,7 @@ $total_count = count($eval_results);
               <?php if ($is_reviews): ?>
                 <div class="tz-rating-row" onclick="openReviewsModal('<?= e($p['name']) ?>', <?= $p['rating'] ?>, <?= $p['reviews_count'] ?>)" style="cursor: pointer;" title="Xem đánh giá & ảnh unbox">
                   <?= render_ant_stars($p['rating'], $p['reviews_count'], $is_dark_mode) ?>
-                  <span style="color: #2997ff; font-weight: 600;">Xem ảnh 📸</span>
+                  <span style="color: #2997ff; font-weight: 600;">Xem ảnh </span>
                 </div>
               <?php endif; ?>
 
@@ -2589,11 +2588,11 @@ $total_count = count($eval_results);
 
             <?php if ($is_fast_pay): ?>
               <button type="button" class="tz-buy-btn fast-pay" onclick="openFastCheckout('<?= e($p['id']) ?>', '<?= e($p['name']) ?>', '<?= e($p['price']) ?>', '<?= e($p['image']) ?>')">
-                <span>⚡ Mua ngay 1-Chạm Express</span>
+                <span> Mua ngay 1-Chạm Express</span>
               </button>
             <?php else: ?>
               <button type="button" class="tz-buy-btn" onclick="openStandardCheckout('<?= e($p['id']) ?>', '<?= e($p['name']) ?>', '<?= e($p['price']) ?>')">
-                <span>🛒 Mua ngay (Tiêu chuẩn 3 bước)</span>
+                <span> Mua ngay (Tiêu chuẩn 3 bước)</span>
               </button>
             <?php endif; ?>
           </div>
@@ -2611,7 +2610,7 @@ $total_count = count($eval_results);
         <div style="background: <?= $is_dark_mode ? '#323232' : '#ffffff' ?>; border: 1px solid <?= $is_dark_mode ? '#444448' : '#e2e8f0' ?>; border-radius: 20px; padding: 1.5rem 2rem;">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.5rem;">
             <div style="display: flex; align-items: center; gap: 0.6rem;">
-              <span style="font-size: 1.5rem;">✨</span>
+              <span style="font-size: 1.5rem;"></span>
               <div>
                 <h3 style="font-size: 1.25rem; font-weight: 800; color: #2997ff; margin: 0;">AI Smart Combo: Phụ Kiện Apple Khuyên Dùng</h3>
                 <p style="font-size: 0.82rem; color: #a1a1aa; margin: 0;">
@@ -2656,28 +2655,28 @@ $total_count = count($eval_results);
        ======================================================================== -->
   <div class="tz-commitments">
     <div class="tz-commit-item">
-      <div class="tz-commit-icon">🏅</div>
+      <div class="tz-commit-icon"></div>
       <div>
         <div style="font-weight: 700; font-size: 0.95rem; color: #fff;">100% Chính hãng Apple</div>
         <div style="font-size: 0.8rem; color: #a1a1aa;">Đại lý ủy quyền chính thức CDS STORE (AAR) tại Việt Nam</div>
       </div>
     </div>
     <div class="tz-commit-item">
-      <div class="tz-commit-icon">🛡️</div>
+      <div class="tz-commit-icon"></div>
       <div>
         <div style="font-weight: 700; font-size: 0.95rem; color: #fff;">Bảo hành tại CDS Care</div>
         <div style="font-size: 0.8rem; color: #a1a1aa;">1 đổi 1 trong 30 ngày nếu lỗi từ nhà sản xuất</div>
       </div>
     </div>
     <div class="tz-commit-item">
-      <div class="tz-commit-icon">🚀</div>
+      <div class="tz-commit-icon"></div>
       <div>
         <div style="font-weight: 700; font-size: 0.95rem; color: #fff;">Giao siêu tốc 1 Giờ</div>
         <div style="font-size: 0.8rem; color: #a1a1aa;">Miễn phí vận chuyển toàn quốc cho đơn từ 500k</div>
       </div>
     </div>
     <div class="tz-commit-item">
-      <div class="tz-commit-icon">💳</div>
+      <div class="tz-commit-icon"></div>
       <div>
         <div style="font-weight: 700; font-size: 0.95rem; color: #fff;">Trả góp 0% Lãi suất</div>
         <div style="font-size: 0.8rem; color: #a1a1aa;">Duyệt hồ sơ nhanh chóng trong 3 phút</div>
@@ -2756,7 +2755,7 @@ $total_count = count($eval_results);
 <?php if ($is_chat): ?>
   <div class="tz-livechat-widget">
     <button type="button" class="tz-chat-btn" onclick="toggleLiveChat()">
-      <span style="font-size: 1.25rem;">💬</span>
+      <span style="font-size: 1.25rem;"></span>
       <span>Tư vấn Apple 24/7</span>
       <span style="width: 8px; height: 8px; background: #22c55e; border-radius: 50%; display: inline-block;"></span>
     </button>
@@ -2805,7 +2804,7 @@ $total_count = count($eval_results);
   <div class="modal-dialog" style="max-width: 540px;">
     <div class="modal-header" style="background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%); color: #fff;">
       <div style="font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
-        <span>⚡</span>
+        <span></span>
         <span>Thanh Toán 1-Chạm Siêu Tốc (CDS STORE Express)</span>
       </div>
       <button type="button" class="modal-close" style="color: #fff;" onclick="closeModal('oneStepCheckoutModal')">&times;</button>
@@ -2873,7 +2872,7 @@ $total_count = count($eval_results);
         </div>
 
         <button type="submit" class="btn btn-primary" style="width: 100%; background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%); border: none; font-size: 1.05rem; font-weight: 800; padding: 0.85rem;">
-          ⚡ Xác nhận đặt hàng tức thì (3 giây)
+           Xác nhận đặt hàng tức thì (3 giây)
         </button>
       </form>
     </div>
@@ -2926,14 +2925,14 @@ $total_count = count($eval_results);
   <div class="modal-dialog" style="max-width: 500px;">
     <div class="modal-header">
       <div style="font-weight: 700; font-size: 1.05rem; display: flex; align-items: center; gap: 0.4rem;">
-        <span style="color: #ef4444;">♥</span>
+        <span style="color: #ef4444;"></span>
         <span>Sản phẩm yêu thích của bạn (Wishlist)</span>
       </div>
       <button type="button" class="modal-close" onclick="closeModal('wishlistModal')">&times;</button>
     </div>
     <div class="modal-body" style="padding: 1.5rem;">
       <div id="wishlistEmptyState" style="text-align: center; padding: 2rem 1rem; color: #94a3b8;">
-        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🤍</div>
+        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;"></div>
         <div style="font-weight: 600;">Chưa có sản phẩm yêu thích nào</div>
         <div style="font-size: 0.8rem; margin-top: 0.25rem;">Nhấp vào biểu tượng trái tim góc sản phẩm để lưu lại xem sau</div>
       </div>
@@ -2965,7 +2964,7 @@ $total_count = count($eval_results);
           <div id="reviewModalCount" style="font-size: 0.8rem; color: #64748b;">Dựa trên 520 đánh giá đã xác thực mua tại CDS STORE</div>
         </div>
         <button type="button" class="btn btn-secondary btn-sm" onclick="showToast('Cảm ơn bạn! Hệ thống đánh giá đã ghi nhận.', 'success')">
-          ✍️ Viết đánh giá
+           Viết đánh giá
         </button>
       </div>
 
@@ -3005,7 +3004,7 @@ $total_count = count($eval_results);
   <div class="modal-dialog" style="max-width: 540px;">
     <div class="modal-header">
       <div style="font-weight: 700; font-size: 1.05rem; display: flex; align-items: center; gap: 0.4rem;">
-        <span style="color: #2997ff;">🚚</span>
+        <span style="color: #2997ff;"></span>
         <span>Định Vị & Theo Dõi Đơn Hàng CDS STORE Realtime</span>
       </div>
       <button type="button" class="modal-close" onclick="closeModal('trackingModal')">&times;</button>
@@ -3055,7 +3054,7 @@ $total_count = count($eval_results);
   <div class="modal-dialog" style="max-width: 500px;">
     <div class="modal-header" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #fff;">
       <div style="font-weight: 700; font-size: 1.05rem; display: flex; align-items: center; gap: 0.4rem;">
-        <span>💎</span>
+        <span></span>
         <span>Hội viên VIP: CDS STORE Member</span>
       </div>
       <button type="button" class="modal-close" style="color: #fff;" onclick="closeModal('loyaltyModal')">&times;</button>
@@ -3380,7 +3379,7 @@ function openStandardCheckout(id, name, price) {
 function handleCheckoutSubmit(e) {
   e.preventDefault();
   closeModal('oneStepCheckoutModal');
-  showToast('🎉 Đặt hàng CDS STORE thành công! Mã đơn: CDS-2026-98845. Shipper sẽ liên hệ qua 0362481351 trong 15 phút.', 'success');
+  showToast(' Đặt hàng CDS STORE thành công! Mã đơn: CDS-2026-98845. Shipper sẽ liên hệ qua 0362481351 trong 15 phút.', 'success');
   const badge = document.getElementById('cartBadgeCount');
   if (badge) badge.textContent = '3';
 }
@@ -3395,12 +3394,12 @@ function toggleWishlist(id, name, btn) {
   if (idx >= 0) {
     wishlistItems.splice(idx, 1);
     btn.classList.remove('active');
-    btn.textContent = '♥';
+    btn.textContent = '';
     showToast(`Đã xóa [${name}] khỏi danh sách yêu thích!`, 'info');
   } else {
     wishlistItems.push({ id, name });
     btn.classList.add('active');
-    btn.textContent = '❤️';
+    btn.textContent = '';
     showToast(`Đã thêm [${name}] vào danh sách yêu thích!`, 'success');
   }
   updateWishlistUI();

@@ -409,7 +409,7 @@ function quickTest() {
       const cnt = document.getElementById('testResultContent');
       box.style.display = 'block';
       cnt.className = 'alert ' + (d.enabled ? 'alert-success' : 'alert-warning');
-      cnt.innerHTML = `<strong>${uid}</strong> → <strong>${d.enabled ? '✅ BẬT' : '❌ TẮT'}</strong><br>
+      cnt.innerHTML = `<strong>${uid}</strong> → <strong>${d.enabled ? ' BẬT' : ' TẮT'}</strong><br>
         <span style="color:var(--text-secondary)">${d.reason}</span>
         ${d.bucket !== null ? `<br><small>Bucket: ${d.bucket}</small>` : ''}`;
     })

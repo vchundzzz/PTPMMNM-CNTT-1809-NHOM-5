@@ -212,7 +212,7 @@ if ($is_cli) {
     <div style="background: #f8fafc; padding: 1.25rem 2rem; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
       <a href="../dashboard.php" class="btn btn-secondary">&larr; Quay lại Dashboard</a>
       <span style="font-size: 0.85rem; font-weight: 700; color: #16a34a;">
-        🎉 Toàn bộ 5 phép thử đã đạt chuẩn 100% theo yêu cầu của Đề tài 1!
+         Toàn bộ 5 phép thử đã đạt chuẩn 100% theo yêu cầu của Đề tài 1!
       </span>
     </div>
   </div>

@@ -732,7 +732,7 @@ $tableMetadata = [
           <?php else: ?>
             <tr>
               <td colspan="6" style="padding: 3rem 1rem; text-align: center; color: #64748b;">
-                <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">📂</div>
+                <div style="font-size: 2.2rem; margin-bottom: 0.5rem;"></div>
                 <strong style="color: #334155; font-size: 0.95rem;">Chưa có dữ liệu bảng nào trong CSDL!</strong>
                 <div style="margin-top: 0.35rem; font-size: 0.8rem;">
                   Hãy bấm nút <strong>"Khởi tạo / Nạp lại CSDL"</strong> ở góc trên bên phải để tạo 11 bảng và 1.000 khách hàng mẫu.
