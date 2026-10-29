@@ -112,6 +112,16 @@ class DatabaseService
                 }
             }
 
+            // Tự động đồng bộ Override KH1 cho giao_dien_toi (giống thanh_toan_nhanh) để khi cờ giao_dien_toi BẬT trên Testing/Staging thì khách hàng mặc định KH1 luôn đồng bộ trạng thái BẬT
+            foreach (['testing', 'staging'] as $envCheck) {
+                if (isset($flags['giao_dien_toi']['environments'][$envCheck]) && !array_key_exists('KH1', $flags['giao_dien_toi']['environments'][$envCheck]['user_overrides'])) {
+                    $flags['giao_dien_toi']['environments'][$envCheck]['user_overrides']['KH1'] = true;
+                    try {
+                        $pdo->prepare("INSERT IGNORE INTO flag_user_overrides (flag_key, environment, user_id, state, updated_at) VALUES ('giao_dien_toi', ?, 'KH1', 1, NOW())")->execute([$envCheck]);
+                    } catch (Throwable $e) {}
+                }
+            }
+
             // 6. Audit Logs
             $audit_logs = [];
             foreach ($pdo->query("SELECT * FROM audit_logs ORDER BY created_at DESC") as $row) {
@@ -169,7 +179,19 @@ class DatabaseService
                 updated_at = VALUES(updated_at),
                 updated_by = VALUES(updated_by)
         ");
-        return $stmt->execute([$key, $env, $newState ? 1 : 0, $newStatus, $now, $user]);
+        $ok = $stmt->execute([$key, $env, $newState ? 1 : 0, $newStatus, $now, $user]);
+        if ($newState) {
+            $pdo->prepare("UPDATE flag_environments SET rollout_percentage = 100 WHERE flag_key = ? AND environment = ? AND rollout_percentage <= 0")->execute([$key, $env]);
+            $cntStmt = $pdo->prepare("SELECT COUNT(*) FROM flag_target_groups WHERE flag_key = ? AND environment = ?");
+            $cntStmt->execute([$key, $env]);
+            if ((int)$cntStmt->fetchColumn() === 0) {
+                $insGrp = $pdo->prepare("INSERT IGNORE INTO flag_target_groups (flag_key, environment, group_id) VALUES (?, ?, ?)");
+                foreach (['nhom_noibu', 'nhom_beta', 'nhom_chung'] as $gid) {
+                    $insGrp->execute([$key, $env, $gid]);
+                }
+            }
+        }
+        return $ok;
     }
 
     /**

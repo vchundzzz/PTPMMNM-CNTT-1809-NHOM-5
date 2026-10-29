@@ -204,7 +204,7 @@ function get_initial_fake_data(): array
                         'rollout_percentage' => 50,
                         'status'             => 'Đã phát hành',
                         'target_groups'      => ['nhom_noibu', 'nhom_beta'],
-                        'user_overrides'     => ['KH5' => true],
+                        'user_overrides'     => ['KH1' => true, 'KH5' => true, 'KH2' => false],
                         'updated_at'         => '2026-10-25 09:20:00',
                         'updated_by'         => 'editor',
                     ],

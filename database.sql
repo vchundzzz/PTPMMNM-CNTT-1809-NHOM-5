@@ -1207,11 +1207,13 @@ INSERT INTO `flag_environments` (`flag_key`, `environment`, `enabled`, `rollout_
 INSERT INTO `flag_target_groups` (`flag_key`, `environment`, `group_id`) VALUES ('giao_dien_toi', 'testing', 'nhom_noibu');
 INSERT INTO `flag_target_groups` (`flag_key`, `environment`, `group_id`) VALUES ('giao_dien_toi', 'testing', 'nhom_beta');
 INSERT INTO `flag_target_groups` (`flag_key`, `environment`, `group_id`) VALUES ('giao_dien_toi', 'testing', 'nhom_chung');
+INSERT INTO `flag_user_overrides` (`flag_key`, `environment`, `user_id`, `state`, `updated_at`) VALUES ('giao_dien_toi', 'testing', 'KH1', 1, NOW());
 INSERT INTO `flag_user_overrides` (`flag_key`, `environment`, `user_id`, `state`, `updated_at`) VALUES ('giao_dien_toi', 'testing', 'KH5', 1, NOW());
 INSERT INTO `flag_user_overrides` (`flag_key`, `environment`, `user_id`, `state`, `updated_at`) VALUES ('giao_dien_toi', 'testing', 'KH2', 0, NOW());
 INSERT INTO `flag_environments` (`flag_key`, `environment`, `enabled`, `rollout_percentage`, `status`, `updated_at`, `updated_by`) VALUES ('giao_dien_toi', 'staging', 1, 50, 'Đã phát hành', '2026-10-25 09:20:00', 'editor');
 INSERT INTO `flag_target_groups` (`flag_key`, `environment`, `group_id`) VALUES ('giao_dien_toi', 'staging', 'nhom_noibu');
 INSERT INTO `flag_target_groups` (`flag_key`, `environment`, `group_id`) VALUES ('giao_dien_toi', 'staging', 'nhom_beta');
+INSERT INTO `flag_user_overrides` (`flag_key`, `environment`, `user_id`, `state`, `updated_at`) VALUES ('giao_dien_toi', 'staging', 'KH1', 1, NOW());
 INSERT INTO `flag_user_overrides` (`flag_key`, `environment`, `user_id`, `state`, `updated_at`) VALUES ('giao_dien_toi', 'staging', 'KH5', 1, NOW());
 INSERT INTO `flag_user_overrides` (`flag_key`, `environment`, `user_id`, `state`, `updated_at`) VALUES ('giao_dien_toi', 'staging', 'KH2', 0, NOW());
 INSERT INTO `flags` (`id`, `key`, `name`, `description`, `project_id`, `created_at`, `updated_at`) VALUES ('flg_003', 'danh_gia_san_pham', 'Đánh giá sản phẩm có hình ảnh', 'Cho phép khách hàng đính kèm ảnh thực tế khi đánh giá sao sản phẩm.', 'prj_ecommerce', NOW(), NOW());

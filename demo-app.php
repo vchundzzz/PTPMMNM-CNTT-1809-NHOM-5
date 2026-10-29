@@ -93,9 +93,9 @@ foreach ($flag_keys as $f_key) {
 // Shortcut biến trạng thái bật/tắt của từng cờ
 $is_fast_pay    = !empty($eval_results['thanh_toan_nhanh']['data']['enabled']);
 // Keep storefront colors consistent between testing and staging.
-$is_dark_mode   = true;
+$is_dark_mode   = !empty($eval_results['giao_dien_toi']['data']['enabled']);
 // Keep the admin controller light regardless of the storefront's dark-mode flag.
-$is_console_dark_mode = false;
+$is_console_dark_mode = $is_dark_mode;
 $is_reviews     = !empty($eval_results['danh_gia_san_pham']['data']['enabled']);
 $is_wishlist    = !empty($eval_results['danh_sach_yeu_thich']['data']['enabled']);
 $is_chat        = !empty($eval_results['ho_tro_truc_tuyen']['data']['enabled']);
@@ -1403,6 +1403,94 @@ require_once __DIR__ . '/includes/header.php';
   overflow: hidden;
 }
 
+/* ============================================================
+   ĐỒNG BỘ GIAO DIỆN SÁNG / TỐI (LIGHT MODE vs DARK MODE) CHO CỜ giao_dien_toi
+   ============================================================ */
+.topzone-wrapper.light-mode {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+.topzone-wrapper.light-mode .tz-navbar {
+  background: #ffffff !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+}
+.topzone-wrapper.light-mode .tz-brand,
+.topzone-wrapper.light-mode .tz-brand-logo {
+  color: #0f172a !important;
+}
+.topzone-wrapper.light-mode .tz-brand svg {
+  fill: #0f172a !important;
+}
+.topzone-wrapper.light-mode .tz-brand-divider {
+  background: #cbd5e1 !important;
+}
+.topzone-wrapper.light-mode .tz-brand-sub span {
+  color: #64748b !important;
+}
+.topzone-wrapper.light-mode .tz-nav-links a {
+  color: #334155 !important;
+}
+.topzone-wrapper.light-mode .tz-nav-links a:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+.topzone-wrapper.light-mode .tz-nav-links a.active {
+  background: #eff6ff !important;
+  color: #2563eb !important;
+}
+.topzone-wrapper.light-mode .tz-round-btn {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+}
+.topzone-wrapper.light-mode .tz-round-btn:hover {
+  background: #e2e8f0 !important;
+}
+.topzone-wrapper.light-mode .tz-flashsale-bar,
+.topzone-wrapper.light-mode .tz-fs-card,
+.topzone-wrapper.light-mode .tz-cate-item,
+.topzone-wrapper.light-mode .tz-commitments {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+}
+.topzone-wrapper.light-mode .tz-fs-timer,
+.topzone-wrapper.light-mode .tz-fs-card div[style*="color: #fff"],
+.topzone-wrapper.light-mode .tz-commit-item div[style*="color: #fff"],
+.topzone-wrapper.light-mode #sec-audio h4 {
+  color: #0f172a !important;
+}
+.topzone-wrapper.light-mode .tz-section-header h2 {
+  color: #0f172a !important;
+}
+.topzone-wrapper.light-mode .tz-section-header svg {
+  fill: #0f172a !important;
+}
+.topzone-wrapper.light-mode .tz-commit-icon {
+  background: #f1f5f9 !important;
+}
+.topzone-wrapper.light-mode .tz-footer {
+  background: #ffffff !important;
+  border-top: 1px solid #e2e8f0 !important;
+  color: #475569 !important;
+}
+.topzone-wrapper.light-mode .tz-foot-grid {
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+.topzone-wrapper.light-mode .tz-foot-col h4,
+.topzone-wrapper.light-mode .tz-footer span[style*="color: #fff"] {
+  color: #0f172a !important;
+}
+.topzone-wrapper.light-mode .tz-footer svg {
+  fill: #0f172a !important;
+}
+.topzone-wrapper.light-mode .tz-foot-col a {
+  color: #334155 !important;
+}
+
 .tz-chat-popup.show {
   display: flex;
 }
@@ -1946,7 +2034,7 @@ $total_count = count($eval_results);
                 class="ff-badge-status <?= $en ? 'on' : 'off' ?>"
                 style="cursor: pointer; border: none;"
                 title="Bấm để Bật / Tắt nhanh cờ <?= e($f_key) ?> và đồng bộ vào CSDL MySQL"
-                onclick="quickToggleDemoFlag('<?= e($f_key) ?>', '<?= e($current_env) ?>')"
+                onclick="quickToggleDemoFlag('<?= e($f_key) ?>', '<?= e($current_env) ?>', <?= $en ? 'false' : 'true' ?>)"
               >
                 <span><?= $en ? '●' : '○' ?></span>
                 <?= $en ? 'ENABLED' : 'DISABLED' ?>
@@ -1978,7 +2066,7 @@ $total_count = count($eval_results);
 <!-- ========================================================================
      GIAO DIỆN CDS STORE STOREFRONT CHÍNH THỨC (AAR)
      ======================================================================== -->
-<div class="topzone-wrapper">
+<div class="topzone-wrapper <?= $is_dark_mode ? 'dark-mode' : 'light-mode' ?>">
 
   <!-- CDS STORE HEADER NAVIGATION CHUẨN ĐEN #101010 -->
   <nav class="tz-navbar">
@@ -2061,7 +2149,11 @@ $total_count = count($eval_results);
         <span class="tz-cart-badge" id="cartBadgeCount">2</span>
       </button>
 
-      <div style="font-size: 0.78rem; color: #a1a1aa; border-left: 1px solid #33333d; padding-left: 0.65rem;">
+      <button type="button" class="tz-round-btn" onclick="quickToggleDemoFlag('giao_dien_toi', '<?= e($current_env) ?>', <?= $is_dark_mode ? 'false' : 'true' ?>)" title="Cờ [giao_dien_toi]: Đang ở chế độ <?= $is_dark_mode ? 'Tối (Dark Mode)' : 'Sáng (Light Mode)' ?> - Bấm để chuyển đổi">
+        <span style="font-size: 0.95rem;"><?= $is_dark_mode ? '🌙' : '☀️' ?></span>
+      </button>
+
+      <div style="font-size: 0.78rem; color: <?= $is_dark_mode ? '#a1a1aa' : '#475569' ?>; border-left: 1px solid <?= $is_dark_mode ? '#33333d' : '#cbd5e1' ?>; padding-left: 0.65rem;">
         ID: <strong style="color: #2997ff;"><?= e($current_user_id) ?></strong>
       </div>
     </div>
@@ -3115,7 +3207,7 @@ const APP_FLAGS = {
   banner: <?= $is_banner ? 'true' : 'false' ?>
 };
 
-async function quickToggleDemoFlag(flagKey, envKey) {
+async function quickToggleDemoFlag(flagKey, envKey, targetEnabled) {
   try {
     const res = await fetch('api/toggle.php', {
       method: 'POST',
@@ -3126,6 +3218,8 @@ async function quickToggleDemoFlag(flagKey, envKey) {
       body: JSON.stringify({
         flag_key: flagKey,
         environment: envKey,
+        enabled: targetEnabled,
+        user_id: '<?= e($current_user_id) ?>',
         csrf_token: '<?= e(get_csrf_token()) ?>'
       })
     });
