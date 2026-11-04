@@ -356,8 +356,8 @@ $can_modify = $can_edit || $can_toggle;
         </div>
       </div>
 
-      <a href="demo-app.php?flag=<?= urlencode($key) ?>" class="btn btn-secondary" style="text-align:center">
-        Mở trong Ứng dụng Demo →
+      <a href="demo-app.php?highlight=<?= urlencode($key) ?>" target="_blank" rel="noopener" class="btn btn-secondary" style="text-align:center">
+        Mở trang Web CDS STORE (Tab mới) ↗
       </a>
     </div>
   </div>

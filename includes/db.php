@@ -45,6 +45,22 @@ class Database
             self::$lastError = null;
             return self::$instance;
         } catch (PDOException $e) {
+            // Tự động khởi tạo CSDL từ database.sql khi chạy lần đầu trên thiết bị mới (Unknown database 1049)
+            if ((int)$e->getCode() === 1049 || str_contains($e->getMessage(), 'Unknown database')) {
+                $sqlFile = __DIR__ . '/../database.sql';
+                $serverPdo = self::getServerConnection();
+                if ($serverPdo && file_exists($sqlFile)) {
+                    try {
+                        $serverPdo->exec((string)file_get_contents($sqlFile));
+                        self::$instance = new PDO($dsn, DB_USER, DB_PASS, $options);
+                        self::$lastError = null;
+                        return self::$instance;
+                    } catch (Throwable $initErr) {
+                        self::$lastError = $initErr->getMessage();
+                        return null;
+                    }
+                }
+            }
             self::$lastError = $e->getMessage();
             return null;
         }

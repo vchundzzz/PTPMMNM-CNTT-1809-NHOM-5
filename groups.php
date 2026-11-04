@@ -221,8 +221,8 @@ $page_users = $users_pagination['items'];
             <td><span style="color: var(--text-secondary);"><?= e($usr['email']) ?></span></td>
             <td><span class="badge badge-neutral"><?= e($usr['group_name']) ?></span></td>
             <td style="text-align: right;">
-              <a href="demo-app.php?user_id=<?= urlencode($usr['id']) ?>" class="btn btn-secondary btn-sm">
-                Mở ứng dụng
+              <a href="demo-app.php?user_id=<?= urlencode($usr['id']) ?>" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">
+                Mở Web CDS STORE ↗
               </a>
             </td>
           </tr>
