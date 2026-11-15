@@ -10,6 +10,142 @@ require_once __DIR__ . '/../includes/db.php';
 
 class DatabaseService
 {
+    private static bool $virtualCleaned = false;
+
+    /**
+     * Xóa toàn bộ mã khách hàng ảo cũ (KH1..KH1000 không có tài khoản thực) và đồng bộ lại số lượng nhóm
+     */
+    public static function cleanupVirtualCustomers(?PDO $pdo = null): void
+    {
+        if (self::$virtualCleaned) {
+            return;
+        }
+        $pdo = $pdo ?? Database::getConnection();
+        if (!$pdo) {
+            return;
+        }
+        self::$virtualCleaned = true;
+
+        try {
+            $usernameCol = $pdo->query("SHOW COLUMNS FROM customers LIKE 'username'")->fetch(PDO::FETCH_ASSOC);
+            if (!$usernameCol) {
+                $pdo->exec("ALTER TABLE customers ADD COLUMN username VARCHAR(50) NULL UNIQUE AFTER id");
+            }
+            $passCol = $pdo->query("SHOW COLUMNS FROM customers LIKE 'password_hash'")->fetch(PDO::FETCH_ASSOC);
+            if (!$passCol) {
+                $pdo->exec("ALTER TABLE customers ADD COLUMN password_hash VARCHAR(255) NULL AFTER email");
+            }
+            try {
+                $pdo->exec("ALTER TABLE customers MODIFY COLUMN email VARCHAR(255) NULL DEFAULT ''");
+            } catch (Throwable $e) {}
+
+            // Xóa toàn bộ khách hàng ảo cũ (không có username/mật khẩu hoặc dùng email @demo.local)
+            $pdo->exec("
+                DELETE FROM customers
+                WHERE username IS NULL
+                   OR TRIM(username) = ''
+                   OR password_hash IS NULL
+                   OR TRIM(password_hash) = ''
+                   OR email LIKE '%@demo.local'
+            ");
+
+            // Xóa email demo tự sinh trên các tài khoản thực nếu có
+            $pdo->exec("
+                UPDATE customers
+                SET email = ''
+                WHERE email LIKE '%@customer.cds-store.local' OR email LIKE '%@demo.local'
+            ");
+
+            // Chuẩn hóa các mã khách hàng cũ dạng ngẫu nhiên (VD: KHB149A5D34F) về mã tuần tự KH1, KH2, KH3...
+            $allCusts = $pdo->query("SELECT id, username FROM customers ORDER BY created_at ASC, id ASC")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            $usedNums = [];
+            foreach ($allCusts as $c) {
+                if (preg_match('/^KH(\d+)$/i', (string)$c['id'], $m)) {
+                    $usedNums[(int)$m[1]] = true;
+                }
+            }
+            $updCustId = $pdo->prepare("UPDATE customers SET id = ? WHERE id = ?");
+            $updOvrId  = $pdo->prepare("UPDATE flag_user_overrides SET user_id = ? WHERE user_id = ?");
+            foreach ($allCusts as $c) {
+                $oldId = (string)$c['id'];
+                if (!preg_match('/^KH(\d+)$/i', $oldId)) {
+                    $nextNum = 1;
+                    while (isset($usedNums[$nextNum])) {
+                        $nextNum++;
+                    }
+                    $newId = 'KH' . $nextNum;
+                    $usedNums[$nextNum] = true;
+                    $updCustId->execute([$newId, $oldId]);
+                    $updOvrId->execute([$newId, $oldId]);
+                }
+            }
+
+            // Làm sạch mô tả cũ có số lượng ảo (50/200/750 tài khoản)
+            $pdo->exec("
+                UPDATE target_groups
+                SET description = 'Đội ngũ lập trình viên, QA và kiểm thử viên nội bộ công ty.'
+                WHERE id = 'nhom_noibu' AND description LIKE '%50 tài khoản%'
+            ");
+            $pdo->exec("
+                UPDATE target_groups
+                SET description = 'Khách hàng đăng ký trải nghiệm sớm tính năng mới.'
+                WHERE id = 'nhom_beta' AND description LIKE '%200 tài khoản%'
+            ");
+            $pdo->exec("
+                UPDATE target_groups
+                SET description = 'Khách hàng mua sắm trực tuyến trên hệ thống CDS Store.'
+                WHERE id = 'nhom_chung' AND description LIKE '%750 tài khoản%'
+            ");
+
+            self::syncGroupCounts($pdo);
+        } catch (Throwable $e) {}
+    }
+
+    /**
+     * Đồng bộ số lượng thành viên thực tế và danh sách mã khách hàng của từng nhóm trong target_groups
+     */
+    public static function syncGroupCounts(?PDO $pdo = null): void
+    {
+        $pdo = $pdo ?? Database::getConnection();
+        if (!$pdo) {
+            return;
+        }
+
+        try {
+            $groups = $pdo->query("SELECT id FROM target_groups")->fetchAll(PDO::FETCH_COLUMN);
+            if (!$groups) {
+                return;
+            }
+
+            $custStmt = $pdo->prepare("
+                SELECT id FROM customers
+                WHERE group_id = ? AND username IS NOT NULL AND TRIM(username) <> ''
+                ORDER BY created_at ASC, id ASC
+            ");
+            $updStmt = $pdo->prepare("
+                UPDATE target_groups
+                SET user_count = ?, range_label = ?
+                WHERE id = ?
+            ");
+
+            foreach ($groups as $gid) {
+                $custStmt->execute([$gid]);
+                $ids = $custStmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+                $count = count($ids);
+                if ($count === 0) {
+                    $rangeLabel = 'Chưa có khách hàng';
+                } elseif ($count <= 5) {
+                    $rangeLabel = implode(', ', $ids);
+                } else {
+                    $first = reset($ids);
+                    $last = end($ids);
+                    $rangeLabel = "{$first} → {$last} ({$count} mã KH)";
+                }
+                $updStmt->execute([$count, $rangeLabel, $gid]);
+            }
+        } catch (Throwable $e) {}
+    }
+
     /**
      * Nạp toàn bộ dữ liệu từ MySQL thành mảng tương thích với hệ thống
      */
@@ -19,6 +155,8 @@ class DatabaseService
         if (!$pdo) return null;
 
         try {
+            self::cleanupVirtualCustomers($pdo);
+
             // 1. Projects
             $projects = [];
             foreach ($pdo->query("SELECT * FROM projects") as $row) {
@@ -35,7 +173,8 @@ class DatabaseService
             // 3. Target groups
             $groups = [];
             foreach ($pdo->query("SELECT * FROM target_groups") as $row) {
-                $row['range'] = $row['range_label'] ?? '';
+                $row['range'] = $row['range_label'] ?? 'Chưa có khách hàng';
+                $row['user_count'] = (int)($row['user_count'] ?? 0);
                 $groups[$row['id']] = $row;
             }
 
@@ -112,32 +251,6 @@ class DatabaseService
                 }
             }
 
-            // Đồng bộ tất cả các cờ đang BẬT để đảm bảo áp dụng đầy đủ cho khách hàng trên trang bán hàng
-            foreach ($flags as $fKey => &$fItem) {
-                foreach (['testing', 'staging'] as $envCheck) {
-                    if (!empty($fItem['environments'][$envCheck]['enabled'])) {
-                        $curGroups = $fItem['environments'][$envCheck]['target_groups'] ?? [];
-                        $allGroups = ['nhom_noibu', 'nhom_beta', 'nhom_chung'];
-                        if (!in_array('nhom_chung', $curGroups, true)) {
-                            $fItem['environments'][$envCheck]['target_groups'] = array_values(array_unique(array_merge($curGroups, $allGroups)));
-                            try {
-                                $insGrp = $pdo->prepare("INSERT IGNORE INTO flag_target_groups (flag_key, environment, group_id) VALUES (?, ?, ?)");
-                                foreach ($allGroups as $gid) {
-                                    $insGrp->execute([$fKey, $envCheck, $gid]);
-                                }
-                            } catch (Throwable $e) {}
-                        }
-                        if ((int)($fItem['environments'][$envCheck]['rollout_percentage'] ?? 0) < 100) {
-                            $fItem['environments'][$envCheck]['rollout_percentage'] = 100;
-                            try {
-                                $pdo->prepare("UPDATE flag_environments SET rollout_percentage = 100 WHERE flag_key = ? AND environment = ?")->execute([$fKey, $envCheck]);
-                            } catch (Throwable $e) {}
-                        }
-                    }
-                }
-            }
-            unset($fItem);
-
             // 6. Audit Logs
             $audit_logs = [];
             foreach ($pdo->query("SELECT * FROM audit_logs ORDER BY created_at DESC") as $row) {
@@ -197,12 +310,7 @@ class DatabaseService
         ");
         $ok = $stmt->execute([$key, $env, $newState ? 1 : 0, $newStatus, $now, $user]);
         if ($newState) {
-            $pdo->prepare("UPDATE flag_environments SET rollout_percentage = 100 WHERE flag_key = ? AND environment = ?")->execute([$key, $env]);
-            $insGrp = $pdo->prepare("INSERT IGNORE INTO flag_target_groups (flag_key, environment, group_id) VALUES (?, ?, ?)");
-            foreach (['nhom_noibu', 'nhom_beta', 'nhom_chung'] as $gid) {
-                $insGrp->execute([$key, $env, $gid]);
-            }
-            $pdo->prepare("DELETE FROM flag_user_overrides WHERE flag_key = ? AND environment = ? AND state = 0")->execute([$key, $env]);
+            $pdo->prepare("UPDATE flag_environments SET rollout_percentage = 100 WHERE flag_key = ? AND environment = ? AND rollout_percentage <= 0")->execute([$key, $env]);
         }
         return $ok;
     }
@@ -555,24 +663,63 @@ class DatabaseService
     }
 
     /**
-     * Tải danh sách khách hàng từ bảng customers trong MySQL
+     * Tải danh sách khách hàng thực tế đã đăng ký từ bảng customers trong MySQL
      */
     public static function loadCustomers(): ?array
     {
         $pdo = Database::getConnection();
-        if (!$pdo) return null;
+        if (!$pdo) return [];
 
         try {
+            self::cleanupVirtualCustomers($pdo);
             $stmt = $pdo->query("
-                SELECT c.id, c.name, c.email, c.group_id, g.name AS group_name
+                SELECT c.id, c.username, c.name, c.group_id, COALESCE(g.name, 'Khách Thường') AS group_name, c.created_at
                 FROM customers c
                 LEFT JOIN target_groups g ON g.id = c.group_id
-                ORDER BY c.created_at ASC
+                WHERE c.username IS NOT NULL AND TRIM(c.username) <> ''
+                ORDER BY c.created_at DESC, c.id DESC
             ");
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            return !empty($rows) ? $rows : null;
+            return is_array($rows) ? $rows : [];
         } catch (Throwable $e) {
-            return null;
+            return [];
+        }
+    }
+
+    /**
+     * Cập nhật nhóm trực thuộc của khách hàng và đồng bộ số lượng nhóm
+     */
+    public static function updateCustomerGroup(string $customerId, string $groupId): bool
+    {
+        $pdo = Database::getConnection();
+        if (!$pdo) return false;
+
+        try {
+            $stmt = $pdo->prepare("UPDATE customers SET group_id = ? WHERE id = ?");
+            $ok = $stmt->execute([$groupId, $customerId]);
+            self::syncGroupCounts($pdo);
+            return $ok;
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Xóa tài khoản khách hàng khỏi hệ thống và đồng bộ lại nhóm
+     */
+    public static function deleteCustomer(string $customerId): bool
+    {
+        $pdo = Database::getConnection();
+        if (!$pdo) return false;
+
+        try {
+            $pdo->prepare("DELETE FROM flag_user_overrides WHERE user_id = ?")->execute([$customerId]);
+            $stmt = $pdo->prepare("DELETE FROM customers WHERE id = ?");
+            $ok = $stmt->execute([$customerId]);
+            self::syncGroupCounts($pdo);
+            return $ok;
+        } catch (Throwable $e) {
+            return false;
         }
     }
 
@@ -608,26 +755,27 @@ class DatabaseService
         if (!$pdo) return false;
 
         try {
+            $key = $g['key'] ?? preg_replace('/^nhom_/', '', (string)$g['id']);
+            if ($key === '') {
+                $key = (string)$g['id'];
+            }
             $stmt = $pdo->prepare("
-                INSERT INTO target_groups (id, name, description, range_label, user_count, min_index, max_index)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO target_groups (id, `key`, name, description, user_count, range_label, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, NOW())
                 ON DUPLICATE KEY UPDATE
                     name = VALUES(name),
-                    description = VALUES(description),
-                    range_label = VALUES(range_label),
-                    user_count = VALUES(user_count),
-                    min_index = VALUES(min_index),
-                    max_index = VALUES(max_index)
+                    description = VALUES(description)
             ");
-            return $stmt->execute([
+            $ok = $stmt->execute([
                 $g['id'],
+                $key,
                 $g['name'],
                 $g['description'] ?? '',
-                $g['range'] ?? ($g['range_label'] ?? ''),
                 (int)($g['user_count'] ?? 0),
-                (int)($g['min_index'] ?? 1),
-                (int)($g['max_index'] ?? 100),
+                $g['range'] ?? ($g['range_label'] ?? 'Chưa có khách hàng'),
             ]);
+            self::syncGroupCounts($pdo);
+            return $ok;
         } catch (Throwable $e) {
             return false;
         }
@@ -642,8 +790,12 @@ class DatabaseService
         if (!$pdo) return false;
 
         try {
+            // Chuyển các khách hàng đang thuộc nhóm bị xóa về nhom_chung trước khi xóa nhóm
+            $pdo->prepare("UPDATE customers SET group_id = 'nhom_chung' WHERE group_id = ?")->execute([$id]);
             $stmt = $pdo->prepare("DELETE FROM target_groups WHERE id = ?");
-            return $stmt->execute([$id]);
+            $ok = $stmt->execute([$id]);
+            self::syncGroupCounts($pdo);
+            return $ok;
         } catch (Throwable $e) {
             return false;
         }
@@ -706,7 +858,7 @@ class DatabaseService
             'projects'            => 'Dự án',
             'environments'        => 'Môi trường',
             'target_groups'       => 'Nhóm khách hàng',
-            'customers'           => 'Khách hàng (KH1 - KH1000)',
+            'customers'           => 'Tài khoản khách hàng đã đăng ký',
             'members'             => 'Tài khoản quản trị',
             'flags'               => 'Cờ tính năng (Feature Flags)',
             'flag_environments'   => 'Cấu hình cờ theo môi trường',

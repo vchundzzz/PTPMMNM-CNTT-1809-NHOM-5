@@ -34,16 +34,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['ff_data']['flags'][$key]['environments'][$env]['updated_by'] = $user;
             // Cập nhật trạng thái hiển thị
             $_SESSION['ff_data']['flags'][$key]['environments'][$env]['status'] = $new ? 'Đã phát hành' : 'Bản nháp';
-            if ($new) {
+            if ($new && (int)($_SESSION['ff_data']['flags'][$key]['environments'][$env]['rollout_percentage'] ?? 0) <= 0) {
                 $_SESSION['ff_data']['flags'][$key]['environments'][$env]['rollout_percentage'] = 100;
-                $_SESSION['ff_data']['flags'][$key]['environments'][$env]['target_groups'] = ['nhom_noibu', 'nhom_beta', 'nhom_chung'];
-                if (!empty($_SESSION['ff_data']['flags'][$key]['environments'][$env]['user_overrides'])) {
-                    foreach ($_SESSION['ff_data']['flags'][$key]['environments'][$env]['user_overrides'] as $ovUid => $ovState) {
-                        if (!$ovState) {
-                            unset($_SESSION['ff_data']['flags'][$key]['environments'][$env]['user_overrides'][$ovUid]);
-                        }
-                    }
-                }
             }
 
             // Đồng bộ trực tiếp vào CSDL MySQL

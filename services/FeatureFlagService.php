@@ -2,7 +2,7 @@
 /**
  * Hệ thống Quản lý Feature Flags
  * services/FeatureFlagService.php – Lõi xử lý quyết định bật/tắt
- * Mã khách hàng dạng KH1 ... KH1000
+ * Đồng bộ trực tiếp với tài khoản khách hàng thực tế đã đăng ký (customers & target_groups)
  * Áp dụng 10 quy tắc nghiêm ngặt + băm ổn định (crc32 bucket 0-99)
  */
 declare(strict_types=1);
@@ -15,7 +15,7 @@ class FeatureFlagService
     public const DEFAULT_FALLBACK = false;
 
     /**
-     * Đánh giá trạng thái cờ tính năng cho một khách hàng cụ thể.
+     * Đánh giá trạng thái cờ tính năng cho một khách hàng cụ thể (theo mã KH hoặc username).
      */
     public static function evaluate(
         string $flag_key,
@@ -25,37 +25,115 @@ class FeatureFlagService
     ): array {
         init_session_data();
         $flags = $_SESSION['ff_data']['flags'] ?? [];
+        $groups_map = $_SESSION['ff_data']['groups'] ?? [];
+
+        $customer = self::resolveCustomer($user_id);
+        $canonical_id = $customer['id'] ?? $user_id;
+        $username = $customer['username'] ?? '';
+        $ugroup = $customer['group_id'] ?? 'nhom_chung';
+        $ugroup_name = $customer['group_name'] ?? ($groups_map[$ugroup]['name'] ?? $ugroup);
+        $bucket = !empty($flag_key) ? self::calculateBucket($canonical_id, $flag_key) : null;
 
         // Quy tắc 9: tham số thiếu / cờ không tồn tại
         if (empty($flag_key) || !isset($flags[$flag_key])) {
-            return self::result(false, $flag_key, $env, null, 'Không tìm thấy cờ tính năng; trả về giá trị mặc định (false)', false);
+            return self::result(
+                false,
+                $flag_key,
+                $env,
+                null,
+                'Không tìm thấy cờ tính năng; trả về giá trị mặc định (false)',
+                false,
+                $canonical_id,
+                $username,
+                $ugroup,
+                $ugroup_name
+            );
         }
 
         $env_cfg = $flags[$flag_key]['environments'][$env] ?? null;
         if (!$env_cfg) {
-            return self::result(false, $flag_key, $env, null, "Cờ chưa cấu hình trên môi trường [$env]; trả mặc định (false)", false);
+            return self::result(
+                false,
+                $flag_key,
+                $env,
+                $bucket,
+                "Cờ chưa cấu hình trên môi trường [$env]; trả mặc định (false)",
+                false,
+                $canonical_id,
+                $username,
+                $ugroup,
+                $ugroup_name
+            );
         }
 
         // Quy tắc 2: tắt toàn cục
         if (empty($env_cfg['enabled'])) {
-            return self::result(false, $flag_key, $env, null, 'Tắt toàn cục trên môi trường này');
+            return self::result(
+                false,
+                $flag_key,
+                $env,
+                $bucket,
+                'Tắt toàn cục trên môi trường này',
+                true,
+                $canonical_id,
+                $username,
+                $ugroup,
+                $ugroup_name
+            );
         }
 
-        // Quy tắc 3: User Override (ưu tiên cao nhất)
+        // Quy tắc 3: User Override (ưu tiên cao nhất — khớp cả Mã KH lẫn Tên đăng nhập)
         $overrides = $env_cfg['user_overrides'] ?? [];
-        if (array_key_exists($user_id, $overrides)) {
-            $state = (bool)$overrides[$user_id];
-            return self::result($state, $flag_key, $env, null,
-                'Áp dụng quy tắc riêng cho khách hàng (Override: ' . ($state ? 'Bật' : 'Tắt') . ')');
+        $matched_override = null;
+        if (array_key_exists($canonical_id, $overrides)) {
+            $matched_override = (bool)$overrides[$canonical_id];
+        } elseif (array_key_exists($user_id, $overrides)) {
+            $matched_override = (bool)$overrides[$user_id];
+        } else {
+            foreach ($overrides as $ovKey => $ovVal) {
+                $ovKeyStr = (string)$ovKey;
+                if (
+                    strcasecmp($ovKeyStr, $canonical_id) === 0
+                    || ($username !== '' && strcasecmp($ovKeyStr, $username) === 0)
+                    || strcasecmp($ovKeyStr, $user_id) === 0
+                ) {
+                    $matched_override = (bool)$ovVal;
+                    break;
+                }
+            }
+        }
+
+        if ($matched_override !== null) {
+            return self::result(
+                $matched_override,
+                $flag_key,
+                $env,
+                $bucket,
+                'Áp dụng quy tắc riêng cho khách hàng (Override: ' . ($matched_override ? 'Bật' : 'Tắt') . ')',
+                true,
+                $canonical_id,
+                $username,
+                $ugroup,
+                $ugroup_name
+            );
         }
 
         // Quy tắc 4: Kiểm tra nhóm khách hàng
         $groups = $env_cfg['target_groups'] ?? [];
         if (!empty($groups)) {
-            $ugroup = self::getUserGroup($user_id);
             if (!in_array($ugroup, $groups, true)) {
-                return self::result(false, $flag_key, $env, null,
-                    "Khách hàng không thuộc nhóm mục tiêu (Nhóm: $ugroup)");
+                return self::result(
+                    false,
+                    $flag_key,
+                    $env,
+                    $bucket,
+                    "Khách hàng thuộc nhóm [$ugroup_name] không nằm trong nhóm mục tiêu áp dụng",
+                    true,
+                    $canonical_id,
+                    $username,
+                    $ugroup,
+                    $ugroup_name
+                );
             }
         }
 
@@ -63,17 +141,26 @@ class FeatureFlagService
         $pct = (int)($env_cfg['rollout_percentage'] ?? 0);
 
         if ($pct <= 0) {
-            return self::result(false, $flag_key, $env, 0, 'Tỷ lệ triển khai = 0%');
+            return self::result(false, $flag_key, $env, $bucket, "Tỷ lệ triển khai = 0% (Bucket của KH = $bucket)", true, $canonical_id, $username, $ugroup, $ugroup_name);
         }
         if ($pct >= 100) {
-            return self::result(true, $flag_key, $env, 100, 'Tỷ lệ triển khai = 100%');
+            return self::result(true, $flag_key, $env, $bucket, "Tỷ lệ triển khai = 100% (Bucket của KH = $bucket)", true, $canonical_id, $username, $ugroup, $ugroup_name);
         }
 
-        $bucket = self::calculateBucket($user_id, $flag_key);
-        $in     = $bucket < $pct;
-        return self::result($in, $flag_key, $env, $bucket,
+        $in = $bucket < $pct;
+        return self::result(
+            $in,
+            $flag_key,
+            $env,
+            $bucket,
             $in ? "Trong phạm vi thử nghiệm (Bucket $bucket < $pct%)"
-                : "Ngoài phạm vi thử nghiệm (Bucket $bucket ≥ $pct%)");
+                : "Ngoài phạm vi thử nghiệm (Bucket $bucket ≥ $pct%)",
+            true,
+            $canonical_id,
+            $username,
+            $ugroup,
+            $ugroup_name
+        );
     }
 
     /** Tính bucket 0–99 ổn định theo user_id + flag_key */
@@ -82,36 +169,56 @@ class FeatureFlagService
         return abs(crc32($user_id . ':' . $flag_key)) % 100;
     }
 
-    /** Xác định nhóm khách hàng từ tài khoản thật, có fallback cho dữ liệu mô phỏng */
-    private static function getUserGroup(string $user_id): string
+    /**
+     * Tra cứu thông tin tài khoản khách hàng thực tế từ CSDL MySQL (hoặc danh sách hiện tại)
+     */
+    public static function resolveCustomer(string $user_id): ?array
     {
+        $user_id = trim($user_id);
+        if ($user_id === '') {
+            return null;
+        }
+
         try {
             $pdo = Database::getConnection();
             if ($pdo) {
-                $stmt = $pdo->prepare('SELECT group_id FROM customers WHERE id = ? LIMIT 1');
-                $stmt->execute([$user_id]);
-                $group_id = $stmt->fetchColumn();
-                if (is_string($group_id) && $group_id !== '') {
-                    return $group_id;
+                $stmt = $pdo->prepare("
+                    SELECT c.id, c.username, c.name, c.group_id, COALESCE(g.name, c.group_id) AS group_name
+                    FROM customers c
+                    LEFT JOIN target_groups g ON g.id = c.group_id
+                    WHERE UPPER(c.id) = UPPER(?) OR LOWER(c.username) = LOWER(?)
+                    LIMIT 1
+                ");
+                $stmt->execute([$user_id, $user_id]);
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                if (is_array($row) && !empty($row['id'])) {
+                    return [
+                        'id'         => (string)$row['id'],
+                        'username'   => (string)($row['username'] ?? $row['id']),
+                        'name'       => (string)($row['name'] ?? $row['username'] ?? $row['id']),
+                        'group_id'   => (string)($row['group_id'] ?? 'nhom_chung'),
+                        'group_name' => (string)($row['group_name'] ?? 'Khách Thường'),
+                    ];
                 }
             }
-        } catch (PDOException $e) {
-            // Dữ liệu mô phỏng bên dưới vẫn giữ cho hệ thống hoạt động khi DB tạm thời không sẵn sàng.
-        }
+        } catch (Throwable $e) {}
 
         foreach (generate_fake_users() as $customer) {
-            if (($customer['id'] ?? '') === $user_id) {
-                return (string)($customer['group_id'] ?? 'nhom_chung');
+            if (
+                strcasecmp((string)($customer['id'] ?? ''), $user_id) === 0
+                || strcasecmp((string)($customer['username'] ?? ''), $user_id) === 0
+            ) {
+                return [
+                    'id'         => (string)$customer['id'],
+                    'username'   => (string)($customer['username'] ?? $customer['id']),
+                    'name'       => (string)($customer['name'] ?? $customer['username'] ?? $customer['id']),
+                    'group_id'   => (string)($customer['group_id'] ?? 'nhom_chung'),
+                    'group_name' => (string)($customer['group_name'] ?? 'Khách Thường'),
+                ];
             }
         }
 
-        if (preg_match('/KH(\d+)/i', $user_id, $m)) {
-            $n = (int)$m[1];
-            if ($n <= 50)  return 'nhom_noibu';
-            if ($n <= 250) return 'nhom_beta';
-            return 'nhom_chung';
-        }
-        return 'nhom_chung';
+        return null;
     }
 
     /** Đóng gói kết quả trả về API */
@@ -121,7 +228,11 @@ class FeatureFlagService
         string  $env,
         ?int    $bucket,
         string  $reason,
-        bool    $success = true
+        bool    $success = true,
+        string  $customer_id = '',
+        string  $username = '',
+        string  $group_id = 'nhom_chung',
+        string  $group_name = 'Khách Thường'
     ): array {
         return [
             'success' => $success,
@@ -132,6 +243,10 @@ class FeatureFlagService
                 'version'     => 'v3',
                 'bucket'      => $bucket,
                 'reason'      => $reason,
+                'customer_id' => $customer_id,
+                'username'    => $username,
+                'group_id'    => $group_id,
+                'group_name'  => $group_name,
             ],
         ];
     }

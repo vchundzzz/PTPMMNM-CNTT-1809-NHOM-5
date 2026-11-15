@@ -16,7 +16,7 @@
  */
 
 require_once __DIR__ . '/includes/helpers.php';
-
+require_once __DIR__ . '/services/CustomerAuthService.php';
 require_once __DIR__ . '/services/FeatureFlagService.php';
 
 if (!is_customer_logged_in()) {
@@ -37,11 +37,24 @@ $page_title = 'CDS - Cửa hàng Apple chính hãng (APR)';
 init_session_data(true);
 
 $current_customer = get_authenticated_customer();
+if ($current_customer && !empty($current_customer['id'])) {
+    $fresh_customer = CustomerAuthService::findCustomer((string)$current_customer['id']);
+    if ($fresh_customer !== null) {
+        $_SESSION['customer'] = $fresh_customer;
+        $current_customer = $fresh_customer;
+    }
+}
 $current_env = get_active_env();
 
-$current_user_id = trim((string)($_GET['user_id'] ?? ($current_customer['id'] ?? 'KH1')));
-if ($current_user_id === '') {
-    $current_user_id = $current_customer['id'] ?? 'KH1';
+$requested_user_id = trim((string)($_GET['user_id'] ?? ''));
+if ($requested_user_id !== '') {
+    $preview_customer = CustomerAuthService::findCustomer($requested_user_id);
+    if ($preview_customer !== null) {
+        $current_customer = $preview_customer;
+    }
+    $current_user_id = $preview_customer['id'] ?? $requested_user_id;
+} else {
+    $current_user_id = trim((string)($current_customer['id'] ?? ''));
 }
 
 // Danh sách 11 cờ tính năng đồng bộ 100% với CSDL MySQL
@@ -69,7 +82,7 @@ foreach ($flag_keys as $f_key) {
     $enabled_flags_map[$f_key] = !empty($eval_results[$f_key]['data']['enabled']);
 }
 
-$flags_sync_hash = md5($current_env . ':' . $current_user_id . ':' . json_encode($enabled_flags_map));
+$flags_sync_hash = md5($current_env . ':' . $current_user_id . ':' . ($current_customer['group_id'] ?? '') . ':' . json_encode($enabled_flags_map));
 if (!empty($_GET['ajax_sync_check'])) {
     header('Content-Type: application/json; charset=UTF-8');
     echo json_encode([
@@ -4101,6 +4114,7 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 window.addEventListener('focus', checkAdminFlagSync);
+setInterval(checkAdminFlagSync, 2500);
 
 // Định dạng tiền tệ VNĐ chuẩn
 function formatVND(num) {

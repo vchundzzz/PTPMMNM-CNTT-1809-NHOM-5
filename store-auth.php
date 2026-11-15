@@ -34,7 +34,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($password !== (string)($_POST['password_confirmation'] ?? '')) {
             $errors[] = 'Mật khẩu xác nhận chưa trùng khớp.';
         } else {
-            $result = CustomerAuthService::register($old_username, $password);
+            $group_id = trim((string)($_POST['group_id'] ?? 'nhom_chung'));
+            $result = CustomerAuthService::register($old_username, $password, $group_id);
             if ($result['success']) {
                 set_flash('success', 'Đăng ký thành công. Vui lòng đăng nhập để vào CDS Store.');
                 header('Location: store-auth.php?mode=login&redirect=' . rawurlencode($redirect) . '&username=' . rawurlencode($old_username));

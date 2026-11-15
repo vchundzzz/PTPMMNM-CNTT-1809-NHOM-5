@@ -84,7 +84,7 @@ $tableMetadata = [
     'projects'            => ['desc' => 'Dự án & Nền tảng thương mại điện tử', 'category' => 'Hạ tầng', 'link' => 'projects.php'],
     'environments'        => ['desc' => 'Môi trường vận hành (Testing / Staging)', 'category' => 'Hạ tầng', 'link' => 'environments.php'],
     'target_groups'       => ['desc' => 'Nhóm khách hàng mục tiêu (Nội bộ, Beta, Thường)', 'category' => 'Khách hàng', 'link' => 'groups.php'],
-    'customers'           => ['desc' => 'Danh sách khách hàng mẫu (KH1 - KH1000)', 'category' => 'Khách hàng', 'link' => 'groups.php'],
+    'customers'           => ['desc' => 'Tài khoản khách hàng thực tế đã đăng ký (cấp mã KH tự động)', 'category' => 'Khách hàng', 'link' => 'groups.php'],
     'members'             => ['desc' => 'Tài khoản quản trị viên & Phân quyền RBAC', 'category' => 'Quản trị', 'link' => 'members.php'],
     'flags'               => ['desc' => 'Cờ tính năng lõi (10 Feature Flags + Banner)', 'category' => 'Tính năng', 'link' => 'flags.php'],
     'flag_environments'   => ['desc' => 'Cấu hình bật/tắt và rollout theo từng môi trường', 'category' => 'Tính năng', 'link' => 'flags.php'],
@@ -498,7 +498,7 @@ $tableMetadata = [
 
     <div class="db-page-actions">
       <!-- Nút Khởi tạo 1-Click -->
-      <form method="POST" onsubmit="return confirm('Bạn có chắc muốn nạp lại CSDL từ database.sql? Thao tác này sẽ làm mới toàn bộ 11 bảng và 1.000 khách hàng!');" style="margin:0;">
+      <form method="POST" onsubmit="return confirm('Bạn có chắc muốn nạp lại CSDL từ database.sql? Thao tác này sẽ làm mới toàn bộ 11 bảng CSDL!');" style="margin:0;">
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="import_sql">
         <button type="submit" class="btn btn-primary" title="Tự động import database.sql vào MySQL">
@@ -735,7 +735,7 @@ $tableMetadata = [
                 <div style="font-size: 2.2rem; margin-bottom: 0.5rem;"></div>
                 <strong style="color: #334155; font-size: 0.95rem;">Chưa có dữ liệu bảng nào trong CSDL!</strong>
                 <div style="margin-top: 0.35rem; font-size: 0.8rem;">
-                  Hãy bấm nút <strong>"Khởi tạo / Nạp lại CSDL"</strong> ở góc trên bên phải để tạo 11 bảng và 1.000 khách hàng mẫu.
+                  Hãy bấm nút <strong>"Khởi tạo / Nạp lại CSDL"</strong> ở góc trên bên phải để tạo 11 bảng dữ liệu hệ thống.
                 </div>
               </td>
             </tr>

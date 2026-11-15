@@ -1,45 +1,27 @@
 <?php
 /**
  * Hệ thống Quản lý Feature Flags
- * data/fake-data.php – Dữ liệu mẫu ban đầu
- * Mã khách hàng dạng KH1 … KH1000
+ * data/fake-data.php – Dữ liệu khởi tạo hệ thống
  */
 
 declare(strict_types=1);
 
 /**
- * Sinh danh sách 1.000 mã khách hàng giả định KH1 → KH1000
+ * Tải danh sách tài khoản khách hàng thực tế đã đăng ký từ CSDL MySQL
  */
 function generate_fake_users(): array
 {
-    static $cached = null;
-    if ($cached !== null) return $cached;
-
     if (PHP_SAPI !== 'cli') {
         try {
             require_once __DIR__ . '/../services/DatabaseService.php';
             $dbUsers = DatabaseService::loadCustomers();
-            if (!empty($dbUsers)) {
-                return $cached = $dbUsers;
+            if (is_array($dbUsers)) {
+                return $dbUsers;
             }
         } catch (Throwable $e) {}
     }
 
-    $users = [];
-    for ($i = 1; $i <= 1000; $i++) {
-        $id = 'KH' . $i;
-        if ($i <= 50)        { $gid = 'nhom_noibu';  $gname = 'Nội bộ'; }
-        elseif ($i <= 250)   { $gid = 'nhom_beta';   $gname = 'Khách Beta'; }
-        else                 { $gid = 'nhom_chung';  $gname = 'Khách Thường'; }
-        $users[] = [
-            'id'         => $id,
-            'name'       => 'Khách hàng ' . $id,
-            'email'      => strtolower($id) . '@demo.local',
-            'group_id'   => $gid,
-            'group_name' => $gname,
-        ];
-    }
-    return $cached = $users;
+    return [];
 }
 
 /**
@@ -89,27 +71,27 @@ function get_initial_fake_data(): array
                 'id'          => 'nhom_noibu',
                 'key'         => 'noi_bo',
                 'name'        => 'Nội bộ',
-                'description' => 'Đội ngũ lập trình viên, QA và kiểm thử viên nội bộ công ty (50 tài khoản).',
-                'user_count'  => 50,
-                'range'       => 'KH1 – KH50',
+                'description' => 'Đội ngũ lập trình viên, QA và kiểm thử viên nội bộ công ty.',
+                'user_count'  => 0,
+                'range'       => 'Chưa có khách hàng',
                 'created_at'  => '2026-01-12 10:00:00',
             ],
             'nhom_beta' => [
                 'id'          => 'nhom_beta',
                 'key'         => 'beta',
                 'name'        => 'Khách Beta',
-                'description' => 'Khách hàng đăng ký trải nghiệm sớm tính năng mới (200 tài khoản).',
-                'user_count'  => 200,
-                'range'       => 'KH51 – KH250',
+                'description' => 'Khách hàng đăng ký trải nghiệm sớm tính năng mới.',
+                'user_count'  => 0,
+                'range'       => 'Chưa có khách hàng',
                 'created_at'  => '2026-01-12 10:00:00',
             ],
             'nhom_chung' => [
                 'id'          => 'nhom_chung',
                 'key'         => 'chung',
                 'name'        => 'Khách Thường',
-                'description' => 'Toàn bộ khách hàng phổ thông mua sắm trên nền tảng (750 tài khoản).',
-                'user_count'  => 750,
-                'range'       => 'KH251 – KH1000',
+                'description' => 'Khách hàng mua sắm trực tuyến trên hệ thống CDS Store.',
+                'user_count'  => 0,
+                'range'       => 'Chưa có khách hàng',
                 'created_at'  => '2026-01-12 10:00:00',
             ],
         ],
@@ -168,7 +150,7 @@ function get_initial_fake_data(): array
                         'rollout_percentage'  => 100,
                         'status'              => 'Đã phát hành',
                         'target_groups'       => ['nhom_noibu', 'nhom_beta', 'nhom_chung'],
-                        'user_overrides'      => ['KH1' => true, 'KH2' => false],
+                        'user_overrides'      => [],
                         'updated_at'          => '2026-10-25 10:30:00',
                         'updated_by'          => 'admin',
                     ],
@@ -177,7 +159,7 @@ function get_initial_fake_data(): array
                         'rollout_percentage'  => 50,
                         'status'              => 'Đã phát hành',
                         'target_groups'       => ['nhom_noibu', 'nhom_beta'],
-                        'user_overrides'      => ['KH1' => true, 'KH10' => false],
+                        'user_overrides'      => [],
                         'updated_at'          => '2026-10-26 14:15:00',
                         'updated_by'          => 'editor',
                     ],
@@ -204,7 +186,7 @@ function get_initial_fake_data(): array
                         'rollout_percentage' => 50,
                         'status'             => 'Đã phát hành',
                         'target_groups'      => ['nhom_noibu', 'nhom_beta'],
-                        'user_overrides'     => ['KH1' => true, 'KH5' => true, 'KH2' => false],
+                        'user_overrides'     => [],
                         'updated_at'         => '2026-10-25 09:20:00',
                         'updated_by'         => 'editor',
                     ],

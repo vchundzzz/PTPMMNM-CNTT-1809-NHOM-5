@@ -1,7 +1,7 @@
 <?php
 /**
  * Web Feature Flag Management System
- * groups.php - Quản lý nhóm người dùng (User Groups)
+ * groups.php - Quản lý nhóm khách hàng & Tài khoản khách hàng đã đăng ký
  * Đồng bộ 2 chiều thời gian thực với bảng `target_groups` và `customers` trong CSDL MySQL
  */
 
@@ -13,7 +13,7 @@ require_once __DIR__ . '/services/DatabaseService.php';
 
 require_login();
 
-// Xử lý tạo / sửa / xóa nhóm khách hàng và lưu vào CSDL MySQL
+// Xử lý tạo / sửa / xóa nhóm khách hàng hoặc đổi nhóm của khách hàng trong CSDL MySQL
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
         set_flash('error', 'Mã bảo mật CSRF không hợp lệ.');
@@ -28,8 +28,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $id          = preg_replace('/[^a-z0-9_]/', '', strtolower(trim((string)($_POST['group_id'] ?? ''))));
         $name        = trim((string)($_POST['name'] ?? ''));
         $description = trim((string)($_POST['description'] ?? ''));
-        $range       = trim((string)($_POST['range_label'] ?? 'KH1 - KH100'));
-        $user_count  = max(0, (int)($_POST['user_count'] ?? 100));
 
         if ($id === '' || $name === '') {
             set_flash('error', 'Mã nhóm và Tên nhóm không được để trống.');
@@ -38,15 +36,15 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         }
 
         $is_edit = isset($_SESSION['ff_data']['groups'][$id]);
+        $existing = $_SESSION['ff_data']['groups'][$id] ?? [];
         $groupData = [
             'id'          => $id,
+            'key'         => $existing['key'] ?? preg_replace('/^nhom_/', '', $id),
             'name'        => $name,
             'description' => $description,
-            'range'       => $range,
-            'range_label' => $range,
-            'user_count'  => $user_count,
-            'min_index'   => 1,
-            'max_index'   => max(1, $user_count),
+            'range'       => $existing['range'] ?? 'Chưa có khách hàng',
+            'range_label' => $existing['range'] ?? 'Chưa có khách hàng',
+            'user_count'  => (int)($existing['user_count'] ?? 0),
         ];
 
         $_SESSION['ff_data']['groups'][$id] = $groupData;
@@ -57,11 +55,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             $is_edit ? 'CẬP_NHẬT_NHÓM' : 'TẠO_NHÓM_MỚI',
             "$name ($id)",
             $is_edit ? 'Cấu hình cũ' : '—',
-            "Số lượng: $user_count ($range)",
+            "Nhóm: $name",
             'Lưu thông tin nhóm khách hàng vào CSDL MySQL'
         );
 
-        set_flash('success', ($is_edit ? "Đã cập nhật nhóm [$name]" : "Đã tạo nhóm mới [$name]") . ' và lưu vào CSDL MySQL!');
+        set_flash('success', ($is_edit ? "Đã cập nhật nhóm [$name]" : "Đã tạo nhóm mới [$name]") . ' và đồng bộ CSDL MySQL!');
         header('Location: groups.php');
         exit;
     }
@@ -80,26 +78,74 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         header('Location: groups.php');
         exit;
     }
+
+    if ($action === 'change_customer_group') {
+        $customer_id = trim((string)($_POST['customer_id'] ?? ''));
+        $new_group   = trim((string)($_POST['group_id'] ?? ''));
+        if ($customer_id !== '' && isset($_SESSION['ff_data']['groups'][$new_group])) {
+            DatabaseService::updateCustomerGroup($customer_id, $new_group);
+            init_session_data(true);
+            $grpName = $_SESSION['ff_data']['groups'][$new_group]['name'] ?? $new_group;
+            append_audit_log('ĐỔI_NHÓM_KHÁCH_HÀNG', $customer_id, 'Nhóm cũ', $grpName, "Chuyển khách hàng $customer_id sang nhóm $grpName");
+            set_flash('success', "Đã chuyển mã khách hàng [$customer_id] sang nhóm [$grpName] và đồng bộ MySQL!");
+        }
+        header('Location: groups.php' . (!empty($_GET['group']) ? '?group=' . urlencode((string)$_GET['group']) : ''));
+        exit;
+    }
+
+    if ($action === 'delete_customer') {
+        $customer_id = trim((string)($_POST['customer_id'] ?? ''));
+        if ($customer_id !== '') {
+            DatabaseService::deleteCustomer($customer_id);
+            init_session_data(true);
+            append_audit_log('XÓA_KHÁCH_HÀNG', $customer_id, 'Tồn tại', 'Đã xóa', "Xóa tài khoản khách hàng $customer_id");
+            set_flash('success', "Đã xóa mã khách hàng [$customer_id] và cập nhật lại số lượng nhóm.");
+        }
+        header('Location: groups.php' . (!empty($_GET['group']) ? '?group=' . urlencode((string)$_GET['group']) : ''));
+        exit;
+    }
 }
 
-$page_title = 'Nhóm người dùng';
+$page_title = 'Nhóm khách hàng';
 $breadcrumbs = [
     ['label' => 'Trang chủ', 'url' => 'dashboard.php'],
-    ['label' => 'Nhóm người dùng', 'url' => ''],
+    ['label' => 'Nhóm khách hàng', 'url' => ''],
 ];
 
 require_once __DIR__ . '/includes/header.php';
 
+DatabaseService::syncGroupCounts();
+init_session_data(true);
+
 $groups = $_SESSION['ff_data']['groups'] ?? [];
 $can_manage_groups = PermissionService::currentUserCan('manage_groups');
-$all_users = generate_fake_users();
+$all_users = DatabaseService::loadCustomers() ?? [];
+
+// Tính toán số lượng thực tế từng nhóm từ danh sách tài khoản đã đăng ký
+$group_counts = [];
+$group_codes  = [];
+foreach ($groups as $gid => $g) {
+    $group_counts[$gid] = 0;
+    $group_codes[$gid]  = [];
+}
+foreach ($all_users as $u) {
+    $ugid = $u['group_id'] ?? 'nhom_chung';
+    if (!isset($group_counts[$ugid])) {
+        $group_counts[$ugid] = 0;
+        $group_codes[$ugid]  = [];
+    }
+    $group_counts[$ugid]++;
+    $group_codes[$ugid][] = $u['id'];
+}
+
 $selected_group = trim((string)($_GET['group'] ?? ''));
+$filtered_users = $all_users;
 if ($selected_group !== '') {
-    $all_users = array_values(array_filter($all_users, static function (array $user) use ($selected_group): bool {
+    $filtered_users = array_values(array_filter($all_users, static function (array $user) use ($selected_group): bool {
         return ($user['group_id'] ?? '') === $selected_group;
     }));
 }
-$users_pagination = paginate_items($all_users, (int)($_GET['page'] ?? 1), 25);
+$users_pagination = paginate_items($filtered_users, (int)($_GET['page'] ?? 1), 25);
 $page_users = $users_pagination['items'];
 ?>
 
@@ -107,10 +153,13 @@ $page_users = $users_pagination['items'];
   <div>
     <h1 class="page-title">Quản lý nhóm khách hàng</h1>
     <p class="page-description">
-      Phân tập 1.000 mã khách hàng (KH1 &rarr; KH1000) vào các nhóm đối tượng phục vụ thử nghiệm tính năng (đồng bộ trực tiếp bảng <code>target_groups</code> và <code>customers</code> trong MySQL).
+      Quản lý các nhóm đối tượng và tài khoản khách hàng thực tế. Khi khách hàng đăng ký tài khoản mới, hệ thống tự động cấp mã khách hàng và đồng bộ trực tiếp vào đây.
     </p>
   </div>
-  <div class="page-actions">
+  <div class="page-actions" style="display:flex; gap:0.5rem;">
+    <a href="store-auth.php?mode=register" target="_blank" rel="noopener" class="btn btn-secondary">
+      <span>+ Đăng ký tài khoản KH mới ↗</span>
+    </a>
     <button type="button" class="btn btn-primary" onclick="openGroupModal()" <?= $can_manage_groups ? '' : 'disabled' ?>>
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -123,12 +172,22 @@ $page_users = $users_pagination['items'];
 
 <!-- Lưới Nhóm Người Dùng -->
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
-  <?php foreach ($groups as $grp_id => $group): ?>
-    <div class="card">
+  <?php foreach ($groups as $grp_id => $group):
+      $real_count = $group_counts[$grp_id] ?? 0;
+      $codes_list = $group_codes[$grp_id] ?? [];
+      if ($real_count === 0) {
+          $codes_display = 'Chưa có khách hàng đăng ký';
+      } elseif ($real_count <= 6) {
+          $codes_display = implode(', ', $codes_list);
+      } else {
+          $codes_display = implode(', ', array_slice($codes_list, 0, 5)) . ' ... (+' . ($real_count - 5) . ' mã KH)';
+      }
+  ?>
+    <div class="card" style="<?= $selected_group === (string)$grp_id ? 'border-color: var(--primary); box-shadow: 0 0 0 2px rgba(22,119,255,0.12);' : '' ?>">
       <div class="card-header">
         <span class="font-mono"><?= e((string)$grp_id) ?></span>
         <div style="display:flex; align-items:center; gap:0.5rem;">
-          <span class="badge badge-success"><?= (int)($group['user_count'] ?? 0) ?> người dùng</span>
+          <span class="badge <?= $real_count > 0 ? 'badge-success' : 'badge-neutral' ?>"><?= $real_count ?> khách hàng</span>
           <?php if ($can_manage_groups): ?>
             <button
               type="button"
@@ -139,8 +198,6 @@ $page_users = $users_pagination['items'];
                   "id" => $grp_id,
                   "name" => $group["name"] ?? "",
                   "description" => $group["description"] ?? "",
-                  "range" => $group["range"] ?? ($group["range_label"] ?? ""),
-                  "user_count" => (int)($group["user_count"] ?? 0),
               ], JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?>)'
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -173,73 +230,132 @@ $page_users = $users_pagination['items'];
         </p>
 
         <div style="background-color: var(--bg-body); border-radius: var(--radius-md); padding: 0.85rem; font-size: 0.82rem; margin-bottom: 1rem;">
-          <div style="color: var(--text-muted); margin-bottom: 0.25rem;">Dải mã người dùng:</div>
-          <strong class="font-mono" style="color: var(--primary); font-size: 0.9rem;"><?= e($group['range'] ?? ($group['range_label'] ?? '')) ?></strong>
+          <div style="color: var(--text-muted); margin-bottom: 0.25rem;">Mã khách hàng trong nhóm:</div>
+          <strong class="font-mono" style="color: var(--primary); font-size: 0.9rem;"><?= e($codes_display) ?></strong>
         </div>
 
-        <a href="groups.php?group=<?= urlencode((string)$grp_id) ?>" class="btn btn-secondary btn-sm" style="width: 100%;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          Xem thành viên
-        </a>
+        <?php if ($selected_group === (string)$grp_id): ?>
+          <a href="groups.php" class="btn btn-primary btn-sm" style="width: 100%;">
+            Đang lọc nhóm này &bull; Xem tất cả
+          </a>
+        <?php else: ?>
+          <a href="groups.php?group=<?= urlencode((string)$grp_id) ?>" class="btn btn-secondary btn-sm" style="width: 100%;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Xem thành viên (<?= $real_count ?>)
+          </a>
+        <?php endif; ?>
       </div>
     </div>
   <?php endforeach; ?>
 </div>
 
-<!-- Tra cứu mã khách hàng trong 1.000 mã giả lập -->
+<!-- Danh sách khách hàng thực tế đã đăng ký -->
 <div class="card">
   <div class="card-header">
     <div>
-      <h2 class="card-title">Tra cứu danh sách 1.000 mã khách hàng giả định</h2>
-      <div class="card-subtitle">Hệ thống đồng bộ trực tiếp 1.000 mã KH1 &ndash; KH1000 từ bảng <code>customers</code></div>
+      <h2 class="card-title">Danh sách tài khoản khách hàng đã đăng ký</h2>
+      <div class="card-subtitle">
+        Đồng bộ trực tiếp với các tài khoản đăng ký tại CDS Store (Tổng cộng: <strong><?= count($all_users) ?></strong> khách hàng)
+      </div>
     </div>
     <div class="search-input-wrapper">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="11" cy="11" r="8"></circle>
         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
       </svg>
-      <input type="text" id="userSearchInput" class="form-control" placeholder="Nhập mã khách hàng cần tìm">
+      <input type="text" id="userSearchInput" class="form-control" placeholder="Tìm theo mã KH hoặc tên tài khoản...">
     </div>
   </div>
 
-  <div class="table-responsive" style="max-height: 480px; overflow-y: auto;">
+  <div class="table-responsive" style="max-height: 520px; overflow-y: auto;">
     <table class="data-table" id="usersTable">
       <thead style="position: sticky; top: 0; z-index: 10;">
         <tr>
           <th>Mã khách hàng</th>
-          <th>Tên người dùng</th>
-          <th>Email demo</th>
-          <th>Nhóm trực thuộc</th>
-          <th style="text-align: right;">Thử nghiệm tính năng</th>
+          <th>Tài khoản đăng nhập</th>
+          <th>Nhóm khách hàng</th>
+          <th>Ngày đăng ký</th>
+          <th style="text-align: right;">Thao tác</th>
         </tr>
       </thead>
       <tbody>
-        <?php foreach ($page_users as $usr): ?>
-          <tr data-group="<?= e($usr['group_id']) ?>">
-            <td><span class="font-mono"><?= e($usr['id']) ?></span></td>
-            <td><strong style="color: var(--text-main);"><?= e($usr['name']) ?></strong></td>
-            <td><span style="color: var(--text-secondary);"><?= e($usr['email']) ?></span></td>
-            <td><span class="badge badge-neutral"><?= e($usr['group_name']) ?></span></td>
-            <td style="text-align: right;">
-              <a href="demo-app.php?user_id=<?= urlencode($usr['id']) ?>" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">
-                Mở Web CDS STORE ↗
-              </a>
+        <?php if (empty($page_users)): ?>
+          <tr>
+            <td colspan="5" style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+              <strong style="display:block; color: var(--text-main); font-size: 0.95rem; margin-bottom: 0.35rem;">
+                Chưa có tài khoản khách hàng nào<?= $selected_group !== '' ? ' trong nhóm này' : ' đăng ký' ?>
+              </strong>
+              <span>Khi đăng ký tài khoản tại <a href="store-auth.php?mode=register" target="_blank" style="color: var(--primary); font-weight: 600;">trang đăng ký CDS Store</a>, hệ thống sẽ tự động cấp mã khách hàng mới và đồng bộ vào danh sách này.</span>
             </td>
           </tr>
-        <?php endforeach; ?>
+        <?php else: ?>
+          <?php foreach ($page_users as $usr): ?>
+            <tr data-group="<?= e($usr['group_id']) ?>">
+              <td>
+                <span class="font-mono badge badge-primary" style="font-size: 0.82rem; font-weight: 700;">
+                  <?= e($usr['id']) ?>
+                </span>
+              </td>
+              <td>
+                <strong style="color: var(--text-main);"><?= e($usr['username'] ?? $usr['name']) ?></strong>
+              </td>
+              <td>
+                <?php if ($can_manage_groups): ?>
+                  <form method="POST" action="groups.php<?= $selected_group !== '' ? '?group=' . urlencode($selected_group) : '' ?>" style="display:inline-flex; align-items:center; gap:0.4rem; margin:0;">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="action" value="change_customer_group">
+                    <input type="hidden" name="customer_id" value="<?= e($usr['id']) ?>">
+                    <select name="group_id" class="form-select" style="width:auto; min-height:32px; padding:0.2rem 1.8rem 0.2rem 0.6rem; font-size:0.8rem;" onchange="this.form.submit()">
+                      <?php foreach ($groups as $gid => $ginfo): ?>
+                        <option value="<?= e((string)$gid) ?>" <?= ($usr['group_id'] ?? '') === (string)$gid ? 'selected' : '' ?>>
+                          <?= e($ginfo['name'] ?? (string)$gid) ?>
+                        </option>
+                      <?php endforeach; ?>
+                    </select>
+                  </form>
+                <?php else: ?>
+                  <span class="badge badge-neutral"><?= e($usr['group_name']) ?></span>
+                <?php endif; ?>
+              </td>
+              <td>
+                <span style="color: var(--text-muted); font-size: 0.82rem;"><?= format_date($usr['created_at'] ?? '') ?></span>
+              </td>
+              <td style="text-align: right; white-space: nowrap;">
+                <div style="display:inline-flex; align-items:center; gap:0.4rem;">
+                  <a href="demo-app.php?user_id=<?= urlencode($usr['id']) ?>" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">
+                    Mở Web CDS STORE ↗
+                  </a>
+                  <?php if ($can_manage_groups): ?>
+                    <form method="POST" action="groups.php<?= $selected_group !== '' ? '?group=' . urlencode($selected_group) : '' ?>" style="margin:0;" onsubmit="return confirm('Xóa tài khoản khách hàng [<?= e($usr['id']) ?>]?');">
+                      <?= csrf_field() ?>
+                      <input type="hidden" name="action" value="delete_customer">
+                      <input type="hidden" name="customer_id" value="<?= e($usr['id']) ?>">
+                      <button type="submit" class="action-icon-btn danger action-delete" title="Xóa khách hàng">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="3 6 5 6 21 6"></polyline>
+                          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                        </svg>
+                      </button>
+                    </form>
+                  <?php endif; ?>
+                </div>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        <?php endif; ?>
       </tbody>
     </table>
   </div>
   <div class="card-footer" style="font-size: 0.82rem; color: var(--text-muted);">
-    Hiển thị <?= $users_pagination['start'] ?> - <?= $users_pagination['end'] ?> trong tổng số <?= $users_pagination['total'] ?> khách hàng<?= $selected_group !== '' ? ' của nhóm ' . e($selected_group) : '' ?>.
-    <?= $selected_group === '' ? 'Sử dụng ô tìm kiếm để tra cứu bất kỳ mã nào từ KH1 đến KH1000.' : '<a href="groups.php">Xem tất cả khách hàng</a>.' ?>
+    Hiển thị <?= $users_pagination['start'] ?> - <?= $users_pagination['end'] ?> trong tổng số <?= $users_pagination['total'] ?> khách hàng đã đăng ký<?= $selected_group !== '' ? ' thuộc nhóm ' . e($groups[$selected_group]['name'] ?? $selected_group) : '' ?>.
+    <?= $selected_group !== '' ? '<a href="groups.php">Xem tất cả khách hàng</a>.' : '' ?>
   </div>
   <?= render_pagination($users_pagination['total'], $users_pagination['page'], 25, 'groups.php', 'khách hàng') ?>
 </div>
 
 <!-- Modal Tạo / Sửa Nhóm Khách Hàng -->
 <div id="groupModal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.45); z-index:9999; align-items:center; justify-content:center; padding:1rem;">
-  <div class="card" style="width:100%; max-width:480px; box-shadow:0 20px 40px rgba(15,23,42,0.18);">
+  <div class="card" style="width:100%; max-width:460px; box-shadow:0 20px 40px rgba(15,23,42,0.18);">
     <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
       <h3 class="card-title" id="groupModalTitle">Tạo nhóm khách hàng mới</h3>
       <button type="button" onclick="closeGroupModal()" style="background:none; border:none; font-size:1.25rem; cursor:pointer; color:var(--text-muted);">&times;</button>
@@ -257,17 +373,9 @@ $page_users = $users_pagination['items'];
           <label class="form-label">Tên nhóm khách hàng</label>
           <input type="text" name="name" id="modalGroupName" class="form-control" required placeholder="VD: Khách hàng VIP">
         </div>
-        <div class="form-group">
-          <label class="form-label">Mô tả nhóm</label>
-          <textarea name="description" id="modalGroupDesc" class="form-control" rows="2" placeholder="Mô tả đối tượng khách hàng trong nhóm"></textarea>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Dải mã khách hàng áp dụng</label>
-          <input type="text" name="range_label" id="modalGroupRange" class="form-control" placeholder="VD: KH1 -> KH100" value="KH1 -> KH100">
-        </div>
         <div class="form-group" style="margin-bottom:0;">
-          <label class="form-label">Số lượng người dùng dự kiến</label>
-          <input type="number" name="user_count" id="modalGroupCount" class="form-control" min="0" max="10000" value="100">
+          <label class="form-label">Mô tả nhóm</label>
+          <textarea name="description" id="modalGroupDesc" class="form-control" rows="3" placeholder="Mô tả đối tượng khách hàng trong nhóm"></textarea>
         </div>
       </div>
 
@@ -294,16 +402,12 @@ $page_users = $users_pagination['items'];
       idInput.readOnly = true;
       document.getElementById('modalGroupName').value = data.name || '';
       document.getElementById('modalGroupDesc').value = data.description || '';
-      document.getElementById('modalGroupRange').value = data.range || '';
-      document.getElementById('modalGroupCount').value = data.user_count ?? 100;
     } else {
       title.textContent = 'Tạo nhóm khách hàng mới';
       idInput.value = '';
       idInput.readOnly = false;
       document.getElementById('modalGroupName').value = '';
       document.getElementById('modalGroupDesc').value = '';
-      document.getElementById('modalGroupRange').value = 'KH1 -> KH100';
-      document.getElementById('modalGroupCount').value = 100;
     }
     modal.style.display = 'flex';
   }
