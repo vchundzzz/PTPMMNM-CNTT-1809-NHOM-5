@@ -137,6 +137,15 @@ function logout_customer(): void
 
 function get_active_env(): string
 {
+    try {
+        require_once __DIR__ . '/../services/DatabaseService.php';
+        $dbEnv = DatabaseService::getActiveEnv();
+        if ($dbEnv !== null && in_array($dbEnv, ['testing', 'staging'], true)) {
+            $_SESSION['current_env'] = $dbEnv;
+            return $dbEnv;
+        }
+    } catch (Throwable $e) {}
+
     $env = $_SESSION['current_env'] ?? 'testing';
     return in_array($env, ['testing', 'staging'], true) ? $env : 'testing';
 }
@@ -145,6 +154,10 @@ function set_active_env(string $env): void
 {
     if (in_array($env, ['testing', 'staging'], true)) {
         $_SESSION['current_env'] = $env;
+        try {
+            require_once __DIR__ . '/../services/DatabaseService.php';
+            DatabaseService::setActiveEnv($env);
+        } catch (Throwable $e) {}
     }
 }
 

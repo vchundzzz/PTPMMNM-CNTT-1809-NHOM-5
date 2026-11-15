@@ -71,14 +71,16 @@ $_SESSION['ff_data']['flags'][$flag_key]['environments'][$env]['status']     = $
 $_SESSION['ff_data']['flags'][$flag_key]['environments'][$env]['updated_at'] = date('Y-m-d H:i:s');
 $_SESSION['ff_data']['flags'][$flag_key]['environments'][$env]['updated_by'] = $user;
 
-// Nếu bật cờ mà tỷ lệ rollout đang = 0% hoặc chưa có nhóm mục tiêu thì tự động mở 100% để đồng bộ
+// Nếu bật cờ thì đồng bộ tỷ lệ rollout 100% và đầy đủ nhóm khách hàng để áp dụng ngay trên trang bán hàng
 if ($new_enabled) {
-    $cur_pct = (int)($_SESSION['ff_data']['flags'][$flag_key]['environments'][$env]['rollout_percentage'] ?? 0);
-    if ($cur_pct <= 0) {
-        $_SESSION['ff_data']['flags'][$flag_key]['environments'][$env]['rollout_percentage'] = 100;
-    }
-    if (empty($_SESSION['ff_data']['flags'][$flag_key]['environments'][$env]['target_groups'])) {
-        $_SESSION['ff_data']['flags'][$flag_key]['environments'][$env]['target_groups'] = ['nhom_noibu', 'nhom_beta', 'nhom_chung'];
+    $_SESSION['ff_data']['flags'][$flag_key]['environments'][$env]['rollout_percentage'] = 100;
+    $_SESSION['ff_data']['flags'][$flag_key]['environments'][$env]['target_groups'] = ['nhom_noibu', 'nhom_beta', 'nhom_chung'];
+    if (!empty($_SESSION['ff_data']['flags'][$flag_key]['environments'][$env]['user_overrides'])) {
+        foreach ($_SESSION['ff_data']['flags'][$flag_key]['environments'][$env]['user_overrides'] as $ovUid => $ovState) {
+            if (!$ovState) {
+                unset($_SESSION['ff_data']['flags'][$flag_key]['environments'][$env]['user_overrides'][$ovUid]);
+            }
+        }
     }
 }
 
@@ -86,23 +88,6 @@ if ($new_enabled) {
 try {
     require_once __DIR__ . '/../services/DatabaseService.php';
     DatabaseService::toggleFlag($flag_key, $env, $new_enabled, $user);
-
-    // Nếu gọi từ demo-app.php với user_id cụ thể và bật cờ nhưng user_id đang bị chặn bởi Override/Rollout thì đồng bộ Override cho user_id đó
-    if ($new_enabled && $user_id !== '') {
-        $eval_check = FeatureFlagService::evaluate($flag_key, $user_id, $env);
-        if (empty($eval_check['data']['enabled'])) {
-            $_SESSION['ff_data']['flags'][$flag_key]['environments'][$env]['user_overrides'][$user_id] = true;
-            $pdo = Database::getConnection();
-            if ($pdo) {
-                $stmt = $pdo->prepare("
-                    INSERT INTO flag_user_overrides (flag_key, environment, user_id, state, updated_at)
-                    VALUES (?, ?, ?, 1, NOW())
-                    ON DUPLICATE KEY UPDATE state = 1, updated_at = NOW()
-                ");
-                $stmt->execute([$flag_key, $env, $user_id]);
-            }
-        }
-    }
 } catch (Throwable $e) {}
 
 // Ghi audit log

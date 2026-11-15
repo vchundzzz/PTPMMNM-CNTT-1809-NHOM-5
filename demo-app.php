@@ -32,38 +32,16 @@ if (!is_customer_logged_in()) {
 $page_title = 'CDS - Cửa hàng Apple chính hãng (APR)';
 
 // --------------------------------------------------------------------------
-// 1. THIẾT LẬP THÔNG SỐ KIỂM THỬ & KIỂM TRA PHÂN QUYỀN TRUY CẬP (RBAC)
+// 1. ĐỒNG BỘ MÔI TRƯỜNG & THÔNG TIN KHÁCH HÀNG TỪ HỆ THỐNG QUẢN TRỊ
 // --------------------------------------------------------------------------
-$current_auth_user = get_authenticated_user();
+init_session_data(true);
+
 $current_customer = get_authenticated_customer();
-$auth_role = $current_auth_user['role'] ?? 'viewer';
+$current_env = get_active_env();
 
-// Chỉ vai trò Admin và Biên tập (Editor) mới được phép thấy và chỉnh sửa Testing Controller
-$can_manage_controller = in_array($auth_role, ['admin', 'editor'], true);
-
-if (!$can_manage_controller) {
-    // Khách hàng xem storefront theo môi trường đang kích hoạt của hệ thống.
-    $current_env = get_active_env();
+$current_user_id = trim((string)($_GET['user_id'] ?? ($current_customer['id'] ?? 'KH1')));
+if ($current_user_id === '') {
     $current_user_id = $current_customer['id'] ?? 'KH1';
-    $simulate_error = false;
-    $highlight_flag = '';
-} else {
-    // Tự động đồng bộ với môi trường đang kích hoạt trong hệ thống quản trị ($_SESSION['current_env'])
-    if (isset($_GET['env']) && in_array($_GET['env'], ['testing', 'staging'], true)) {
-        $current_env = $_GET['env'];
-        set_active_env($current_env);
-        $_SESSION['current_env'] = $current_env;
-    } else {
-        $current_env = get_active_env();
-    }
-
-    $current_user_id = trim($_GET['user_id'] ?? 'KH1');
-    if ($current_user_id === '') {
-        $current_user_id = 'KH1';
-    }
-
-    $simulate_error = !empty($_GET['simulate_error']);
-    $highlight_flag = $_GET['highlight'] ?? '';
 }
 
 // Danh sách 11 cờ tính năng đồng bộ 100% với CSDL MySQL
@@ -82,30 +60,31 @@ $flag_keys = [
 ];
 
 // --------------------------------------------------------------------------
-// 2. ĐÁNH GIÁ ĐỒNG LOẠT 10 CỜ TÍNH NĂNG QUA FeatureFlagService
+// 2. ĐÁNH GIÁ ĐỒNG LOẠT 11 CỜ TÍNH NĂNG QUA FeatureFlagService
 // --------------------------------------------------------------------------
 $eval_results = [];
+$enabled_flags_map = [];
 foreach ($flag_keys as $f_key) {
-    if ($simulate_error) {
-        $eval_results[$f_key] = [
-            'status' => 200,
-            'data' => [
-                'flag_key' => $f_key,
-                'enabled'  => false,
-                'reason'   => 'Fallback: Mô phỏng máy chủ lỗi hoặc cúp mạng API (Default False)'
-            ]
-        ];
-    } else {
-        $eval_results[$f_key] = FeatureFlagService::evaluate($f_key, $current_user_id, $current_env);
-    }
+    $eval_results[$f_key] = FeatureFlagService::evaluate($f_key, $current_user_id, $current_env);
+    $enabled_flags_map[$f_key] = !empty($eval_results[$f_key]['data']['enabled']);
+}
+
+$flags_sync_hash = md5($current_env . ':' . $current_user_id . ':' . json_encode($enabled_flags_map));
+if (!empty($_GET['ajax_sync_check'])) {
+    header('Content-Type: application/json; charset=UTF-8');
+    echo json_encode([
+        'success' => true,
+        'env'     => $current_env,
+        'hash'    => $flags_sync_hash,
+        'flags'   => $enabled_flags_map,
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
 }
 
 // Shortcut biến trạng thái bật/tắt của từng cờ
 $is_fast_pay    = !empty($eval_results['thanh_toan_nhanh']['data']['enabled']);
 // Keep storefront colors consistent between testing and staging.
 $is_dark_mode   = !empty($eval_results['giao_dien_toi']['data']['enabled']);
-// Keep the admin controller light regardless of the storefront's dark-mode flag.
-$is_console_dark_mode = $is_dark_mode;
 $is_reviews     = !empty($eval_results['danh_gia_san_pham']['data']['enabled']);
 $is_wishlist    = !empty($eval_results['danh_sach_yeu_thich']['data']['enabled']);
 $is_chat        = !empty($eval_results['ho_tro_truc_tuyen']['data']['enabled']);
@@ -2588,693 +2567,7 @@ $flash = get_flash();
 .tz-chat-popup.show {
   display: flex;
 }
-
-/* ============================================================
-   TESTING CONTROLLER CONSOLE (ANT DESIGN & APPLE DEV STYLE)
-   ============================================================ */
-.ff-console-panel {
-  background: <?= $is_console_dark_mode ? '#181b24' : '#ffffff' ?>;
-  border: 1px solid <?= $is_console_dark_mode ? 'rgba(56, 189, 248, 0.25)' : '#e2e8f0' ?>;
-  border-radius: 18px;
-  box-shadow: <?= $is_console_dark_mode ? '0 12px 36px rgba(0,0,0,0.5)' : '0 10px 30px -5px rgba(0, 0, 0, 0.07), 0 4px 12px rgba(0, 0, 0, 0.04)' ?>;
-  margin-bottom: 2rem;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-.ff-console-header {
-  background: <?= $is_console_dark_mode ? 'linear-gradient(135deg, #0b1329 0%, #172554 100%)' : 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' ?>;
-  padding: 1.15rem 1.6rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem;
-  color: #ffffff;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-}
-
-.ff-console-title-wrap {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-}
-
-.ff-console-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #ffffff;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
-  flex-shrink: 0;
-}
-
-.ff-console-title-text {
-  font-size: 1.05rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.ff-console-subtitle {
-  font-size: 0.78rem;
-  color: rgba(255, 255, 255, 0.65);
-  margin-top: 2px;
-}
-
-.ff-pulse-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-  background: #10b981;
-  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-  animation: ffPulse 2s infinite;
-}
-
-@keyframes ffPulse {
-  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
-  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-}
-
-.ff-console-body {
-  padding: 1.4rem 1.6rem;
-  background: <?= $is_console_dark_mode ? '#141722' : '#f8fafc' ?>;
-  border-bottom: 1px solid <?= $is_console_dark_mode ? '#232938' : '#e2e8f0' ?>;
-}
-
-.ff-form-grid {
-  display: grid;
-  grid-template-columns: 210px 1fr auto auto;
-  gap: 1.25rem;
-  align-items: flex-end;
-}
-@media (max-width: 992px) {
-  .ff-form-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.ff-field-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.ff-field-label {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: <?= $is_console_dark_mode ? '#cbd5e1' : '#334155' ?>;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-
-.ff-form-control {
-  width: 100%;
-  padding: 0.65rem 0.95rem;
-  border-radius: 10px;
-  border: 1px solid <?= $is_console_dark_mode ? '#334155' : '#cbd5e1' ?>;
-  background: <?= $is_console_dark_mode ? '#1e2433' : '#ffffff' ?>;
-  color: <?= $is_console_dark_mode ? '#f1f5f9' : '#0f172a' ?>;
-  font-size: 0.88rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-}
-
-.ff-form-control:focus {
-  outline: none;
-  border-color: #38bdf8;
-  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
-}
-
-.ff-btn-submit {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
-  color: #ffffff;
-  border: none;
-  border-radius: 10px;
-  padding: 0.68rem 1.35rem;
-  font-size: 0.88rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
-  white-space: nowrap;
-}
-
-.ff-btn-submit:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
-}
-
-.ff-simulate-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 0.85rem;
-  border-radius: 10px;
-  border: 1px dashed <?= $simulate_error ? '#ef4444' : ($is_console_dark_mode ? '#334155' : '#cbd5e1') ?>;
-  background: <?= $simulate_error ? 'rgba(239, 68, 68, 0.08)' : ($is_console_dark_mode ? '#1a202c' : '#ffffff') ?>;
-  cursor: pointer;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: <?= $simulate_error ? '#ef4444' : ($is_console_dark_mode ? '#94a3b8' : '#64748b') ?>;
-  transition: all 0.2s ease;
-}
-
-.ff-simulate-toggle:hover {
-  border-color: #ef4444;
-  color: #ef4444;
-}
-
-.ff-pills-row {
-  margin-top: 1.15rem;
-  padding-top: 1rem;
-  border-top: 1px dashed <?= $is_console_dark_mode ? '#2d3748' : '#e2e8f0' ?>;
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  flex-wrap: wrap;
-}
-
-.ff-quick-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.38rem 0.8rem;
-  border-radius: 20px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all 0.2s ease;
-  background: <?= $is_console_dark_mode ? '#1e2433' : '#ffffff' ?>;
-  color: <?= $is_console_dark_mode ? '#94a3b8' : '#475569' ?>;
-  border: 1px solid <?= $is_console_dark_mode ? '#334155' : '#e2e8f0' ?>;
-}
-
-.ff-quick-pill:hover {
-  background: <?= $is_console_dark_mode ? '#2d3748' : '#f1f5f9' ?>;
-  color: #0284c7;
-  border-color: #38bdf8;
-  transform: translateY(-1px);
-}
-
-.ff-quick-pill.active {
-  background: linear-gradient(135deg, rgba(2, 132, 199, 0.15) 0%, rgba(37, 99, 235, 0.2) 100%);
-  color: #0284c7;
-  border-color: #0284c7;
-  font-weight: 700;
-  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25);
-}
-
-/* CARDS GRID */
-.ff-cards-section {
-  padding: 1.4rem 1.6rem;
-  background: <?= $is_console_dark_mode ? '#12151f' : '#ffffff' ?>;
-}
-
-.ff-grid-10 {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(295px, 1fr));
-  gap: 0.95rem;
-}
-
-.ff-card-item {
-  background: <?= $is_console_dark_mode ? '#1a1f2d' : '#ffffff' ?>;
-  border-radius: 12px;
-  border: 1px solid <?= $is_console_dark_mode ? '#283246' : '#e2e8f0' ?>;
-  padding: 0.95rem 1.05rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 0.55rem;
-  position: relative;
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 2px 5px rgba(0,0,0,0.03);
-}
-
-.ff-card-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-  border-color: #38bdf8;
-}
-
-.ff-card-item.enabled {
-  border-left: 4px solid #10b981;
-  background: <?= $is_console_dark_mode ? 'linear-gradient(135deg, #1a2233 0%, #162426 100%)' : 'linear-gradient(135deg, #ffffff 60%, #f0fdf4 100%)' ?>;
-}
-
-.ff-card-item.disabled {
-  border-left: 4px solid #94a3b8;
-  opacity: 0.88;
-  background: <?= $is_console_dark_mode ? '#161924' : '#fafafa' ?>;
-}
-
-.ff-card-item.highlight {
-  border-color: #38bdf8 !important;
-  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.35), 0 8px 20px rgba(0,0,0,0.1) !important;
-}
-
-.ff-badge-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 0.2rem 0.55rem;
-  border-radius: 9999px;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-}
-
-.ff-badge-status.on {
-  background: rgba(16, 185, 129, 0.12);
-  color: #10b981;
-  border: 1px solid rgba(16, 185, 129, 0.3);
-}
-
-.ff-badge-status.off {
-  background: rgba(148, 163, 184, 0.15);
-  color: #64748b;
-  border: 1px solid rgba(148, 163, 184, 0.3);
-}
-
-.ff-card-key {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #0284c7;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.ff-card-key:hover {
-  color: #2563eb;
-  text-decoration: underline;
-}
-
-.ff-card-desc {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: <?= $is_console_dark_mode ? '#f1f5f9' : '#1e293b' ?>;
-  line-height: 1.35;
-}
-
-.ff-card-meta {
-  font-size: 0.72rem;
-  color: <?= $is_console_dark_mode ? '#94a3b8' : '#64748b' ?>;
-  background: <?= $is_console_dark_mode ? 'rgba(0,0,0,0.25)' : '#f1f5f9' ?>;
-  padding: 0.35rem 0.6rem;
-  border-radius: 6px;
-  display: flex;
-  align-items: flex-start;
-  gap: 0.35rem;
-  line-height: 1.35;
-}
-
-.ff-edit-link {
-  font-size: 0.72rem;
-  color: #64748b;
-  text-decoration: none;
-  padding: 2px 6px;
-  border-radius: 4px;
-  transition: all 0.15s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-}
-.ff-edit-link:hover {
-  background: rgba(2, 132, 199, 0.1);
-  color: #0284c7;
-}
-
-/* ========================================================================
-   THANH MINI BAR GỌN NHẸ (FLOATING QUICK BAR) CHO TRANG WEB BÁN HÀNG ĐỘC LẬP
-   ======================================================================== */
-.cds-floating-devbar {
-  position: fixed;
-  bottom: 18px;
-  left: 18px;
-  z-index: 9990;
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  background: rgba(16, 16, 18, 0.92);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 999px;
-  padding: 0.38rem 0.65rem;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
-  color: #f8fafc;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-size: 0.76rem;
-  flex-wrap: wrap;
-}
-.cds-devbar-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  color: #e2e8f0;
-  text-decoration: none;
-  font-weight: 600;
-  padding: 0.28rem 0.65rem;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  transition: all 0.18s ease;
-}
-.cds-devbar-link:hover {
-  background: #2997ff;
-  border-color: #2997ff;
-  color: #ffffff;
-}
-.cds-devbar-select,
-.cds-devbar-input {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 999px;
-  padding: 0.24rem 0.6rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  outline: none;
-}
-.cds-devbar-select option {
-  background: #18181b;
-  color: #ffffff;
-}
-.cds-devbar-input {
-  width: 74px;
-  text-align: center;
-  font-family: ui-monospace, monospace;
-}
-.cds-devbar-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
-  color: #ffffff;
-  border: none;
-  border-radius: 999px;
-  padding: 0.28rem 0.7rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.18s ease;
-}
-.cds-devbar-btn:hover {
-  filter: brightness(1.1);
-}
-.cds-console-drawer {
-  display: none;
-  position: fixed;
-  inset: 0;
-  z-index: 9995;
-  background: rgba(2, 6, 23, 0.68);
-  backdrop-filter: blur(6px);
-  padding: 2rem 1.25rem;
-  overflow-y: auto;
-}
-.cds-console-drawer.open {
-  display: block;
-}
-.cds-console-drawer-inner {
-  max-width: 1220px;
-  margin: 0 auto;
-}
 </style>
-
-<!-- ========================================================================
-     THANH CÔNG CỤ NHỎ GỌN (CHUYỂN NHANH KH / MÔI TRƯỜNG / VỀ QUẢN TRỊ)
-     ======================================================================== -->
-<?php
-$enabled_count = 0;
-foreach ($eval_results as $res) {
-    if (!empty($res['data']['enabled'])) {
-        $enabled_count++;
-    }
-}
-$total_count = count($eval_results);
-?>
-<div class="cds-floating-devbar">
-  <a href="dashboard.php" class="cds-devbar-link" title="Quay về Hệ thống Quản trị Feature Flags">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
-    <span>Quản trị</span>
-  </a>
-
-  <?php if ($can_manage_controller): ?>
-    <form method="GET" action="demo-app.php" style="display: inline-flex; align-items: center; gap: 0.35rem; margin: 0;">
-      <select name="env" class="cds-devbar-select" onchange="this.form.submit()" title="Chuyển nhanh môi trường">
-        <option value="testing" <?= ($current_env === 'testing') ? 'selected' : '' ?>>Kiểm thử (Testing)</option>
-        <option value="staging" <?= ($current_env === 'staging') ? 'selected' : '' ?>>Vận hành (Staging)</option>
-      </select>
-
-      <input type="text" name="user_id" value="<?= e($current_user_id) ?>" class="cds-devbar-input" list="sample_users_list" title="Nhập mã khách hàng (KH1 - KH1000) rồi nhấn Enter" placeholder="KH1">
-      <?php if ($simulate_error): ?>
-        <input type="hidden" name="simulate_error" value="1">
-      <?php endif; ?>
-      <button type="submit" class="cds-devbar-link" style="cursor: pointer;" title="Áp dụng mã khách hàng">Đổi KH</button>
-    </form>
-
-    <button type="button" class="cds-devbar-btn" onclick="document.getElementById('cdsConsoleDrawer').classList.toggle('open')" title="Mở bảng điều khiển kiểm thử 11 Cờ tính năng">
-      <span>⚡ <?= $enabled_count ?>/<?= $total_count ?> cờ</span>
-    </button>
-  <?php else: ?>
-    <span style="padding: 0 0.4rem; color: #94a3b8;">
-      Môi trường: <strong style="color: #38bdf8;"><?= strtoupper(e($current_env)) ?></strong> • ID: <strong style="color: #fff;"><?= e($current_user_id) ?></strong>
-    </span>
-  <?php endif; ?>
-</div>
-
-<!-- ========================================================================
-     BẢNG ĐIỀU KHIỂN THỬ NGHIỆM FEATURE FLAG (POPUP DRAWER KHI CẦN MỞ)
-     (Chỉ hiển thị và cho phép chỉnh sửa với Admin và Biên tập / Editor)
-     ======================================================================== -->
-<?php if ($can_manage_controller): ?>
-<?php
-$quick_users = [
-    'KH1' => ['label' => 'KH1', 'desc' => 'Nội bộ • Fast Checkout BẬT'],
-    'KH2' => ['label' => 'KH2', 'desc' => 'Nội bộ • Fast Checkout TẮT'],
-    'KH5' => ['label' => 'KH5', 'desc' => 'Nội bộ • Dark Mode BẬT'],
-    'KH60' => ['label' => 'KH60', 'desc' => 'Khách Beta (Rollout %)'],
-    'KH500' => ['label' => 'KH500', 'desc' => 'Khách Phổ thông'],
-];
-$auto_open_drawer = !empty($highlight_flag) || !empty($_GET['open_console']);
-?>
-<div class="cds-console-drawer <?= $auto_open_drawer ? 'open' : '' ?>" id="cdsConsoleDrawer" onclick="if(event.target===this)this.classList.remove('open')">
-<div class="cds-console-drawer-inner">
-<div class="ff-console-panel" style="margin-bottom: 0;">
-  <!-- CONSOLE HEADER (ANT DESIGN / APPLE DEV TECH GRADIENT) -->
-  <div class="ff-console-header">
-    <div class="ff-console-title-wrap">
-      <div class="ff-console-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-          <line x1="8" y1="21" x2="16" y2="21"></line>
-          <line x1="12" y1="17" x2="12" y2="21"></line>
-        </svg>
-      </div>
-      <div>
-        <div class="ff-console-title-text">
-          <span>Bảng điều khiển kiểm thử Feature Flags (Testing Controller)</span>
-          <span style="font-size: 0.72rem; padding: 0.15rem 0.55rem; border-radius: 6px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; font-weight: 700; border: 1px solid rgba(56, 189, 248, 0.35);">DEV CONSOLE</span>
-        </div>
-        <div class="ff-console-subtitle">
-          Mô phỏng ngữ cảnh người dùng thực tế và kiểm thử quy tắc đánh giá Rules, Overrides, Rollout
-        </div>
-      </div>
-    </div>
-
-    <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
-      <?php if ($simulate_error): ?>
-        <span style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 20px; font-weight: 700; padding: 4px 12px; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 6px;">
-          <span></span> ĐANG MÔ PHỎNG LỖI API (FALLBACK FALSE)
-        </span>
-      <?php else: ?>
-        <span style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 20px; font-weight: 600; padding: 4px 12px; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 6px;">
-          <span class="ff-pulse-dot"></span> ĐỘNG CƠ EVAL SẴN SÀNG
-        </span>
-      <?php endif; ?>
-      <span style="background: rgba(255, 255, 255, 0.1); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 20px; font-weight: 700; padding: 4px 12px; font-size: 0.78rem; font-family: ui-monospace, monospace;">
-        <span style="color: #38bdf8;"><?= $enabled_count ?></span>/<?= $total_count ?> CỜ BẬT
-      </span>
-      <button type="button" onclick="document.getElementById('cdsConsoleDrawer').classList.remove('open')" style="background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 4px 10px; font-size: 0.78rem; font-weight: 700; cursor: pointer;">
-        ✕ Đóng
-      </button>
-    </div>
-  </div>
-
-  <!-- CONSOLE INTERACTIVE CONTROLS -->
-  <div class="ff-console-body">
-    <form method="GET" action="demo-app.php" class="ff-form-grid">
-      <!-- 1. Môi trường -->
-      <div class="ff-field-group">
-        <label class="ff-field-label">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-          <span>1. Môi trường:</span>
-        </label>
-        <select name="env" class="ff-form-control">
-          <option value="testing" <?= ($current_env === 'testing') ? 'selected' : '' ?>> Kiểm thử (Testing)</option>
-          <option value="staging" <?= ($current_env === 'staging') ? 'selected' : '' ?>> Vận hành (Staging)</option>
-        </select>
-      </div>
-
-      <!-- 2. Mã khách hàng -->
-      <div class="ff-field-group">
-        <label class="ff-field-label">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-          <span>2. Mã khách hàng (User ID):</span>
-        </label>
-        <div style="position: relative;">
-          <input type="text" name="user_id" class="ff-form-control font-mono" value="<?= e($current_user_id) ?>" placeholder="Nhập KH1, KH2, KH60, KH500..." list="sample_users_list" style="padding-left: 2.2rem;">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); pointer-events: none;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-        </div>
-        <datalist id="sample_users_list">
-          <option value="KH1">KH1 - Nội bộ (Override: thanh toán nhanh = BẬT)</option>
-          <option value="KH2">KH2 - Nội bộ (Override: thanh toán nhanh = TẮT)</option>
-          <option value="KH5">KH5 - Nội bộ (Override: giao diện tối = BẬT)</option>
-          <option value="KH60">KH60 - Khách hàng Beta (Rollout theo tỷ lệ)</option>
-          <option value="KH500">KH500 - Khách hàng Thường (Phổ thông)</option>
-        </datalist>
-      </div>
-
-      <!-- 3. Mô phỏng lỗi API Fallback -->
-      <div style="padding-bottom: 0.15rem;">
-        <label class="ff-simulate-toggle" title="Kích hoạt chế độ mô phỏng mất kết nối tới API để kiểm tra cơ chế dự phòng an toàn (Fail-safe Fallback)">
-          <input type="checkbox" name="simulate_error" value="1" <?= $simulate_error ? 'checked' : '' ?> style="accent-color: #ef4444; width: 16px; height: 16px; cursor: pointer;">
-          <span>Mô phỏng máy chủ lỗi (Fallback: false)</span>
-        </label>
-      </div>
-
-      <!-- Actions -->
-      <div style="display: flex; gap: 0.5rem; align-items: center; padding-bottom: 0.15rem;">
-        <button type="submit" class="ff-btn-submit">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-          <span>Áp dụng & Đánh giá</span>
-        </button>
-
-        <?php if ($simulate_error): ?>
-          <a href="demo-app.php?env=<?= urlencode($current_env) ?>&user_id=<?= urlencode($current_user_id) ?>" class="ff-quick-pill" style="border-color: #ef4444; color: #ef4444;" title="Bỏ chọn mô phỏng lỗi">
-            Tắt lỗi
-          </a>
-        <?php endif; ?>
-      </div>
-    </form>
-
-    <!-- Quick User Pills -->
-    <div class="ff-pills-row">
-      <span style="font-size: 0.78rem; font-weight: 700; color: <?= $is_console_dark_mode ? '#94a3b8' : '#64748b' ?>; display: inline-flex; align-items: center; gap: 4px;">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-        Chuyển nhanh khách hàng mẫu:
-      </span>
-      <?php foreach ($quick_users as $qu_id => $qu_info): 
-        $is_active_qu = ($current_user_id === $qu_id);
-      ?>
-        <a href="demo-app.php?env=<?= urlencode($current_env) ?>&user_id=<?= urlencode($qu_id) ?><?= $simulate_error ? '&simulate_error=1' : '' ?>" class="ff-quick-pill <?= $is_active_qu ? 'active' : '' ?>">
-          <?php if ($is_active_qu): ?>
-            <span style="color: #0284c7; font-size: 10px;">✓</span>
-          <?php endif; ?>
-          <strong><?= e($qu_info['label']) ?></strong>
-          <span style="font-weight: 400; opacity: 0.85;">(<?= e($qu_info['desc']) ?>)</span>
-        </a>
-      <?php endforeach; ?>
-    </div>
-  </div>
-
-  <!-- 10 FEATURE FLAGS STATUS MATRIX (ANT DESIGN CARDS GRID) -->
-  <div class="ff-cards-section">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
-      <div style="font-size: 0.82rem; font-weight: 700; color: <?= $is_console_dark_mode ? '#cbd5e1' : '#475569' ?>; text-transform: uppercase; letter-spacing: 0.03em; display: flex; align-items: center; gap: 0.5rem;">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-        <span>Kết quả đánh giá <?= $total_count ?> cờ tính năng cho [ <strong style="color: #0284c7;"><?= e($current_user_id) ?></strong> &bull; <strong style="color: #2563eb;"><?= strtoupper(e($current_env)) ?></strong> ]:</span>
-      </div>
-      <div style="font-size: 0.78rem; color: #94a3b8; display: flex; align-items: center; gap: 4px;">
-        <span>Nhấp vào mã cờ để xem chi tiết hoặc</span>
-        <a href="flags.php" style="color: #0284c7; text-decoration: none; font-weight: 600;">quản lý tất cả cờ &rarr;</a>
-      </div>
-    </div>
-
-    <div class="ff-grid-10">
-      <?php 
-      $flag_ui_labels = [
-          'thanh_toan_nhanh'      => ['title' => 'Nút Mua 1-Chạm CDS STORE Express', 'icon' => ''],
-          'giao_dien_toi'         => ['title' => 'Giao diện than chì CDS STORE Dark Mode', 'icon' => ''],
-          'danh_gia_san_pham'     => ['title' => 'Đánh giá sao & ảnh thực tế unbox', 'icon' => ''],
-          'danh_sach_yeu_thich'   => ['title' => 'Lưu sản phẩm yêu thích (Wishlist)', 'icon' => ''],
-          'ho_tro_truc_tuyen'     => ['title' => 'Chuyên viên Apple CDS STORE 24/7', 'icon' => ''],
-          'ma_giam_gia'           => ['title' => 'Tự động áp voucher CDS18', 'icon' => ''],
-          'goi_y_san_pham'        => ['title' => 'Gợi ý combo phụ kiện Apple bằng AI', 'icon' => ''],
-          'tim_kiem_nang_cao'     => ['title' => 'Tìm kiếm nâng cao đa tiêu chí', 'icon' => ''],
-          'theo_doi_don_hang'     => ['title' => 'Tra cứu đơn hàng thời gian thực', 'icon' => ''],
-          'tich_diem_thanh_vien'  => ['title' => 'Tích điểm hội viên CDS STORE Member', 'icon' => ''],
-          'banner_quang_cao'      => ['title' => 'Banner quảng cáo trang chủ (Hero Slider)', 'icon' => ''],
-      ];
-
-      foreach ($eval_results as $f_key => $res): 
-          $en = !empty($res['data']['enabled']);
-          $reason = $res['data']['reason'] ?? '';
-          $flag_info = $flag_ui_labels[$f_key] ?? ['title' => $f_key, 'icon' => ''];
-          $is_highlight = ($highlight_flag === $f_key);
-      ?>
-        <div class="ff-card-item <?= $en ? 'enabled' : 'disabled' ?> <?= $is_highlight ? 'highlight' : '' ?>">
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
-            <a href="flag-detail.php?key=<?= urlencode($f_key) ?>" class="ff-card-key" title="Xem chi tiết cờ <?= e($f_key) ?>">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
-              <span><?= e($f_key) ?></span>
-            </a>
-            <div style="display: flex; align-items: center; gap: 0.35rem;">
-              <button
-                type="button"
-                class="ff-badge-status <?= $en ? 'on' : 'off' ?>"
-                style="cursor: pointer; border: none;"
-                title="Bấm để Bật / Tắt nhanh cờ <?= e($f_key) ?> và đồng bộ vào CSDL MySQL"
-                onclick="quickToggleDemoFlag('<?= e($f_key) ?>', '<?= e($current_env) ?>', <?= $en ? 'false' : 'true' ?>)"
-              >
-                <span><?= $en ? '●' : '○' ?></span>
-                <?= $en ? 'ENABLED' : 'DISABLED' ?>
-              </button>
-              <a href="flag-detail.php?key=<?= urlencode($f_key) ?>" class="ff-edit-link" title="Chỉnh sửa cấu hình cờ">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-              </a>
-            </div>
-          </div>
-
-          <div class="ff-card-desc">
-            <span style="margin-right: 3px;"><?= $flag_info['icon'] ?></span>
-            <?= e($flag_info['title']) ?>
-          </div>
-
-          <div class="ff-card-meta" title="<?= e($reason) ?>">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-            <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-              <?= e($reason) ?>
-            </div>
-          </div>
-        </div>
-      <?php endforeach; ?>
-    </div>
-  </div>
-</div>
-</div>
-</div>
-<?php endif; ?>
 
 <!-- ========================================================================
      GIAO DIỆN CDS STORE STOREFRONT CHÍNH THỨC (AAR)
@@ -3286,7 +2579,7 @@ $auto_open_drawer = !empty($highlight_flag) || !empty($_GET['open_console']);
     <nav class="tz-navbar">
       <!-- Logo CDS + APR Chính hãng -->
       <div class="logo-topzone">
-        <a href="demo-app.php?env=<?= urlencode($current_env) ?>&user_id=<?= urlencode($current_user_id) ?>" class="cds-logo-brand" title="CDS - Đại lý ủy quyền chính thức của Apple">
+        <a href="demo-app.php" class="cds-logo-brand" title="CDS - Đại lý ủy quyền chính thức của Apple">
           <span>CD</span><span class="cds-char-s">S</span>
         </a>
         <a href="#sec-policy" title="Apple Premium Reseller (APR)">
@@ -3348,11 +2641,6 @@ $auto_open_drawer = !empty($highlight_flag) || !empty($_GET['open_console']);
         <button type="button" class="tz-round-btn" onclick="openCartView()" title="Giỏ hàng của bạn">
           <i class="topzone-cart"></i>
           <span class="tz-cart-badge" id="cartBadgeCount">2</span>
-        </button>
-
-        <!-- Nút chuyển đổi Dark / Light Mode (Cờ giao_dien_toi) -->
-        <button type="button" class="tz-round-btn" onclick="quickToggleDemoFlag('giao_dien_toi', '<?= e($current_env) ?>', <?= $is_dark_mode ? 'false' : 'true' ?>)" title="Cờ [giao_dien_toi]: Đang ở chế độ <?= $is_dark_mode ? 'Tối (Dark Mode)' : 'Sáng (Light Mode)' ?> - Bấm để chuyển đổi">
-          <span style="font-size: 0.9rem;"><?= $is_dark_mode ? '🌙' : '☀️' ?></span>
         </button>
 
         <?php if ($current_customer): ?>
@@ -4157,7 +3445,7 @@ $auto_open_drawer = !empty($highlight_flag) || !empty($_GET['open_console']);
       
       <!-- Logo Foot chuẩn CDS + APR -->
       <div class="logo-foot">
-        <a href="demo-app.php?env=<?= urlencode($current_env) ?>&user_id=<?= urlencode($current_user_id) ?>" class="cds-logo-brand">
+        <a href="demo-app.php" class="cds-logo-brand">
           <span>CD</span><span class="cds-char-s">S</span>
         </a>
         <a href="#sec-policy">
@@ -4792,32 +4080,27 @@ const APP_FLAGS = {
   banner: <?= $is_banner ? 'true' : 'false' ?>
 };
 
-async function quickToggleDemoFlag(flagKey, envKey, targetEnabled) {
+const CURRENT_FLAGS_HASH = <?= json_encode($flags_sync_hash) ?>;
+const SYNC_USER_PARAM = <?= json_encode(isset($_GET['user_id']) ? ('&user_id=' . rawurlencode((string)$_GET['user_id'])) : '') ?>;
+
+async function checkAdminFlagSync() {
+  if (document.visibilityState === 'hidden') return;
   try {
-    const res = await fetch('api/toggle.php', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-Token': '<?= e(get_csrf_token()) ?>'
-      },
-      body: JSON.stringify({
-        flag_key: flagKey,
-        environment: envKey,
-        enabled: targetEnabled,
-        user_id: '<?= e($current_user_id) ?>',
-        csrf_token: '<?= e(get_csrf_token()) ?>'
-      })
-    });
+    const res = await fetch('demo-app.php?ajax_sync_check=1' + SYNC_USER_PARAM, { cache: 'no-store' });
+    if (!res.ok) return;
     const data = await res.json();
-    if (data && data.success) {
+    if (data && data.hash && data.hash !== CURRENT_FLAGS_HASH) {
       window.location.reload();
-    } else {
-      alert((data && data.error) ? data.error : 'Không thể bật/tắt cờ tính năng.');
     }
-  } catch (err) {
-    alert('Lỗi kết nối khi bật/tắt cờ tính năng.');
-  }
+  } catch (err) {}
 }
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    checkAdminFlagSync();
+  }
+});
+window.addEventListener('focus', checkAdminFlagSync);
 
 // Định dạng tiền tệ VNĐ chuẩn
 function formatVND(num) {
@@ -5488,7 +4771,7 @@ function openSearchModal() {
     }, 350);
     showToast('🔍 Đã di chuyển đến Bộ Lọc & Tìm Kiếm Nâng Cao CDS!', 'info');
   } else {
-    showToast('Hãy bật cờ [tim_kiem_nang_cao] ở nút góc trái dưới để sử dụng Bộ lọc thông minh CDS!', 'info');
+    showToast('Tính năng Bộ lọc & Tìm kiếm nâng cao hiện đang tạm tắt từ trang Quản trị!', 'info');
   }
 }
 

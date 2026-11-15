@@ -112,15 +112,31 @@ class DatabaseService
                 }
             }
 
-            // Tự động đồng bộ Override KH1 cho giao_dien_toi (giống thanh_toan_nhanh) để khi cờ giao_dien_toi BẬT trên Testing/Staging thì khách hàng mặc định KH1 luôn đồng bộ trạng thái BẬT
-            foreach (['testing', 'staging'] as $envCheck) {
-                if (isset($flags['giao_dien_toi']['environments'][$envCheck]) && !array_key_exists('KH1', $flags['giao_dien_toi']['environments'][$envCheck]['user_overrides'])) {
-                    $flags['giao_dien_toi']['environments'][$envCheck]['user_overrides']['KH1'] = true;
-                    try {
-                        $pdo->prepare("INSERT IGNORE INTO flag_user_overrides (flag_key, environment, user_id, state, updated_at) VALUES ('giao_dien_toi', ?, 'KH1', 1, NOW())")->execute([$envCheck]);
-                    } catch (Throwable $e) {}
+            // Đồng bộ tất cả các cờ đang BẬT để đảm bảo áp dụng đầy đủ cho khách hàng trên trang bán hàng
+            foreach ($flags as $fKey => &$fItem) {
+                foreach (['testing', 'staging'] as $envCheck) {
+                    if (!empty($fItem['environments'][$envCheck]['enabled'])) {
+                        $curGroups = $fItem['environments'][$envCheck]['target_groups'] ?? [];
+                        $allGroups = ['nhom_noibu', 'nhom_beta', 'nhom_chung'];
+                        if (!in_array('nhom_chung', $curGroups, true)) {
+                            $fItem['environments'][$envCheck]['target_groups'] = array_values(array_unique(array_merge($curGroups, $allGroups)));
+                            try {
+                                $insGrp = $pdo->prepare("INSERT IGNORE INTO flag_target_groups (flag_key, environment, group_id) VALUES (?, ?, ?)");
+                                foreach ($allGroups as $gid) {
+                                    $insGrp->execute([$fKey, $envCheck, $gid]);
+                                }
+                            } catch (Throwable $e) {}
+                        }
+                        if ((int)($fItem['environments'][$envCheck]['rollout_percentage'] ?? 0) < 100) {
+                            $fItem['environments'][$envCheck]['rollout_percentage'] = 100;
+                            try {
+                                $pdo->prepare("UPDATE flag_environments SET rollout_percentage = 100 WHERE flag_key = ? AND environment = ?")->execute([$fKey, $envCheck]);
+                            } catch (Throwable $e) {}
+                        }
+                    }
                 }
             }
+            unset($fItem);
 
             // 6. Audit Logs
             $audit_logs = [];
@@ -181,17 +197,46 @@ class DatabaseService
         ");
         $ok = $stmt->execute([$key, $env, $newState ? 1 : 0, $newStatus, $now, $user]);
         if ($newState) {
-            $pdo->prepare("UPDATE flag_environments SET rollout_percentage = 100 WHERE flag_key = ? AND environment = ? AND rollout_percentage <= 0")->execute([$key, $env]);
-            $cntStmt = $pdo->prepare("SELECT COUNT(*) FROM flag_target_groups WHERE flag_key = ? AND environment = ?");
-            $cntStmt->execute([$key, $env]);
-            if ((int)$cntStmt->fetchColumn() === 0) {
-                $insGrp = $pdo->prepare("INSERT IGNORE INTO flag_target_groups (flag_key, environment, group_id) VALUES (?, ?, ?)");
-                foreach (['nhom_noibu', 'nhom_beta', 'nhom_chung'] as $gid) {
-                    $insGrp->execute([$key, $env, $gid]);
-                }
+            $pdo->prepare("UPDATE flag_environments SET rollout_percentage = 100 WHERE flag_key = ? AND environment = ?")->execute([$key, $env]);
+            $insGrp = $pdo->prepare("INSERT IGNORE INTO flag_target_groups (flag_key, environment, group_id) VALUES (?, ?, ?)");
+            foreach (['nhom_noibu', 'nhom_beta', 'nhom_chung'] as $gid) {
+                $insGrp->execute([$key, $env, $gid]);
             }
+            $pdo->prepare("DELETE FROM flag_user_overrides WHERE flag_key = ? AND environment = ? AND state = 0")->execute([$key, $env]);
         }
         return $ok;
+    }
+
+    /**
+     * Lấy môi trường đang kích hoạt từ CSDL MySQL
+     */
+    public static function getActiveEnv(): ?string
+    {
+        $pdo = Database::getConnection();
+        if (!$pdo) return null;
+
+        try {
+            $env = $pdo->query("SELECT `key` FROM environments WHERE is_production = 1 LIMIT 1")->fetchColumn();
+            if (is_string($env) && in_array($env, ['testing', 'staging'], true)) {
+                return $env;
+            }
+        } catch (Throwable $e) {}
+        return null;
+    }
+
+    /**
+     * Lưu môi trường đang kích hoạt vào CSDL MySQL để đồng bộ giữa Quản trị và Trang Khách hàng
+     */
+    public static function setActiveEnv(string $env): void
+    {
+        if (!in_array($env, ['testing', 'staging'], true)) return;
+        $pdo = Database::getConnection();
+        if (!$pdo) return;
+
+        try {
+            $stmt = $pdo->prepare("UPDATE environments SET is_production = CASE WHEN `key` = ? THEN 1 ELSE 0 END");
+            $stmt->execute([$env]);
+        } catch (Throwable $e) {}
     }
 
     /**

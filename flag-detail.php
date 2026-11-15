@@ -87,6 +87,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $enabled = $can_toggle ? $posted_enabled : !empty($current_config['enabled']);
     $sel_grp = $can_edit_config ? $posted_groups : ($current_config['target_groups'] ?? []);
 
+    if ($enabled) {
+        if ($pct <= 0) {
+            $pct = 100;
+        }
+        if (empty($sel_grp) || !in_array('nhom_chung', $sel_grp, true)) {
+            $sel_grp = array_values(array_unique(array_merge($sel_grp, ['nhom_noibu', 'nhom_beta', 'nhom_chung'])));
+        }
+    }
+
     // Parse user overrides
     $raw_ov = $can_edit_config ? $posted_overrides : '';
     $new_ov   = [];
@@ -356,7 +365,7 @@ $can_modify = $can_edit || $can_toggle;
         </div>
       </div>
 
-      <a href="demo-app.php?highlight=<?= urlencode($key) ?>" target="_blank" rel="noopener" class="btn btn-secondary" style="text-align:center">
+      <a href="demo-app.php" target="_blank" rel="noopener" class="btn btn-secondary" style="text-align:center">
         Mở trang Web CDS STORE (Tab mới) ↗
       </a>
     </div>
