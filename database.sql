@@ -52,8 +52,10 @@ CREATE TABLE `target_groups` (
 DROP TABLE IF EXISTS `customers`;
 CREATE TABLE `customers` (
     `id` VARCHAR(50) NOT NULL PRIMARY KEY,
+    `username` VARCHAR(50) NULL UNIQUE,
     `name` VARCHAR(255) NOT NULL,
     `email` VARCHAR(255) NOT NULL,
+    `password_hash` VARCHAR(255) NULL,
     `group_id` VARCHAR(50) NOT NULL,
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX `idx_cust_group` (`group_id`),

@@ -115,6 +115,22 @@ function logout_user(): void
     session_regenerate_id(true);
 }
 
+function is_customer_logged_in(): bool
+{
+    return isset($_SESSION['customer']) && is_array($_SESSION['customer']);
+}
+
+function get_authenticated_customer(): ?array
+{
+    return $_SESSION['customer'] ?? null;
+}
+
+function logout_customer(): void
+{
+    unset($_SESSION['customer']);
+    session_regenerate_id(true);
+}
+
 /* ============================================================
    MÔI TRƯỜNG & FLASH
    ============================================================ */

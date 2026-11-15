@@ -23,6 +23,7 @@ Hệ thống cho phép nhóm phát triển điều khiển bật/tắt tính nă
 2. **Khai báo tính năng, nhóm người dùng & tỷ lệ rollout**: Hỗ trợ 10 cờ tính năng, phân tập 1.000 khách hàng (`KH1 - KH1000`) vào 3 nhóm (`nhom_noibu`, `nhom_beta`, `nhom_chung`). Thứ tự ưu tiên nghiêm ngặt:
    $$\text{Master Enabled} \longrightarrow \text{User Override} \longrightarrow \text{Target Groups} \longrightarrow \text{Rollout \%} \longrightarrow \text{Fallback (false)}$$
 3. **API PHP & Ứng dụng mô phỏng**: API [api/evaluate.php](api/evaluate.php) trả kết quả JSON thời gian thực. Ứng dụng demo CDS STORE ([demo-app.php](demo-app.php)) có nút mô phỏng lỗi cúp mạng API (`simulate_error`), tự động rơi về giá trị dự phòng an toàn.
+   - CDS Store yêu cầu khách đăng nhập trước khi xem sản phẩm. Khách có thể đăng ký/đăng nhập bằng tên đăng nhập và mật khẩu tại `store-auth.php`; tài khoản mới được thêm vào bảng `customers` với nhóm mặc định `nhom_chung`, mật khẩu được băm an toàn. Nhóm của tài khoản được Feature Flag đọc trực tiếp từ database.
 4. **Quản lý phiên bản cấu hình (Snapshot & Rollback)**: Lưu snapshot ([versions.php](versions.php)), so sánh sai khác trực quan ([version-compare.php](version-compare.php)), và khôi phục (Rollback) về phiên bản cũ chính xác 100%.
 5. **Nhật ký thay đổi & Nhập/Xuất cấu hình**: Ghi log kiểm toán ([audit-logs.php](audit-logs.php)). Nhập/xuất JSON ([import-export.php](import-export.php)) có bộ kiểm tra dữ liệu (Validation Engine) xác thực schema và tỷ lệ 0-100%.
 
@@ -87,6 +88,7 @@ PTPMMNM-CNTT-1809-NHOM-5/
    - **Quản trị viên (Admin)**: `admin` / `admin123` *(Toàn quyền hệ thống)*
    - **Biên tập viên (Editor)**: `editor` / `editor123` *(Quyền tạo và sửa cờ)*
    - **Người xem (Viewer)**: `viewer` / `viewer123` *(Chỉ xem, bị từ chối sửa)*
+5. Mở `demo-app.php` để vào CDS Store. Đăng nhập bằng tên đăng nhập và mật khẩu, hoặc chọn liên kết **Chưa có tài khoản? Đăng ký ngay** để tạo tài khoản mua hàng riêng. Tài khoản CDS Store không dùng chung với tài khoản quản trị.
 
 ---
 
@@ -140,4 +142,3 @@ http://localhost/PTPMMNM-CNTT-1809-NHOM-5/tests/test_mandatory.php
   - **MariaDB / MySQL 10.4+**: Hệ quản trị cơ sở dữ liệu quan hệ chuẩn ACID.
   - **Chart.js**: Thư viện biểu đồ mã nguồn mở trực quan hóa thống kê cờ và lưu lượng truy cập.
   - **Tabler Icons / Feather Icons**: Bộ biểu tượng SVG mã nguồn mở chuẩn giao diện người dùng.
-

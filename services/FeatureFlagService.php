@@ -8,6 +8,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../data/fake-data.php';
+require_once __DIR__ . '/../includes/db.php';
 
 class FeatureFlagService
 {
@@ -81,9 +82,29 @@ class FeatureFlagService
         return abs(crc32($user_id . ':' . $flag_key)) % 100;
     }
 
-    /** Xác định nhóm khách hàng từ mã KH */
+    /** Xác định nhóm khách hàng từ tài khoản thật, có fallback cho dữ liệu mô phỏng */
     private static function getUserGroup(string $user_id): string
     {
+        try {
+            $pdo = Database::getConnection();
+            if ($pdo) {
+                $stmt = $pdo->prepare('SELECT group_id FROM customers WHERE id = ? LIMIT 1');
+                $stmt->execute([$user_id]);
+                $group_id = $stmt->fetchColumn();
+                if (is_string($group_id) && $group_id !== '') {
+                    return $group_id;
+                }
+            }
+        } catch (PDOException $e) {
+            // Dữ liệu mô phỏng bên dưới vẫn giữ cho hệ thống hoạt động khi DB tạm thời không sẵn sàng.
+        }
+
+        foreach (generate_fake_users() as $customer) {
+            if (($customer['id'] ?? '') === $user_id) {
+                return (string)($customer['group_id'] ?? 'nhom_chung');
+            }
+        }
+
         if (preg_match('/KH(\d+)/i', $user_id, $m)) {
             $n = (int)$m[1];
             if ($n <= 50)  return 'nhom_noibu';

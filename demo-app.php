@@ -16,9 +16,18 @@
  */
 
 require_once __DIR__ . '/includes/helpers.php';
-require_login();
 
 require_once __DIR__ . '/services/FeatureFlagService.php';
+
+if (!is_customer_logged_in()) {
+    $store_theme = ($_SESSION['store_theme'] ?? 'light') === 'dark' ? 'dark' : 'light';
+    $return_url = 'demo-app.php';
+    if (!empty($_SERVER['QUERY_STRING'])) {
+        $return_url .= '?' . $_SERVER['QUERY_STRING'];
+    }
+    header('Location: store-auth.php?mode=login&theme=' . $store_theme . '&redirect=' . rawurlencode($return_url));
+    exit;
+}
 
 $page_title = 'CDS - Cửa hàng Apple chính hãng (APR)';
 
@@ -26,15 +35,16 @@ $page_title = 'CDS - Cửa hàng Apple chính hãng (APR)';
 // 1. THIẾT LẬP THÔNG SỐ KIỂM THỬ & KIỂM TRA PHÂN QUYỀN TRUY CẬP (RBAC)
 // --------------------------------------------------------------------------
 $current_auth_user = get_authenticated_user();
+$current_customer = get_authenticated_customer();
 $auth_role = $current_auth_user['role'] ?? 'viewer';
 
 // Chỉ vai trò Admin và Biên tập (Editor) mới được phép thấy và chỉnh sửa Testing Controller
 $can_manage_controller = in_array($auth_role, ['admin', 'editor'], true);
 
 if (!$can_manage_controller) {
-    // Tài khoản Viewer: Môi trường luôn lấy theo hệ thống đang kích hoạt, không can thiệp controller thử nghiệm
+    // Khách hàng xem storefront theo môi trường đang kích hoạt của hệ thống.
     $current_env = get_active_env();
-    $current_user_id = 'KH1';
+    $current_user_id = $current_customer['id'] ?? 'KH1';
     $simulate_error = false;
     $highlight_flag = '';
 } else {
@@ -105,6 +115,7 @@ $is_adv_filter  = !empty($eval_results['tim_kiem_nang_cao']['data']['enabled']);
 $is_tracking    = !empty($eval_results['theo_doi_don_hang']['data']['enabled']);
 $is_loyalty     = !empty($eval_results['tich_diem_thanh_vien']['data']['enabled']);
 $is_banner      = !empty($eval_results['banner_quang_cao']['data']['enabled']);
+$_SESSION['store_theme'] = $is_dark_mode ? 'dark' : 'light';
 
 // --------------------------------------------------------------------------
 // 3. DỮ LIỆU BANNER QUẢNG CÁO CDS STORE (HTTP 200 VERIFIED)
@@ -1084,6 +1095,68 @@ $flash = get_flash();
   justify-content: flex-end;
   gap: 8px;
 }
+.tz-account-link {
+  display: inline-flex;
+  align-items: center;
+  max-width: 180px;
+  gap: 6px;
+  padding: 8px 11px;
+  border: 1px solid #444448;
+  border-radius: 999px;
+  color: #f5f5f7;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tz-account-link:hover { border-color: #2997ff; color: #2997ff; }
+.tz-account-menu { position: relative; }
+.tz-account-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 4px 9px 4px 5px;
+  border: 1px solid #444448;
+  border-radius: 999px;
+  color: #f5f5f7;
+  background: #2f3033;
+  cursor: pointer;
+}
+.tz-account-trigger:hover { background: #5e5e60; }
+.tz-account-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 29px;
+  height: 29px;
+  border-radius: 50%;
+  color: #fff;
+  background: #2997ff;
+  font-size: 11px;
+  font-weight: 800;
+}
+.tz-account-name { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 700; }
+.tz-account-dropdown {
+  position: absolute;
+  top: calc(100% + 7px);
+  right: 0;
+  z-index: 300;
+  display: none;
+  width: 215px;
+  padding: 6px;
+  border: 1px solid #444448;
+  border-radius: 8px;
+  background: #1d1d1f;
+  box-shadow: 0 12px 30px rgba(0,0,0,.35);
+}
+.tz-account-dropdown.show { display: block; }
+.tz-account-dropdown-header { padding: 8px 9px; border-bottom: 1px solid #3b3b3f; }
+.tz-account-dropdown-item { display: flex; align-items: center; gap: 8px; padding: 9px; border-radius: 5px; color: #d7d7dc; font-size: 12px; text-decoration: none; }
+.tz-account-dropdown-item:hover { color: #fff; background: #2f3033; }
+.tz-account-dropdown-item.text-danger { color: #ff6b6b; }
 .tz-round-btn {
   background: #2f3033;
   width: 40px;
@@ -1738,7 +1811,8 @@ $flash = get_flash();
   align-items: center;
   gap: 0.65rem;
 }
-.tz-advanced-search-button {
+.tz-advanced-search-button,
+.tz-adv-reset-btn {
   border: none;
   border-radius: 999px;
   padding: 0.55rem 1.35rem;
@@ -1753,7 +1827,8 @@ $flash = get_flash();
   box-shadow: 0 4px 14px rgba(41, 151, 255, 0.35);
   transition: all 0.2s ease;
 }
-.tz-advanced-search-button:hover {
+.tz-advanced-search-button:hover,
+.tz-adv-reset-btn:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 18px rgba(41, 151, 255, 0.5);
 }
@@ -3279,6 +3354,27 @@ $auto_open_drawer = !empty($highlight_flag) || !empty($_GET['open_console']);
         <button type="button" class="tz-round-btn" onclick="quickToggleDemoFlag('giao_dien_toi', '<?= e($current_env) ?>', <?= $is_dark_mode ? 'false' : 'true' ?>)" title="Cờ [giao_dien_toi]: Đang ở chế độ <?= $is_dark_mode ? 'Tối (Dark Mode)' : 'Sáng (Light Mode)' ?> - Bấm để chuyển đổi">
           <span style="font-size: 0.9rem;"><?= $is_dark_mode ? '🌙' : '☀️' ?></span>
         </button>
+
+        <?php if ($current_customer): ?>
+          <div class="tz-account-menu">
+            <button type="button" class="tz-account-trigger" id="storeAccountBtn" aria-expanded="false">
+              <span class="tz-account-avatar"><?= e(strtoupper(substr((string)($current_customer['username'] ?? 'KH'), 0, 2))) ?></span>
+              <span class="tz-account-name"><?= e($current_customer['username'] ?? 'Tài khoản') ?></span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="tz-account-dropdown" id="storeAccountDropdown">
+              <div class="tz-account-dropdown-header">
+                <div style="font-size: .85rem; font-weight: 700; color: #fff;"><?= e($current_customer['username'] ?? '') ?></div>
+              </div>
+              <a class="tz-account-dropdown-item text-danger" href="store-logout.php">Đăng xuất tài khoản</a>
+            </div>
+          </div>
+        <?php else: ?>
+          <a class="tz-account-link" href="store-auth.php?mode=login&theme=<?= $is_dark_mode ? 'dark' : 'light' ?>" title="Đăng nhập hoặc đăng ký tài khoản">
+            <span>👤</span>
+            <span>Đăng nhập</span>
+          </a>
+        <?php endif; ?>
       </div>
     </nav>
   </header>
@@ -4682,6 +4778,7 @@ $auto_open_drawer = !empty($highlight_flag) || !empty($_GET['open_console']);
 <script>
 // Đồng bộ trạng thái 10 Cờ từ PHP sang JavaScript Client
 const APP_FLAGS = {
+  customer_logged_in: <?= $current_customer ? 'true' : 'false' ?>,
   fast_checkout: <?= $is_fast_pay ? 'true' : 'false' ?>,
   dark: <?= $is_dark_mode ? 'true' : 'false' ?>,
   reviews: <?= $is_reviews ? 'true' : 'false' ?>,
@@ -5136,6 +5233,11 @@ function proceedCartToCheckout() {
     showToast('Giỏ hàng đang trống, vui lòng chọn sản phẩm trước khi thanh toán!', 'warning');
     return;
   }
+  if (!APP_FLAGS.customer_logged_in) {
+    showToast('Bạn hãy đăng nhập để tiếp tục thanh toán.', 'info');
+    window.location.href = 'store-auth.php?mode=login&theme=' + (APP_FLAGS.dark ? 'dark' : 'light');
+    return;
+  }
   closeModal('cartModal');
   const subtotal = getCartSubtotal();
   const firstItem = cartItems[0];
@@ -5244,6 +5346,11 @@ function handleStandardCheckoutSubmit() {
 let wishlistItems = [];
 
 function toggleWishlist(id, name, btn) {
+  if (!APP_FLAGS.customer_logged_in) {
+    showToast('Bạn hãy đăng nhập để lưu sản phẩm yêu thích.', 'info');
+    window.location.href = 'store-auth.php?mode=login&theme=' + (APP_FLAGS.dark ? 'dark' : 'light');
+    return;
+  }
   const idx = wishlistItems.findIndex(i => i.id === id);
   if (idx >= 0) {
     wishlistItems.splice(idx, 1);
@@ -5394,6 +5501,24 @@ function closeModal(id) {
   const el = document.getElementById(id);
   if (el) el.classList.remove('show');
 }
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const accountButton = document.getElementById('storeAccountBtn');
+  const accountDropdown = document.getElementById('storeAccountDropdown');
+  if (!accountButton || !accountDropdown) return;
+  accountButton.addEventListener('click', function (event) {
+    event.stopPropagation();
+    const isOpen = accountDropdown.classList.toggle('show');
+    accountButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  });
+  document.addEventListener('click', function (event) {
+    if (!accountDropdown.contains(event.target) && !accountButton.contains(event.target)) {
+      accountDropdown.classList.remove('show');
+      accountButton.setAttribute('aria-expanded', 'false');
+    }
+  });
+});
 </script>
 
 <!-- Container hiển thị thông báo Toast -->

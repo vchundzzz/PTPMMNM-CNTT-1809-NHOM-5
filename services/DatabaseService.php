@@ -518,7 +518,12 @@ class DatabaseService
         if (!$pdo) return null;
 
         try {
-            $stmt = $pdo->query("SELECT id, name, email, group_id, group_name FROM customers");
+            $stmt = $pdo->query("
+                SELECT c.id, c.name, c.email, c.group_id, g.name AS group_name
+                FROM customers c
+                LEFT JOIN target_groups g ON g.id = c.group_id
+                ORDER BY c.created_at ASC
+            ");
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
             return !empty($rows) ? $rows : null;
         } catch (Throwable $e) {

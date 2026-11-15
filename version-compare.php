@@ -27,6 +27,7 @@ $meta1 = $versions_all[$v1] ?? null;
 $meta2 = $versions_all[$v2] ?? null;
 
 $changed_count = count(array_filter($diff, fn($d) => $d['changed']));
+$changed_diff = array_values(array_filter($diff, fn($d) => $d['changed']));
 ?>
 
 <div class="page-header">
@@ -94,7 +95,7 @@ $changed_count = count(array_filter($diff, fn($d) => $d['changed']));
       <?php else: ?>
         <span class="badge badge-success">Hoàn toàn giống nhau</span>
       <?php endif; ?>
-      <span class="badge badge-neutral"><?= count($diff) ?> cờ</span>
+      <span class="badge badge-neutral"><?= $changed_count ?> tính năng hiển thị</span>
     </div>
   </div>
   <div class="table-responsive" style="border:none;border-radius:0">
@@ -109,7 +110,8 @@ $changed_count = count(array_filter($diff, fn($d) => $d['changed']));
         </tr>
       </thead>
       <tbody>
-        <?php foreach ($diff as $row): ?>
+        <?php if ($changed_diff): ?>
+        <?php foreach ($changed_diff as $row): ?>
         <tr class="<?= $row['changed'] ? 'diff-changed' : '' ?>">
           <td style="font-weight:<?= $row['changed'] ? '600' : '400' ?>"><?= e($row['name']) ?></td>
           <td><span class="font-mono"><?= e($row['key']) ?></span></td>
@@ -140,6 +142,13 @@ $changed_count = count(array_filter($diff, fn($d) => $d['changed']));
           </td>
         </tr>
         <?php endforeach; ?>
+        <?php else: ?>
+        <tr>
+          <td colspan="5" style="padding:2rem;text-align:center;color:var(--text-muted)">
+            Không có tính năng nào thay đổi giữa hai phiên bản.
+          </td>
+        </tr>
+        <?php endif; ?>
       </tbody>
     </table>
   </div>
