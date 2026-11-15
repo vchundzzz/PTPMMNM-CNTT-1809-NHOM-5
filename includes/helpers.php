@@ -8,7 +8,14 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../data/fake-data.php';
 
-if (session_status() === PHP_SESSION_NONE) session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_set_cookie_params([
+        'httponly' => true,
+        'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+        'samesite' => 'Lax',
+    ]);
+    session_start();
+}
 init_session_data();
 
 /* ============================================================
@@ -68,34 +75,13 @@ function attempt_login(string $username, string $password): bool
     $username = trim($username);
 
     // 1. Ưu tiên xác thực trực tiếp từ bảng members trong CSDL MySQL
-    try {
-        require_once __DIR__ . '/../services/DatabaseService.php';
-        if (Database::isConnected()) {
-            $acc = DatabaseService::authenticateMember($username, $password);
-            if ($acc !== null) {
-                init_session_data(true);
-                $_SESSION['user'] = [
-                    'id'         => $acc['id'],
-                    'username'   => $acc['username'],
-                    'name'       => $acc['name'],
-                    'email'      => $acc['email'],
-                    'role'       => $acc['role'],
-                    'role_title' => $acc['role_title'],
-                    'avatar'     => $acc['avatar'],
-                ];
-                $_SESSION['ff_data']['members'][$acc['username']] = $acc;
-                return true;
-            }
-            return false;
-        }
-    } catch (Throwable $e) {}
+    require_once __DIR__ . '/../services/DatabaseService.php';
+    $acc = DatabaseService::authenticateMember($username, $password);
+    if ($acc === null) {
+        return false;
+    }
 
-    // 2. Fallback qua Session khi MySQL tắt
-    $members  = $_SESSION['ff_data']['members'] ?? [];
-    if (!isset($members[$username])) return false;
-    $acc = $members[$username];
-    if ($acc['password'] !== $password) return false;
-
+    init_session_data(true);
     $_SESSION['user'] = [
         'id'         => $acc['id'],
         'username'   => $acc['username'],
@@ -105,7 +91,6 @@ function attempt_login(string $username, string $password): bool
         'role_title' => $acc['role_title'],
         'avatar'     => $acc['avatar'],
     ];
-    $_SESSION['ff_data']['members'][$username]['last_login'] = date('Y-m-d H:i:s');
     return true;
 }
 
@@ -140,24 +125,30 @@ function get_active_env(): string
     try {
         require_once __DIR__ . '/../services/DatabaseService.php';
         $dbEnv = DatabaseService::getActiveEnv();
-        if ($dbEnv !== null && in_array($dbEnv, ['testing', 'staging'], true)) {
+        if ($dbEnv !== null && $dbEnv !== '') {
             $_SESSION['current_env'] = $dbEnv;
             return $dbEnv;
         }
     } catch (Throwable $e) {}
 
-    $env = $_SESSION['current_env'] ?? 'testing';
-    return in_array($env, ['testing', 'staging'], true) ? $env : 'testing';
+    $env = (string)($_SESSION['current_env'] ?? '');
+    if ($env !== '') {
+        return $env;
+    }
+
+    $environments = $_SESSION['ff_data']['environments'] ?? [];
+    $fallback = array_key_first($environments);
+    return is_string($fallback) ? $fallback : '';
 }
 
 function set_active_env(string $env): void
 {
-    if (in_array($env, ['testing', 'staging'], true)) {
+    $env = trim($env);
+    if ($env === '') return;
+    require_once __DIR__ . '/../services/DatabaseService.php';
+    DatabaseService::setActiveEnv($env);
+    if (DatabaseService::getActiveEnv() === $env) {
         $_SESSION['current_env'] = $env;
-        try {
-            require_once __DIR__ . '/../services/DatabaseService.php';
-            DatabaseService::setActiveEnv($env);
-        } catch (Throwable $e) {}
     }
 }
 
@@ -224,12 +215,12 @@ function render_role_badge(string $role): string
 function render_env_badge(string $env): string
 {
     $env = strtolower(trim($env));
-    if ($env === 'testing') {
-        return '<span class="badge badge-env-testing"><span class="badge-dot"></span>Kiểm thử</span>';
-    } elseif ($env === 'staging') {
-        return '<span class="badge badge-env-staging"><span class="badge-dot"></span>Vận hành</span>';
-    }
-    return '<span class="badge badge-neutral">' . e(ucfirst($env)) . '</span>';
+    $environment = $_SESSION['ff_data']['environments'][$env] ?? null;
+    $label = is_array($environment) ? (string)($environment['name'] ?? $env) : ucfirst($env);
+    $color = is_array($environment) ? preg_replace('/[^a-z0-9_-]/i', '', (string)($environment['badge_color'] ?? 'neutral')) : 'neutral';
+    $allowedColors = ['primary', 'success', 'warning', 'danger', 'neutral', 'info'];
+    $classColor = in_array($color, $allowedColors, true) ? $color : 'neutral';
+    return '<span class="badge badge-' . e($classColor) . '"><span class="badge-dot"></span>' . e($label) . '</span>';
 }
 
 /**
@@ -307,9 +298,13 @@ function render_pagination(
    XỬ LÝ URL NHANH (switch env / role / reset)
    ============================================================ */
 
-if (isset($_GET['switch_env']) && in_array($_GET['switch_env'], ['testing', 'staging'], true)) {
-    set_active_env($_GET['switch_env']);
-    set_flash('info', 'Đã chuyển sang môi trường: ' . ($_GET['switch_env'] === 'testing' ? 'Kiểm thử' : 'Vận hành'));
+if (isset($_GET['switch_env'])) {
+    $requestedEnv = trim((string)$_GET['switch_env']);
+    $environment = $_SESSION['ff_data']['environments'][$requestedEnv] ?? null;
+    if (is_array($environment) && ($environment['status'] ?? 'active') === 'active') {
+        set_active_env($requestedEnv);
+        set_flash('info', 'Đã chuyển sang môi trường: ' . ($environment['name'] ?? $requestedEnv));
+    }
     header('Location: ' . strtok($_SERVER['REQUEST_URI'], '?'));
     exit;
 }

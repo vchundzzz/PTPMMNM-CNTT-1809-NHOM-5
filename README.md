@@ -19,7 +19,7 @@
 
 Hệ thống cho phép nhóm phát triển điều khiển bật/tắt tính năng theo thời gian thực mà không cần deploy lại mã nguồn.
 
-1. **Quản lý dự án, thành viên & 2 môi trường**: Hỗ trợ môi trường `testing` (thử nghiệm) và `staging` (vận hành mô phỏng). Phân biệt quyền giữa Admin, Editor và Viewer.
+1. **Quản lý dự án, thành viên & môi trường động**: Môi trường được lưu trong bảng `environments`; Admin có thể tạo, sửa, tạm ngưng, xóa và chuyển đổi nhiều môi trường (ví dụ `testing`, `staging`, `uat`, `production`) trực tiếp trên giao diện. Phân biệt quyền giữa Admin, Editor và Viewer.
 2. **Khai báo tính năng, nhóm người dùng & tỷ lệ rollout**: Hỗ trợ 10 cờ tính năng, phân tập 1.000 khách hàng (`KH1 - KH1000`) vào 3 nhóm (`nhom_noibu`, `nhom_beta`, `nhom_chung`). Thứ tự ưu tiên nghiêm ngặt:
    $$\text{Master Enabled} \longrightarrow \text{User Override} \longrightarrow \text{Target Groups} \longrightarrow \text{Rollout \%} \longrightarrow \text{Fallback (false)}$$
 3. **API PHP & Ứng dụng mô phỏng**: API [api/evaluate.php](api/evaluate.php) trả kết quả JSON thời gian thực. Ứng dụng demo CDS STORE ([demo-app.php](demo-app.php)) có nút mô phỏng lỗi cúp mạng API (`simulate_error`), tự động rơi về giá trị dự phòng an toàn.
@@ -38,7 +38,7 @@ PTPMMNM-CNTT-1809-NHOM-5/
 │   └── toggle.php              # API Bật/Tắt nhanh qua AJAX
 ├── assets/                     # CSS, JS và tài nguyên giao diện
 ├── data/
-│   └── fake-data.php           # Nạp 1.000 khách hàng giả lập và 10 cờ mẫu
+│   └── fake-data.php           # Tương thích include; chỉ nạp dữ liệu từ MySQL
 ├── includes/
 │   ├── db.php                  # Kết nối PDO MariaDB/MySQL
 │   ├── helpers.php             # Các hàm tiện ích, bảo mật CSRF, Session
@@ -55,7 +55,7 @@ PTPMMNM-CNTT-1809-NHOM-5/
 ├── dashboard.php               # Bảng điều khiển tổng quan
 ├── database.sql                # Cấu trúc CSDL 11 bảng và dữ liệu khởi tạo
 ├── demo-app.php                # Ứng dụng Web bán lẻ Apple CDS STORE mô phỏng
-├── environments.php            # Quản lý 2 môi trường (testing, staging)
+├── environments.php            # Quản lý môi trường động từ Database
 ├── flags.php / flag-detail.php # Quản lý và cấu hình chi tiết cờ tính năng
 ├── groups.php                  # Phân tập 3 nhóm khách hàng
 ├── import-export.php           # Nhập và xuất cấu hình JSON (có kiểm tra)
@@ -83,12 +83,31 @@ PTPMMNM-CNTT-1809-NHOM-5/
    http://localhost/PTPMMNM-CNTT-1809-NHOM-5/setup.php
    ```
    *(Nếu dùng cổng tùy chỉnh như 8080: `http://localhost:8080/PTPMMNM-CNTT-1809-NHOM-5/setup.php`)*
-3. Nhấn nút **"Nạp lại CSDL từ database.sql"** để tự động tạo 11 bảng và nạp 1.106 bản ghi dữ liệu mẫu.
-4. Truy cập trang đăng nhập và sử dụng tài khoản mẫu:
+3. Với database mới, dùng **"Nạp CSDL từ database.sql"** để tạo schema và seed ban đầu. Với database đã có bản ghi, thao tác reset bị từ chối để bảo toàn dữ liệu; hãy dùng migration/backup có kiểm soát.
+4. Truy cập trang đăng nhập. Tài khoản seed trong `database.sql` dùng mật khẩu đã băm:
    - **Quản trị viên (Admin)**: `admin` / `admin123` *(Toàn quyền hệ thống)*
    - **Biên tập viên (Editor)**: `editor` / `editor123` *(Quyền tạo và sửa cờ)*
    - **Người xem (Viewer)**: `viewer` / `viewer123` *(Chỉ xem, bị từ chối sửa)*
+
+### Quản lý môi trường động
+
+Vào **Môi trường** để tạo môi trường mới. Khi tạo thành công, hệ thống tự tạo cấu hình bản nháp cho mọi Feature Flag hiện có trong transaction. Khi tạo Feature Flag mới, cấu hình cũng được khởi tạo tự động trên mọi môi trường đang hoạt động. Mỗi môi trường có rollout, nhóm mục tiêu, user override, phiên bản và trạng thái cờ độc lập; website sản phẩm truyền `environment` vào API để nhận đúng cấu hình.
 5. Mở `demo-app.php` để vào CDS Store. Đăng nhập bằng tên đăng nhập và mật khẩu, hoặc chọn liên kết **Chưa có tài khoản? Đăng ký ngay** để tạo tài khoản mua hàng riêng. Tài khoản CDS Store không dùng chung với tài khoản quản trị.
+
+### Cấu hình triển khai
+
+Không dùng thông tin kết nối mặc định trên môi trường triển khai. Sao chép `.env.example` thành cấu hình môi trường của web server và cung cấp `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS` qua biến môi trường (Apache có thể dùng `SetEnv`). Ứng dụng không còn tự tạo hoặc reset database khi kết nối thất bại; hãy chạy migration/seed có kiểm soát bằng `setup.php` trong môi trường quản trị.
+
+Các endpoint chính:
+
+- `POST api/auth.php`: xác thực thành viên và tạo session.
+- `POST api/customer-auth.php`: đăng ký, đăng nhập, đăng xuất và kiểm tra session khách hàng.
+- `GET api/flags.php[?key=...]`: đọc cờ từ database.
+- `POST api/flags.php`, `PATCH api/flags.php?key=...`, `DELETE api/flags.php?key=...`: CRUD cờ, kiểm tra RBAC phía server.
+- `POST api/toggle.php`: cập nhật trạng thái cờ bằng transaction.
+- `GET api/evaluate.php`: đánh giá cờ cho khách hàng; khi không tìm thấy cấu hình trả về fallback `false`.
+
+Mật khẩu thành viên luôn được kiểm tra bằng `password_verify()`. Các bản ghi legacy còn lưu plaintext (nếu database cũ chưa được seed lại) sẽ được nâng cấp sang hash ngay sau lần đăng nhập thành công đầu tiên; không có mật khẩu được trả về API hoặc giao diện.
 
 ---
 

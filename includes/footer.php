@@ -16,8 +16,8 @@ $flash = get_flash();
         <strong>Hệ thống quản lý tính năng</strong> &copy; <?= date('Y') ?> - Quản lý cấu hình bật/tắt tính năng
       </div>
       <div class="footer-links">
-        <span>Bài tập lớn: <strong>Phát triển phần mềm mã nguồn mở</strong></span>
-        <span>Môi trường: <strong style="color: var(--primary);"><?= get_active_env() === 'testing' ? 'Kiểm thử' : 'Vận hành' ?></strong></span>
+        <?php $footerEnv = get_active_env(); ?>
+        <span>Môi trường: <strong style="color: var(--primary);"><?= e($_SESSION['ff_data']['environments'][$footerEnv]['name'] ?? $footerEnv) ?></strong></span>
       </div>
     </footer>
   </div> <!-- Đóng .app-main -->

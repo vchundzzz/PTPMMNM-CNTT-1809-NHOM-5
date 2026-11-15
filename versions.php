@@ -71,7 +71,7 @@ usort($versions, fn($a,$b) => strcmp($b['created_at'],$a['created_at']));
 $versions_pagination = paginate_items($versions, (int)($_GET['page'] ?? 1), 10);
 $page_versions = $versions_pagination['items'];
 
-$env_label      = $current_env === 'testing' ? 'Kiểm thử' : 'Vận hành';
+$env_label      = $_SESSION['ff_data']['environments'][$current_env]['name'] ?? $current_env;
 $can_create_ver = PermissionService::currentUserCan('create_version');
 $can_delete_ver = PermissionService::currentUserCan('delete_version');
 $can_rollback   = PermissionService::currentUserCan('rollback_version');
@@ -84,7 +84,7 @@ $rollback_count = count(array_filter(
 ?>
 
 <style>
-.version-page { color:#1e293b; }
+.version-page { color:#1e293b; font-family:"Segoe UI","Noto Sans",Arial,sans-serif; }
 .version-page-header { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1.25rem; }
 .version-page-title { display:flex; align-items:flex-start; gap:.9rem; }
 .version-title-icon { display:flex; align-items:center; justify-content:center; width:48px; height:48px; flex:none; border-radius:14px; background:#eaf2ff; color:#1677ff; }
@@ -104,24 +104,24 @@ $rollback_count = count(array_filter(
 .version-stat-icon.purple { background:#f3eaff; color:#9333ea; }
 .version-stat-icon.orange { background:#fff1df; color:#f97316; }
 .version-stat-value { color:#1e293b; font-size:1.25rem; font-weight:750; line-height:1.1; }
-.version-stat-label { margin-top:.2rem; color:#334155; font-size:.76rem; font-weight:600; }
-.version-stat-note { margin-top:.15rem; color:#8290a4; font-size:.68rem; }
+.version-stat-label { margin-top:.2rem; color:#334155; font-size:.8rem; font-weight:600; }
+.version-stat-note { margin-top:.15rem; color:#8290a4; font-size:.72rem; }
 .version-list-card { overflow:hidden; border:1px solid #e5eaf1; border-radius:12px; background:#fff; box-shadow:0 3px 12px rgba(30,64,120,.04); }
 .version-list-heading { display:flex; align-items:center; justify-content:space-between; gap:.8rem; padding:.9rem 1.1rem; border-bottom:1px solid #e9edf3; }
-.version-list-heading h2 { margin:0; color:#243247; font-size:.92rem; font-weight:700; }
+.version-list-heading h2 { margin:0; color:#243247; font-size:.98rem; font-weight:700; }
 .version-table-wrap { overflow-x:auto; }
 .version-table { width:100%; min-width:760px; border-collapse:collapse; text-align:left; }
-.version-table th { padding:.75rem .9rem; border-bottom:1px solid #e5eaf1; background:#f8fafc; color:#738197; font-size:.67rem; font-weight:700; letter-spacing:.045em; text-transform:uppercase; white-space:nowrap; }
-.version-table td { padding:.8rem .9rem; border-bottom:1px solid #edf1f5; color:#56657a; font-size:.78rem; vertical-align:middle; }
+.version-table th { padding:.75rem .9rem; border-bottom:1px solid #e5eaf1; background:#f8fafc; color:#738197; font-size:.72rem; font-weight:700; letter-spacing:.02em; text-transform:uppercase; white-space:nowrap; }
+.version-table td { padding:.8rem .9rem; border-bottom:1px solid #edf1f5; color:#56657a; font-size:.82rem; vertical-align:middle; }
 .version-table tbody tr:last-child td { border-bottom:0; }
 .version-table tbody tr:hover { background:#f8fbff; }
 .version-table tbody tr.current { background:#e8f4ff; }
-.version-number { color:#1677ff; font-size:.87rem; font-weight:750; }
-.version-id { display:inline-block; margin-top:.2rem; padding:.08rem .32rem; border:1px solid #dce5ef; border-radius:5px; background:#f8fafc; color:#66758b; font-family:ui-monospace,monospace; font-size:.66rem; }
+.version-number { color:#1677ff; font-size:.92rem; font-weight:750; }
+.version-id { display:inline-block; margin-top:.2rem; padding:.08rem .32rem; border:1px solid #dce5ef; border-radius:5px; background:#f8fafc; color:#66758b; font-family:"Cascadia Mono",Consolas,monospace; font-size:.7rem; }
 .version-reason { max-width:370px; color:#65748a; line-height:1.5; }
-.version-env { display:inline-flex; padding:.2rem .55rem; border:1px solid #bfdbfe; border-radius:999px; background:#eff6ff; color:#2563eb; font-size:.68rem; font-weight:650; white-space:nowrap; }
+.version-env { display:inline-flex; padding:.2rem .55rem; border:1px solid #bfdbfe; border-radius:999px; background:#eff6ff; color:#2563eb; font-size:.72rem; font-weight:650; white-space:nowrap; }
 .version-env.testing { border-color:#fde68a; background:#fffbeb; color:#b45309; }
-.version-user { display:inline-flex; padding:.2rem .55rem; border:1px solid #e2e8f0; border-radius:999px; background:#f8fafc; color:#64748b; font-size:.68rem; }
+.version-user { display:inline-flex; padding:.2rem .55rem; border:1px solid #e2e8f0; border-radius:999px; background:#f8fafc; color:#64748b; font-size:.72rem; }
 .version-actions { display:flex; justify-content:center; gap:.35rem; }
 .version-action { display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border:none; border-radius:8px; background:transparent; color:#1677ff; cursor:pointer; }
 .version-action svg { width:17px; height:17px; }
@@ -233,7 +233,7 @@ $rollback_count = count(array_filter(
             <?php endif; ?>
           </td>
           <td>
-            <span class="version-env <?= $version_env === 'testing' ? 'testing' : '' ?>"><?= e($version_env === 'testing' ? 'Kiểm thử' : 'Vận hành') ?></span>
+            <span class="version-env <?= $version_env === 'testing' ? 'testing' : '' ?>"><?= e($_SESSION['ff_data']['environments'][$version_env]['name'] ?? $version_env) ?></span>
           </td>
           <td><span class="version-user"><?= e($v['created_by'] ?? '—') ?></span></td>
           <td><?= format_date($v['created_at'] ?? '') ?></td>
@@ -265,7 +265,7 @@ $rollback_count = count(array_filter(
                 <input type="hidden" name="action" value="delete_version">
                 <input type="hidden" name="version_tag" value="<?= e($version_tag) ?>">
                 <button type="submit" class="version-action delete" title="Xóa" aria-label="Xóa">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v5M14 11v5"/></svg>
+                  <svg viewBox="64 64 896 896" fill="currentColor"><path d="M864 256H736v-80c0-35.3-28.7-64-64-64H352c-35.3 0-64 28.7-64 64v80H160c-17.7 0-32 14.3-32 32v32c0 4.4 3.6 8 8 8h60.5l49.1 530.6C249.2 884.2 284.9 912 326.6 912h370.8c41.7 0 77.4-27.8 81-73.4L827.5 328H888c4.4 0 8-3.6 8-8v-32c0-17.7-14.3-32-32-32zM360 200h304v56H360v-56zm366.7 632.7c-1.2 15.2-13.1 23.3-26.7 23.3H324c-13.6 0-25.5-8.1-26.7-23.3L249.8 328h524.4l-47.5 504.7zM432 400c17.7 0 32 14.3 32 32v304c0 17.7-14.3 32-32 32s-32-14.3-32-32V432c0-17.7 14.3-32 32-32zm160 0c17.7 0 32 14.3 32 32v304c0 17.7-14.3 32-32 32s-32-14.3-32-32V432c0-17.7 14.3-32 32-32z"/></svg>
                 </button>
               </form>
               <?php endif; ?>

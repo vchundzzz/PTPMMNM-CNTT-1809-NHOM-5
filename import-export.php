@@ -83,7 +83,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['action'] ?? '') ==
             ]);
         }
 
-        foreach (['testing', 'staging'] as $envKey) {
+        foreach (array_keys($_SESSION['ff_data']['environments'] ?? []) as $envKey) {
             if (isset($fData['environments'][$envKey]) && is_array($fData['environments'][$envKey])) {
                 $ec = $fData['environments'][$envKey];
                 $en = !empty($ec['enabled']);

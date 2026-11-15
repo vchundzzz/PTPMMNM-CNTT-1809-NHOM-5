@@ -5,7 +5,21 @@
  */
 declare(strict_types=1);
 
-$flags_count    = count($_SESSION['ff_data']['flags']    ?? []);
+$all_flags      = $_SESSION['ff_data']['flags'] ?? [];
+$selected_project_id = trim((string)($_SESSION['selected_project_id'] ?? ''));
+if ($selected_project_id === '') {
+    foreach ($_SESSION['ff_data']['projects'] ?? [] as $project) {
+        if (($project['status'] ?? '') === 'Active') {
+            $selected_project_id = (string)($project['id'] ?? '');
+            break;
+        }
+    }
+}
+$flags_count = $selected_project_id === ''
+    ? 0
+    : count(array_filter($all_flags, static function (array $flag) use ($selected_project_id): bool {
+        return (string)($flag['project_id'] ?? '') === $selected_project_id;
+    }));
 $versions_count = count($_SESSION['ff_data']['versions'] ?? []);
 $groups_count   = count($_SESSION['ff_data']['groups']   ?? []);
 $cur_page = basename($_SERVER['PHP_SELF'] ?? '');
@@ -112,9 +126,4 @@ $cur_page = basename($_SERVER['PHP_SELF'] ?? '');
       </li>
     </ul>
   </nav>
-
-  <div class="sidebar-footer">
-    <div>PTPMMNM – Nhóm 5 – CNTT K18</div>
-    <div>Phát triển Phần mềm Mã nguồn Mở</div>
-  </div>
 </aside>

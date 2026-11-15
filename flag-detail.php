@@ -15,7 +15,7 @@ init_session_data(true);
 $key        = trim($_GET['key'] ?? '');
 $flags      = $_SESSION['ff_data']['flags'] ?? [];
 $groups_all = $_SESSION['ff_data']['groups'] ?? [];
-$registered_customers = generate_fake_users();
+$registered_customers = load_customers();
 
 // Map tra cứu nhanh khách hàng theo Mã KH hoặc Username
 $customer_by_id = [];
@@ -138,8 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     );
 
     // Đồng bộ chi tiết cờ tính năng vào CSDL MySQL
-    try {
-        DatabaseService::saveFlagDetail(
+    $saved = DatabaseService::saveFlagDetail(
             $key,
             $current_env,
             $name,
@@ -150,7 +149,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $new_ov,
             $user_name
         );
-    } catch (Throwable $e) {}
+    if (!$saved) {
+        init_session_data(true);
+        set_flash('error', 'Không thể lưu cấu hình cờ vào CSDL MySQL.');
+        header('Location: flag-detail.php?key=' . urlencode($key) . '&mode=edit&return_to=' . urlencode($return_to));
+        exit;
+    }
 
     append_audit_log(
         'SỬA_CẤU_HÌNH',

@@ -11,6 +11,52 @@ require_once __DIR__ . '/../includes/db.php';
 class DatabaseService
 {
     private static bool $virtualCleaned = false;
+    private static bool $environmentSchemaChecked = false;
+
+    private static function ensureEnvironmentSchema(PDO $pdo): void
+    {
+        if (self::$environmentSchemaChecked) {
+            return;
+        }
+
+        $columns = [];
+        foreach ($pdo->query("SHOW COLUMNS FROM environments") as $column) {
+            $columns[(string)$column['Field']] = true;
+        }
+
+        if (!isset($columns['sort_order'])) {
+            $pdo->exec("ALTER TABLE environments ADD COLUMN sort_order INT NOT NULL DEFAULT 0 AFTER badge_color");
+        }
+        if (!isset($columns['status'])) {
+            $pdo->exec("ALTER TABLE environments ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'active' AFTER sort_order");
+        }
+        if (!isset($columns['updated_at'])) {
+            $pdo->exec("ALTER TABLE environments ADD COLUMN updated_at DATETIME NULL AFTER created_at");
+        }
+
+        $rows = $pdo->query("SELECT `key` FROM environments WHERE sort_order = 0 ORDER BY created_at ASC, id ASC")->fetchAll(PDO::FETCH_COLUMN);
+        if ($rows) {
+            $update = $pdo->prepare("UPDATE environments SET sort_order = ?, updated_at = COALESCE(updated_at, created_at) WHERE `key` = ?");
+            foreach ($rows as $index => $key) {
+                $update->execute([($index + 1) * 10, $key]);
+            }
+        }
+
+        $pdo->exec("UPDATE environments SET status = 'active' WHERE status IS NULL OR status = ''");
+        self::$environmentSchemaChecked = true;
+    }
+
+    private static function migrateLegacyMemberPasswords(PDO $pdo): void
+    {
+        $rows = $pdo->query('SELECT id, password FROM members')->fetchAll(PDO::FETCH_ASSOC);
+        $update = $pdo->prepare('UPDATE members SET password = ? WHERE id = ?');
+        foreach ($rows as $row) {
+            $password = (string)($row['password'] ?? '');
+            if ($password !== '' && password_get_info($password)['algo'] === 0) {
+                $update->execute([password_hash($password, PASSWORD_DEFAULT), $row['id']]);
+            }
+        }
+    }
 
     /**
      * Xóa toàn bộ mã khách hàng ảo cũ (KH1..KH1000 không có tài khoản thực) và đồng bộ lại số lượng nhóm
@@ -155,7 +201,9 @@ class DatabaseService
         if (!$pdo) return null;
 
         try {
+            self::ensureEnvironmentSchema($pdo);
             self::cleanupVirtualCustomers($pdo);
+            self::migrateLegacyMemberPasswords($pdo);
 
             // 1. Projects
             $projects = [];
@@ -165,7 +213,7 @@ class DatabaseService
 
             // 2. Environments
             $environments = [];
-            foreach ($pdo->query("SELECT * FROM environments") as $row) {
+            foreach ($pdo->query("SELECT * FROM environments ORDER BY sort_order ASC, created_at ASC, id ASC") as $row) {
                 $row['is_production'] = (bool)$row['is_production'];
                 $environments[$row['key']] = $row;
             }
@@ -181,6 +229,7 @@ class DatabaseService
             // 4. Members
             $members = [];
             foreach ($pdo->query("SELECT * FROM members") as $row) {
+                unset($row['password']);
                 $members[$row['username']] = $row;
             }
 
@@ -196,27 +245,19 @@ class DatabaseService
                     'project_id'  => $row['project_id'] ?? 'prj_ecommerce',
                     'created_at'  => $row['created_at'],
                     'updated_at'  => $row['updated_at'],
-                    'environments' => [
-                        'testing' => [
-                            'enabled'            => false,
-                            'rollout_percentage' => 0,
-                            'status'             => 'Bản nháp',
-                            'target_groups'      => [],
-                            'user_overrides'     => [],
-                            'updated_at'         => null,
-                            'updated_by'         => 'system',
-                        ],
-                        'staging' => [
-                            'enabled'            => false,
-                            'rollout_percentage' => 0,
-                            'status'             => 'Bản nháp',
-                            'target_groups'      => [],
-                            'user_overrides'     => [],
-                            'updated_at'         => null,
-                            'updated_by'         => 'system',
-                        ],
-                    ],
+                    'environments' => [],
                 ];
+                foreach ($environments as $environmentKey => $environment) {
+                    $flags[$key]['environments'][$environmentKey] = [
+                            'enabled'            => false,
+                            'rollout_percentage' => 0,
+                            'status'             => 'Bản nháp',
+                            'target_groups'      => [],
+                            'user_overrides'     => [],
+                            'updated_at'         => null,
+                            'updated_by'         => 'system',
+                    ];
+                }
             }
 
             // Gán cấu hình theo môi trường
@@ -282,37 +323,43 @@ class DatabaseService
     /**
      * Bật/tắt cờ trong MySQL
      */
-    public static function toggleFlag(string $key, string $env, ?bool $newState = null, string $user = 'admin'): bool
+    public static function toggleFlag(string $key, string $env, ?bool $newState = null, string $user = 'admin'): array
     {
         $pdo = Database::getConnection();
-        if (!$pdo) return false;
+        if (!$pdo) return ['success' => false, 'status' => 503, 'error' => 'Không thể kết nối cơ sở dữ liệu.'];
+        if ($key === '' || !self::environmentExists($pdo, $env, true)) {
+            return ['success' => false, 'status' => 422, 'error' => 'Cờ hoặc môi trường không hợp lệ.'];
+        }
 
         $now = date('Y-m-d H:i:s');
 
-        // Lấy trạng thái hiện tại nếu không truyền vào newState
-        if ($newState === null) {
-            $stmt = $pdo->prepare("SELECT enabled FROM flag_environments WHERE flag_key = ? AND environment = ?");
+        try {
+            $stmt = $pdo->prepare("SELECT fe.enabled FROM flag_environments fe INNER JOIN flags f ON f.`key` = fe.flag_key WHERE fe.flag_key = ? AND fe.environment = ? FOR UPDATE");
+            $pdo->beginTransaction();
             $stmt->execute([$key, $env]);
-            $cur = (bool)$stmt->fetchColumn();
-            $newState = !$cur;
+            $current = $stmt->fetchColumn();
+            if ($current === false) {
+                $pdo->rollBack();
+                return ['success' => false, 'status' => 404, 'error' => 'Không tìm thấy cờ trong môi trường đã chọn.'];
+            }
+            $oldState = (bool)$current;
+            $newState = $newState ?? !$oldState;
+            $newStatus = $newState ? 'Đã phát hành' : 'Bản nháp';
+            $update = $pdo->prepare("
+                UPDATE flag_environments
+                SET enabled = ?, rollout_percentage = CASE WHEN ? = 1 AND rollout_percentage <= 0 THEN 100 ELSE rollout_percentage END,
+                    status = ?, updated_at = ?, updated_by = ?
+                WHERE flag_key = ? AND environment = ?
+            ");
+            $update->execute([$newState ? 1 : 0, $newState ? 1 : 0, $newStatus, $now, $user, $key, $env]);
+            $pdo->commit();
+            return ['success' => true, 'old_enabled' => $oldState, 'enabled' => $newState];
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            return ['success' => false, 'status' => 500, 'error' => 'Không thể cập nhật trạng thái cờ.'];
         }
-
-        $newStatus = $newState ? 'Đã phát hành' : 'Bản nháp';
-
-        $stmt = $pdo->prepare("
-            INSERT INTO flag_environments (flag_key, environment, enabled, status, updated_at, updated_by)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE
-                enabled = VALUES(enabled),
-                status = VALUES(status),
-                updated_at = VALUES(updated_at),
-                updated_by = VALUES(updated_by)
-        ");
-        $ok = $stmt->execute([$key, $env, $newState ? 1 : 0, $newStatus, $now, $user]);
-        if ($newState) {
-            $pdo->prepare("UPDATE flag_environments SET rollout_percentage = 100 WHERE flag_key = ? AND environment = ? AND rollout_percentage <= 0")->execute([$key, $env]);
-        }
-        return $ok;
     }
 
     /**
@@ -324,8 +371,13 @@ class DatabaseService
         if (!$pdo) return null;
 
         try {
-            $env = $pdo->query("SELECT `key` FROM environments WHERE is_production = 1 LIMIT 1")->fetchColumn();
-            if (is_string($env) && in_array($env, ['testing', 'staging'], true)) {
+            self::ensureEnvironmentSchema($pdo);
+            $env = $pdo->query("SELECT `key` FROM environments WHERE is_production = 1 AND status = 'active' ORDER BY sort_order ASC LIMIT 1")->fetchColumn();
+            if (is_string($env) && $env !== '') {
+                return $env;
+            }
+            $env = $pdo->query("SELECT `key` FROM environments WHERE status = 'active' ORDER BY sort_order ASC, created_at ASC, id ASC LIMIT 1")->fetchColumn();
+            if (is_string($env) && $env !== '') {
                 return $env;
             }
         } catch (Throwable $e) {}
@@ -337,14 +389,139 @@ class DatabaseService
      */
     public static function setActiveEnv(string $env): void
     {
-        if (!in_array($env, ['testing', 'staging'], true)) return;
         $pdo = Database::getConnection();
         if (!$pdo) return;
 
         try {
+            self::ensureEnvironmentSchema($pdo);
+            if (!self::environmentExists($pdo, $env, true)) {
+                return;
+            }
             $stmt = $pdo->prepare("UPDATE environments SET is_production = CASE WHEN `key` = ? THEN 1 ELSE 0 END");
             $stmt->execute([$env]);
         } catch (Throwable $e) {}
+    }
+
+    private static function environmentExists(PDO $pdo, string $key, bool $activeOnly = false): bool
+    {
+        self::ensureEnvironmentSchema($pdo);
+        $sql = "SELECT 1 FROM environments WHERE `key` = ?";
+        if ($activeOnly) {
+            $sql .= " AND status = 'active'";
+        }
+        $stmt = $pdo->prepare($sql . " LIMIT 1");
+        $stmt->execute([$key]);
+        return (bool)$stmt->fetchColumn();
+    }
+
+    public static function createEnvironment(array $data): array
+    {
+        $pdo = Database::getConnection();
+        if (!$pdo) {
+            return ['success' => false, 'error' => 'Không thể kết nối cơ sở dữ liệu.'];
+        }
+
+        self::ensureEnvironmentSchema($pdo);
+        $key = strtolower(trim((string)($data['key'] ?? '')));
+        $name = trim((string)($data['name'] ?? ''));
+        $description = trim((string)($data['description'] ?? ''));
+        $badgeColor = trim((string)($data['badge_color'] ?? 'primary'));
+        $sortOrder = max(0, (int)($data['sort_order'] ?? 0));
+        $user = trim((string)($data['updated_by'] ?? 'admin')) ?: 'admin';
+
+        if (!preg_match('/^[a-z][a-z0-9_-]{1,49}$/', $key) || $name === '') {
+            return ['success' => false, 'error' => 'Mã môi trường hoặc tên môi trường không hợp lệ.'];
+        }
+        if (self::environmentExists($pdo, $key)) {
+            return ['success' => false, 'error' => 'Mã môi trường đã tồn tại.'];
+        }
+
+        try {
+            $pdo->beginTransaction();
+            $id = 'env_' . substr(hash('sha256', $key . microtime(true)), 0, 12);
+            $now = date('Y-m-d H:i:s');
+            $hasEnvironment = (bool)$pdo->query("SELECT 1 FROM environments LIMIT 1")->fetchColumn();
+            $stmt = $pdo->prepare("
+                INSERT INTO environments (id, `key`, name, description, badge_color, is_production, sort_order, status, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)
+            ");
+            $stmt->execute([$id, $key, $name, $description, $badgeColor, $hasEnvironment ? 0 : 1, $sortOrder, $now, $now]);
+
+            $flags = $pdo->query("SELECT `key` FROM flags ORDER BY created_at ASC, id ASC")->fetchAll(PDO::FETCH_COLUMN);
+            $insert = $pdo->prepare("
+                INSERT INTO flag_environments (flag_key, environment, enabled, rollout_percentage, status, updated_at, updated_by)
+                VALUES (?, ?, 0, 0, 'Bản nháp', ?, ?)
+            ");
+            foreach ($flags as $flagKey) {
+                $insert->execute([$flagKey, $key, $now, $user]);
+            }
+            $pdo->commit();
+            return ['success' => true, 'key' => $key];
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            return ['success' => false, 'error' => 'Không thể tạo môi trường trong cơ sở dữ liệu.'];
+        }
+    }
+
+    public static function updateEnvironment(string $key, array $data): bool
+    {
+        $pdo = Database::getConnection();
+        if (!$pdo) return false;
+        self::ensureEnvironmentSchema($pdo);
+        $status = ($data['status'] ?? 'active') === 'active' ? 'active' : 'inactive';
+        $current = $pdo->prepare("SELECT is_production FROM environments WHERE `key` = ?");
+        $current->execute([$key]);
+        if ($status === 'inactive' && (bool)$current->fetchColumn()) {
+            return false;
+        }
+        $stmt = $pdo->prepare("
+            UPDATE environments
+            SET name = ?, description = ?, badge_color = ?, sort_order = ?, status = ?, updated_at = ?
+            WHERE `key` = ?
+        ");
+        return $stmt->execute([
+            trim((string)($data['name'] ?? '')),
+            trim((string)($data['description'] ?? '')),
+            trim((string)($data['badge_color'] ?? 'primary')),
+            max(0, (int)($data['sort_order'] ?? 0)),
+            $status,
+            date('Y-m-d H:i:s'),
+            $key,
+        ]);
+    }
+
+    public static function deleteEnvironment(string $key): array
+    {
+        $pdo = Database::getConnection();
+        if (!$pdo) return ['success' => false, 'error' => 'Không thể kết nối cơ sở dữ liệu.'];
+        self::ensureEnvironmentSchema($pdo);
+
+        $count = (int)$pdo->query("SELECT COUNT(*) FROM environments WHERE status = 'active'")->fetchColumn();
+        $stmt = $pdo->prepare("SELECT is_production FROM environments WHERE `key` = ?");
+        $stmt->execute([$key]);
+        $environment = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$environment) return ['success' => false, 'error' => 'Không tìm thấy môi trường.'];
+        if (!empty($environment['is_production'])) return ['success' => false, 'error' => 'Không thể xóa môi trường đang được kích hoạt.'];
+        if ($count <= 1) return ['success' => false, 'error' => 'Phải giữ lại ít nhất một môi trường đang hoạt động.'];
+
+        try {
+            $pdo->beginTransaction();
+            foreach (['flag_target_groups', 'flag_user_overrides', 'flag_environments'] as $table) {
+                $delete = $pdo->prepare("DELETE FROM {$table} WHERE environment = ?");
+                $delete->execute([$key]);
+            }
+            $delete = $pdo->prepare("DELETE FROM environments WHERE `key` = ?");
+            $delete->execute([$key]);
+            $pdo->commit();
+            return ['success' => true];
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            return ['success' => false, 'error' => 'Không thể xóa môi trường khỏi cơ sở dữ liệu.'];
+        }
     }
 
     /**
@@ -354,6 +531,7 @@ class DatabaseService
     {
         $pdo = Database::getConnection();
         if (!$pdo) return false;
+        if (!self::environmentExists($pdo, $env, true)) return false;
 
         $pct = max(0, min(100, $pct));
         $now = date('Y-m-d H:i:s');
@@ -377,6 +555,7 @@ class DatabaseService
         $key  = $data['key'];
         $name = $data['name'];
         $desc = $data['description'] ?? '';
+        $projectId = trim((string)($data['project_id'] ?? 'prj_ecommerce')) ?: 'prj_ecommerce';
         $id   = $data['id'] ?? ('flg_' . uniqid());
         $now  = date('Y-m-d H:i:s');
 
@@ -390,13 +569,20 @@ class DatabaseService
 
             $stmt = $pdo->prepare("
                 INSERT INTO flags (id, `key`, name, description, project_id, created_at, updated_at)
-                VALUES (?, ?, ?, ?, 'prj_ecommerce', ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE
                     name = VALUES(name),
                     description = VALUES(description),
+                    project_id = VALUES(project_id),
                     updated_at = VALUES(updated_at)
             ");
-            $stmt->execute([$id, $key, $name, $desc, $now, $now]);
+            $projectStmt = $pdo->prepare("SELECT 1 FROM projects WHERE id = ? LIMIT 1");
+            $projectStmt->execute([$projectId]);
+            if (!$projectStmt->fetchColumn()) {
+                $pdo->rollBack();
+                return false;
+            }
+            $stmt->execute([$id, $key, $name, $desc, $projectId, $now, $now]);
 
             $feStmt = $pdo->prepare("
                 INSERT INTO flag_environments (flag_key, environment, enabled, rollout_percentage, status, updated_at, updated_by)
@@ -405,8 +591,10 @@ class DatabaseService
                     updated_at = VALUES(updated_at),
                     updated_by = VALUES(updated_by)
             ");
-            $feStmt->execute([$key, 'testing', 0, 0, 'Bản nháp', $now, $user]);
-            $feStmt->execute([$key, 'staging', 0, 0, 'Bản nháp', $now, $user]);
+            $environmentKeys = $pdo->query("SELECT `key` FROM environments WHERE status = 'active' ORDER BY sort_order ASC, created_at ASC, id ASC")->fetchAll(PDO::FETCH_COLUMN);
+            foreach ($environmentKeys as $environmentKey) {
+                $feStmt->execute([$key, $environmentKey, 0, 0, 'Bản nháp', $now, $user]);
+            }
 
             $pdo->commit();
             return true;
@@ -432,6 +620,7 @@ class DatabaseService
     ): bool {
         $pdo = Database::getConnection();
         if (!$pdo) return false;
+        if (!self::environmentExists($pdo, $env, true)) return false;
 
         $now = date('Y-m-d H:i:s');
         $status = $enabled ? 'Đã phát hành' : 'Bản nháp';
@@ -495,17 +684,44 @@ class DatabaseService
         if (!$pdo) return false;
 
         $now = date('Y-m-d H:i:s');
-        $stmt = $pdo->prepare("
-            INSERT INTO projects (id, `key`, name, description, status, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE
-                `key` = VALUES(`key`),
-                name = VALUES(name),
-                description = VALUES(description),
-                status = VALUES(status),
-                updated_at = VALUES(updated_at)
-        ");
-        return $stmt->execute([$id, $key, $name, $desc, $status, $now, $now]);
+        try {
+            $pdo->beginTransaction();
+
+            if ($status === 'Active') {
+                $pdo->query("SELECT id FROM projects FOR UPDATE")->fetchAll(PDO::FETCH_COLUMN);
+                $deactivateOthers = $pdo->prepare("
+                    UPDATE projects
+                    SET status = 'Archived', updated_at = ?
+                    WHERE id <> ? AND status = 'Active'
+                ");
+                $deactivateOthers->execute([$now, $id]);
+            }
+
+            $stmt = $pdo->prepare("
+                INSERT INTO projects (id, `key`, name, description, status, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE
+                    `key` = VALUES(`key`),
+                    name = VALUES(name),
+                    description = VALUES(description),
+                    status = VALUES(status),
+                    updated_at = VALUES(updated_at)
+            ");
+            $saved = $stmt->execute([$id, $key, $name, $desc, $status, $now, $now]);
+
+            if ($saved) {
+                $pdo->commit();
+                return true;
+            }
+
+            $pdo->rollBack();
+            return false;
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            return false;
+        }
     }
 
     /**
@@ -557,13 +773,21 @@ class DatabaseService
         if (!$pdo) return null;
 
         try {
+            self::migrateLegacyMemberPasswords($pdo);
             $stmt = $pdo->prepare("SELECT * FROM members WHERE username = ? LIMIT 1");
             $stmt->execute([trim($username)]);
             $acc = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!$acc) return null;
 
             $dbPass = (string)($acc['password'] ?? '');
-            $matched = ($dbPass === $password) || (strlen($dbPass) >= 60 && password_verify($password, $dbPass));
+            $matched = password_verify($password, $dbPass);
+            if (!$matched && $dbPass !== '' && hash_equals($dbPass, $password)) {
+                // Upgrade legacy plaintext credentials at the first successful login.
+                $dbPass = password_hash($password, PASSWORD_DEFAULT);
+                $upgrade = $pdo->prepare('UPDATE members SET password = ? WHERE id = ?');
+                $upgrade->execute([$dbPass, $acc['id']]);
+                $matched = true;
+            }
             if (!$matched) return null;
 
             $now = date('Y-m-d H:i:s');
@@ -587,12 +811,14 @@ class DatabaseService
 
         try {
             $now = date('Y-m-d H:i:s');
+            $password = (string)($m['password'] ?? '');
+            $passwordHash = $password !== '' ? password_hash($password, PASSWORD_DEFAULT) : null;
             $stmt = $pdo->prepare("
                 INSERT INTO members (id, username, password, name, email, role, role_title, avatar, created_at, last_login)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE
                     username = VALUES(username),
-                    password = VALUES(password),
+                    password = COALESCE(VALUES(password), password),
                     name = VALUES(name),
                     email = VALUES(email),
                     role = VALUES(role),
@@ -602,7 +828,7 @@ class DatabaseService
             return $stmt->execute([
                 $m['id'],
                 $m['username'],
-                $m['password'],
+                $passwordHash,
                 $m['name'],
                 $m['email'] ?? ($m['username'] . '@featuremanager.local'),
                 $m['role'] ?? 'viewer',
@@ -896,6 +1122,15 @@ class DatabaseService
         }
 
         try {
+            $existing = self::getTableStats();
+            foreach ($existing as $table => $stat) {
+                if ((int)$stat['count'] > 0) {
+                    return [
+                        'success' => false,
+                        'message' => "Từ chối nạp lại vì bảng [$table] đang có dữ liệu. Hãy dùng migration có kiểm soát và backup trước khi thay đổi.",
+                    ];
+                }
+            }
             $sql = file_get_contents($sqlFile);
             $serverPdo->exec($sql);
             return ['success' => true, 'message' => 'Đã nạp toàn bộ cấu trúc và dữ liệu từ database.sql thành công!'];

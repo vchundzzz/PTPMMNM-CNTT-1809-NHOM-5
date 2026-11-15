@@ -6,7 +6,6 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/includes/helpers.php';
-require_once __DIR__ . '/services/CustomerAuthService.php';
 
 $mode = ($_GET['mode'] ?? 'login') === 'register' ? 'register' : 'login';
 $redirect = trim((string)($_GET['redirect'] ?? $_POST['redirect'] ?? 'demo-app.php'));
@@ -21,40 +20,6 @@ if (is_customer_logged_in()) {
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $mode = ($_POST['mode'] ?? 'login') === 'register' ? 'register' : 'login';
-    $old_username = strtolower(trim((string)($_POST['username'] ?? '')));
-    $password = (string)($_POST['password'] ?? '');
-
-    if (!validate_csrf_token((string)($_POST['csrf_token'] ?? ''))) {
-        $errors[] = 'Phiên làm việc hết hạn hoặc mã xác thực CSRF không hợp lệ. Vui lòng thử lại.';
-    } elseif (empty($old_username) || empty($password)) {
-        $errors[] = 'Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.';
-    } elseif ($mode === 'register') {
-        if ($password !== (string)($_POST['password_confirmation'] ?? '')) {
-            $errors[] = 'Mật khẩu xác nhận chưa trùng khớp.';
-        } else {
-            $group_id = trim((string)($_POST['group_id'] ?? 'nhom_chung'));
-            $result = CustomerAuthService::register($old_username, $password, $group_id);
-            if ($result['success']) {
-                set_flash('success', 'Đăng ký thành công. Vui lòng đăng nhập để vào CDS Store.');
-                header('Location: store-auth.php?mode=login&redirect=' . rawurlencode($redirect) . '&username=' . rawurlencode($old_username));
-                exit;
-            }
-            $errors[] = $result['message'];
-        }
-    } else {
-        $customer = CustomerAuthService::authenticate($old_username, $password);
-        if ($customer !== null) {
-            $_SESSION['customer'] = $customer;
-            session_regenerate_id(true);
-            set_flash('success', 'Đăng nhập thành công. Chúc bạn mua sắm vui vẻ!');
-            header('Location: ' . $redirect);
-            exit;
-        }
-        $errors[] = 'Tên đăng nhập hoặc mật khẩu không chính xác.';
-    }
-}
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -120,6 +85,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .login-footer {
       color: #a7a7ad;
     }
+    #authError[hidden] {
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -152,7 +120,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
       <?php endforeach; ?>
 
-      <form method="POST" action="store-auth.php?mode=<?= e($mode) ?>" autocomplete="off">
+      <div id="authError" class="alert alert-danger" hidden></div>
+      <form id="customerAuthForm" method="POST" action="store-auth.php?mode=<?= e($mode) ?>" autocomplete="off">
         <?= csrf_field() ?>
         <input type="hidden" name="mode" value="<?= e($mode) ?>">
         <input type="hidden" name="redirect" value="<?= e($redirect) ?>">
@@ -190,6 +159,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <?php endif; ?>
     </div>
   </div>
+  <script>
+  (() => {
+    const form = document.getElementById('customerAuthForm');
+    const errorBox = document.getElementById('authError');
+    if (!form) return;
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const button = form.querySelector('button[type="submit"]');
+      const data = Object.fromEntries(new FormData(form).entries());
+      data.action = data.mode === 'register' ? 'register' : 'login';
+      errorBox.hidden = true;
+      button.disabled = true;
+      try {
+        const response = await fetch('api/customer-auth.php', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+          body: JSON.stringify(data)
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || result.message || 'Không thể xử lý yêu cầu.');
+        }
+        if (data.action === 'register') {
+          window.location.href = 'store-auth.php?mode=login&redirect=<?= rawurlencode($redirect) ?>&username=' + encodeURIComponent(data.username);
+        } else {
+          window.location.href = <?= json_encode($redirect, JSON_UNESCAPED_SLASHES) ?>;
+        }
+      } catch (error) {
+        errorBox.textContent = error.message || 'Không thể kết nối máy chủ.';
+        errorBox.hidden = false;
+        button.disabled = false;
+      }
+    });
+  })();
+  </script>
 
   <div class="login-footer" style="text-align: center; margin-top: 1.5rem; font-size: .78rem;">
     CDS Store &bull; Cửa hàng Apple chính hãng

@@ -169,10 +169,22 @@ a:hover { color:var(--primary-hover); }
 /* Env Switcher */
 .env-selector-wrapper {
   display:flex; align-items:center;
-  background:var(--border-subtle);
-  border:1px solid var(--border-color);
-  border-radius:var(--radius-full);
-  padding:.2rem; gap:.2rem;
+  background:transparent;
+  border:0;
+  border-radius:0;
+  padding:0; gap:0;
+}
+#activeEnvironment {
+  border:1px solid var(--border-color) !important;
+  box-shadow:none !important;
+  outline:none;
+  background-color:transparent;
+}
+#activeEnvironment:focus,
+#activeEnvironment:focus-visible {
+  border:1px solid var(--border-color) !important;
+  box-shadow:none !important;
+  outline:none;
 }
 .env-tab-btn {
   padding:.2rem .7rem; border-radius:var(--radius-full);

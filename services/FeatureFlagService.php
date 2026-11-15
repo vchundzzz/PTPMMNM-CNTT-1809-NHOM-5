@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../data/fake-data.php';
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/DatabaseService.php';
 
 class FeatureFlagService
 {
@@ -20,10 +21,11 @@ class FeatureFlagService
     public static function evaluate(
         string $flag_key,
         string $user_id,
-        string $env       = 'testing',
+        string $env       = '',
         string $project_id = 'prj_ecommerce'
     ): array {
         init_session_data();
+        $env = $env !== '' ? $env : (DatabaseService::getActiveEnv() ?? '');
         $flags = $_SESSION['ff_data']['flags'] ?? [];
         $groups_map = $_SESSION['ff_data']['groups'] ?? [];
 
@@ -42,6 +44,21 @@ class FeatureFlagService
                 $env,
                 null,
                 'Không tìm thấy cờ tính năng; trả về giá trị mặc định (false)',
+                false,
+                $canonical_id,
+                $username,
+                $ugroup,
+                $ugroup_name
+            );
+        }
+
+        if (($flags[$flag_key]['project_id'] ?? '') !== $project_id) {
+            return self::result(
+                false,
+                $flag_key,
+                $env,
+                $bucket,
+                'Cờ không thuộc dự án được yêu cầu',
                 false,
                 $canonical_id,
                 $username,
@@ -203,7 +220,7 @@ class FeatureFlagService
             }
         } catch (Throwable $e) {}
 
-        foreach (generate_fake_users() as $customer) {
+        foreach (load_customers() as $customer) {
             if (
                 strcasecmp((string)($customer['id'] ?? ''), $user_id) === 0
                 || strcasecmp((string)($customer['username'] ?? ''), $user_id) === 0

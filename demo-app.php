@@ -96,7 +96,7 @@ if (!empty($_GET['ajax_sync_check'])) {
 
 // Shortcut biến trạng thái bật/tắt của từng cờ
 $is_fast_pay    = !empty($eval_results['thanh_toan_nhanh']['data']['enabled']);
-// Keep storefront colors consistent between testing and staging.
+// Keep storefront colors consistent with the active environment configuration.
 $is_dark_mode   = !empty($eval_results['giao_dien_toi']['data']['enabled']);
 $is_reviews     = !empty($eval_results['danh_gia_san_pham']['data']['enabled']);
 $is_wishlist    = !empty($eval_results['danh_sach_yeu_thich']['data']['enabled']);

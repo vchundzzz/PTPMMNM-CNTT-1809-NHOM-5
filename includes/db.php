@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-if (!defined('DB_HOST')) define('DB_HOST', '127.0.0.1');
-if (!defined('DB_PORT')) define('DB_PORT', 3306);
-if (!defined('DB_USER')) define('DB_USER', 'root');
-if (!defined('DB_PASS')) define('DB_PASS', '');
-if (!defined('DB_NAME')) define('DB_NAME', 'feature_flags_db');
+if (!defined('DB_HOST')) define('DB_HOST', getenv('DB_HOST') ?: '127.0.0.1');
+if (!defined('DB_PORT')) define('DB_PORT', (int)(getenv('DB_PORT') ?: 3306));
+if (!defined('DB_USER')) define('DB_USER', getenv('DB_USER') ?: 'root');
+if (!defined('DB_PASS')) define('DB_PASS', getenv('DB_PASS') ?: '');
+if (!defined('DB_NAME')) define('DB_NAME', getenv('DB_NAME') ?: 'feature_flags_db');
 
 class Database
 {
@@ -45,22 +45,6 @@ class Database
             self::$lastError = null;
             return self::$instance;
         } catch (PDOException $e) {
-            // Tự động khởi tạo CSDL từ database.sql khi chạy lần đầu trên thiết bị mới (Unknown database 1049)
-            if ((int)$e->getCode() === 1049 || str_contains($e->getMessage(), 'Unknown database')) {
-                $sqlFile = __DIR__ . '/../database.sql';
-                $serverPdo = self::getServerConnection();
-                if ($serverPdo && file_exists($sqlFile)) {
-                    try {
-                        $serverPdo->exec((string)file_get_contents($sqlFile));
-                        self::$instance = new PDO($dsn, DB_USER, DB_PASS, $options);
-                        self::$lastError = null;
-                        return self::$instance;
-                    } catch (Throwable $initErr) {
-                        self::$lastError = $initErr->getMessage();
-                        return null;
-                    }
-                }
-            }
             self::$lastError = $e->getMessage();
             return null;
         }

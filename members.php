@@ -66,7 +66,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $memberData = [
             'id'         => $id,
             'username'   => $username,
-            'password'   => $password,
+            'password'   => '',
             'name'       => $name,
             'email'      => $email !== '' ? $email : ($username . '@featuremanager.local'),
             'role'       => $role,
@@ -83,7 +83,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $_SESSION['ff_data']['members'][$username] = $memberData;
 
         // Lưu trực tiếp vào bảng members trong CSDL MySQL
-        DatabaseService::saveMember($memberData);
+        if (!DatabaseService::saveMember(array_merge($memberData, ['password' => $password]))) {
+            init_session_data(true);
+            set_flash('error', 'Không thể lưu thành viên vào CSDL MySQL.');
+            header('Location: members.php');
+            exit;
+        }
         init_session_data(true);
 
         append_audit_log(
@@ -113,7 +118,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         if ($del_user !== '' && isset($_SESSION['ff_data']['members'][$del_user])) {
             unset($_SESSION['ff_data']['members'][$del_user]);
         }
-        DatabaseService::deleteMember($del_id !== '' ? $del_id : $del_user);
+        if (!DatabaseService::deleteMember($del_id !== '' ? $del_id : $del_user)) {
+            set_flash('error', 'Không thể xóa thành viên khỏi CSDL MySQL.');
+            header('Location: members.php');
+            exit;
+        }
         init_session_data(true);
 
         append_audit_log(
@@ -179,7 +188,6 @@ $page_members = $members_pagination['items'];
           <th>Thành viên</th>
           <th>Tên đăng nhập</th>
           <th>Mật khẩu</th>
-          <th>Email</th>
           <th>Vai trò</th>
           <th>Lần đăng nhập cuối</th>
           <?php if ($can_manage): ?>
@@ -226,9 +234,6 @@ $page_members = $members_pagination['items'];
               <?php endif; ?>
             </td>
             <td>
-              <span style="color: var(--text-secondary);"><?= e($member['email'] ?? '') ?></span>
-            </td>
-            <td>
               <?= render_role_badge($member['role'] ?? 'viewer') ?>
             </td>
             <td>
@@ -246,7 +251,6 @@ $page_members = $members_pagination['items'];
                         "username" => $member["username"] ?? $username,
                         "password" => $can_view_passwords ? ($member["password"] ?? "") : "",
                         "name" => $member["name"] ?? "",
-                        "email" => $member["email"] ?? "",
                         "role" => $member["role"] ?? "viewer",
                     ], JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?>)'
                   >
@@ -262,10 +266,7 @@ $page_members = $members_pagination['items'];
                       <input type="hidden" name="member_id" value="<?= e($member['id'] ?? '') ?>">
                       <input type="hidden" name="username" value="<?= e((string)($member['username'] ?? $username)) ?>">
                       <button type="submit" class="action-icon-btn action-delete" title="Xóa thành viên">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <polyline points="3 6 5 6 21 6"></polyline>
-                          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-                        </svg>
+                        <svg viewBox="64 64 896 896" fill="currentColor"><path d="M864 256H736v-80c0-35.3-28.7-64-64-64H352c-35.3 0-64 28.7-64 64v80H160c-17.7 0-32 14.3-32 32v32c0 4.4 3.6 8 8 8h60.5l49.1 530.6C249.2 884.2 284.9 912 326.6 912h370.8c41.7 0 77.4-27.8 81-73.4L827.5 328H888c4.4 0 8-3.6 8-8v-32c0-17.7-14.3-32-32-32zM360 200h304v56H360v-56zm366.7 632.7c-1.2 15.2-13.1 23.3-26.7 23.3H324c-13.6 0-25.5-8.1-26.7-23.3L249.8 328h524.4l-47.5 504.7zM432 400c17.7 0 32 14.3 32 32v304c0 17.7-14.3 32-32 32s-32-14.3-32-32V432c0-17.7 14.3-32 32-32zm160 0c17.7 0 32 14.3 32 32v304c0 17.7-14.3 32-32 32s-32-14.3-32-32V432c0-17.7 14.3-32 32-32z"/></svg>
                       </button>
                     </form>
                   <?php endif; ?>
@@ -359,10 +360,6 @@ $page_members = $members_pagination['items'];
           <label class="form-label">Họ và tên hiển thị</label>
           <input type="text" name="name" id="modalName" class="form-control" required placeholder="VD: Quản trị viên">
         </div>
-        <div class="form-group">
-          <label class="form-label">Email</label>
-          <input type="email" name="email" id="modalEmail" class="form-control" placeholder="VD: admin@featuremanager.local">
-        </div>
         <div class="form-group" style="margin-bottom:0;">
           <label class="form-label">Vai trò phân quyền (RBAC)</label>
           <select name="role" id="modalRole" class="form-control">
@@ -407,7 +404,6 @@ function openMemberModal(data) {
     document.getElementById('modalUsername').value = data.username || '';
     document.getElementById('modalPassword').value = data.password || '';
     document.getElementById('modalName').value = data.name || '';
-    document.getElementById('modalEmail').value = data.email || '';
     document.getElementById('modalRole').value = data.role || 'viewer';
   } else {
     title.textContent = 'Thêm thành viên mới';
@@ -416,7 +412,6 @@ function openMemberModal(data) {
     document.getElementById('modalUsername').value = '';
     document.getElementById('modalPassword').value = '';
     document.getElementById('modalName').value = '';
-    document.getElementById('modalEmail').value = '';
     document.getElementById('modalRole').value = 'viewer';
   }
   modal.style.display = 'flex';

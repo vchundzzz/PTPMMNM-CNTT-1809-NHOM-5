@@ -23,6 +23,8 @@ $flags = $data['flags'] ?? [];
 $versions = $data['versions'] ?? [];
 $audit_logs = $data['audit_logs'] ?? [];
 $current_env = get_active_env();
+$environments = $data['environments'] ?? [];
+$current_env_name = $environments[$current_env]['name'] ?? $current_env;
 
 // Tính toán các chỉ số thống kê động theo môi trường hiện tại
 $total_projects = count($projects);
@@ -76,7 +78,7 @@ $paged_flags = $flags_pagination['items'];
     <h1 class="page-title">Bảng điều khiển tổng quan</h1>
     <p class="page-description">
       Theo dõi trạng thái hệ thống, tỷ lệ triển khai cờ tính năng trên môi trường 
-      <strong style="color: var(--primary); text-transform: uppercase;"><?= e($current_env) ?></strong>.
+      <strong style="color: var(--primary);"><?= e($current_env_name) ?></strong>.
     </p>
   </div>
   <div class="page-actions" style="display: flex; gap: 0.5rem; align-items: center;">
@@ -240,7 +242,7 @@ $paged_flags = $flags_pagination['items'];
     </div>
   </div>
 
-  <!-- Card 2: So sánh trạng thái 2 Môi trường (Testing vs Staging) -->
+  <!-- Card 2: So sánh trạng thái các môi trường -->
   <div class="card">
     <div class="card-header">
       <div>
@@ -251,43 +253,36 @@ $paged_flags = $flags_pagination['items'];
           </svg>
           <span>Đối chiếu Môi trường Triển khai</span>
         </h2>
-        <div class="card-subtitle">So sánh nhanh chỉ số giữa Testing và Staging</div>
+        <div class="card-subtitle">So sánh nhanh chỉ số giữa các môi trường đang hoạt động</div>
       </div>
       <a href="environments.php" class="btn btn-ghost btn-sm">Chi tiết &rarr;</a>
     </div>
     <div class="card-body">
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-        <!-- Cột Testing -->
-        <div style="padding: 1rem; border-radius: var(--radius-md); border: 1px solid <?= ($current_env === 'testing') ? 'var(--warning-border)' : 'var(--border-color)' ?>; background: <?= ($current_env === 'testing') ? 'var(--warning-light)' : '#ffffff' ?>;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;">
+        <?php foreach ($environments as $environment_key => $environment):
+          if (($environment['status'] ?? 'active') !== 'active') continue;
+          $environment_enabled = 0;
+          foreach ($flags as $flag) {
+              if (!empty($flag['environments'][$environment_key]['enabled'])) $environment_enabled++;
+          }
+          $environment_total = count($flags);
+          $environment_percent = $environment_total > 0 ? round(($environment_enabled / $environment_total) * 100) : 0;
+        ?>
+        <div style="padding:1rem;border-radius:var(--radius-md);border:1px solid <?= $current_env === $environment_key ? 'var(--primary)' : 'var(--border-color)' ?>;background:<?= $current_env === $environment_key ? 'var(--primary-light)' : '#ffffff' ?>;">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
-            <?= render_env_badge('testing') ?>
-            <?php if ($current_env === 'testing'): ?>
-              <span style="font-size: 0.72rem; font-weight: 700; color: var(--warning-text);">ĐANG XEM</span>
+            <?= render_env_badge($environment_key) ?>
+            <?php if ($current_env === $environment_key): ?>
+              <span style="font-size:.72rem;font-weight:700;color:var(--primary);">ĐANG XEM</span>
             <?php endif; ?>
           </div>
           <div style="font-size: 1.35rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.25rem;">
-            9 / 10 Bật
+            <?= $environment_enabled ?> / <?= $environment_total ?> Bật
           </div>
           <div style="font-size: 0.8rem; color: var(--text-muted);">
-            Thử nghiệm nội bộ (100% rollout các cờ chính)
+            <?= $environment_percent ?>% cờ đang bật
           </div>
         </div>
-
-        <!-- Cột Staging -->
-        <div style="padding: 1rem; border-radius: var(--radius-md); border: 1px solid <?= ($current_env === 'staging') ? 'var(--primary-border)' : 'var(--border-color)' ?>; background: <?= ($current_env === 'staging') ? 'var(--primary-light)' : '#ffffff' ?>;">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
-            <?= render_env_badge('staging') ?>
-            <?php if ($current_env === 'staging'): ?>
-              <span style="font-size: 0.72rem; font-weight: 700; color: var(--primary);">ĐANG XEM</span>
-            <?php endif; ?>
-          </div>
-          <div style="font-size: 1.35rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.25rem;">
-            5 / 10 Bật
-          </div>
-          <div style="font-size: 0.8rem; color: var(--text-muted);">
-            Phiên bản vận hành v1.2.0 (Kiểm thử 50%)
-          </div>
-        </div>
+        <?php endforeach; ?>
       </div>
 
       <div style="margin-top: 1.25rem; font-size: 0.82rem; color: var(--text-muted); line-height: 1.4;">

@@ -14,7 +14,14 @@ $breadcrumbs = [
 ];
 require_once __DIR__ . '/includes/header.php';
 
-$all_logs = array_reverse($_SESSION['ff_data']['audit_logs'] ?? []);
+$all_logs = array_values($_SESSION['ff_data']['audit_logs'] ?? []);
+usort($all_logs, static function (array $left, array $right): int {
+    $left_time = strtotime((string)($left['created_at'] ?? '')) ?: 0;
+    $right_time = strtotime((string)($right['created_at'] ?? '')) ?: 0;
+
+    return ($right_time <=> $left_time)
+        ?: strcmp((string)($right['id'] ?? ''), (string)($left['id'] ?? ''));
+});
 $logs = $all_logs;
 $per_page = 10;
 
@@ -47,6 +54,14 @@ $action_labels = [
     'TẠO_CỜ_MỚI' => 'Tạo cờ mới',
     'XÓA_CỜ' => 'Xóa',
     'XÓA_PHIÊN_BẢN' => 'Xóa phiên bản',
+    'TẠO_NHÓM_MỚI' => 'Tạo nhóm mới',
+    'CẬP_NHẬT_NHÓM' => 'Cập nhật nhóm',
+    'XÓA_NHÓM' => 'Xóa nhóm',
+    'ĐỔI_NHÓM_KHÁCH_HÀNG' => 'Đổi nhóm khách hàng',
+    'THÊM_THÀNH_VIÊN' => 'Thêm thành viên',
+    'CẬP_NHẬT_THÀNH_VIÊN' => 'Cập nhật thành viên',
+    'XÓA_THÀNH_VIÊN' => 'Xóa thành viên',
+    'XÓA_KHÁCH_HÀNG' => 'Xóa khách hàng',
 ];
 
 $action_label = static function (string $action) use ($action_labels): string {
@@ -58,7 +73,7 @@ $action_style = static function (string $action): string {
     if (str_contains($action, 'KHÔI_PHỤC')) return 'restore';
     if (str_contains($action, 'BẬT_TẮT') || str_contains($action, 'BẬT') || str_contains($action, 'TẮT')) return 'toggle';
     if (str_contains($action, 'XÓA')) return 'delete';
-    if (str_contains($action, 'SỬA') || str_contains($action, 'CẬP_NHẬT') || str_contains($action, 'OVERRIDE')) return 'edit';
+    if (str_contains($action, 'SỬA') || str_contains($action, 'CẬP_NHẬT') || str_contains($action, 'OVERRIDE') || str_contains($action, 'ĐỔI_NHÓM')) return 'edit';
     return 'other';
 };
 
@@ -120,7 +135,7 @@ $page_url = static function (int $target_page) use ($query_without_page): string
 ?>
 
 <style>
-.audit-page { color:#1e293b; }
+.audit-page { color:#1e293b; font-family:"Segoe UI","Noto Sans",Arial,sans-serif; }
 .audit-page-header { align-items:center; margin-bottom:1rem; }
 .audit-page-title { display:flex; align-items:flex-start; gap:.85rem; }
 .audit-title-icon { display:flex; align-items:center; justify-content:center; width:48px; height:48px; flex:none; border-radius:14px; background:#e8f1ff; color:#1677ff; }
@@ -143,27 +158,27 @@ $page_url = static function (int $target_page) use ($query_without_page): string
 .audit-stat-label { color:#53657f; font-size:.66rem; }
 .audit-stat-value { margin-top:.08rem; color:#1e3558; font-size:1.1rem; font-weight:750; line-height:1.1; }
 .audit-toolbar { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-bottom:.55rem; padding:.65rem; border:1px solid #e7edf5; border-radius:10px; background:#fff; }
-.audit-control { min-width:115px; height:34px; padding:0 .6rem; border:1px solid #dce5f0; border-radius:7px; background:#fff; color:#42536b; font:inherit; font-size:.68rem; }
+.audit-control { min-width:115px; height:34px; padding:0 .6rem; border:1px solid #dce5f0; border-radius:7px; background:#fff; color:#42536b; font:inherit; font-size:.75rem; }
 .audit-search-wrap { position:relative; flex:1 1 270px; min-width:200px; }
 .audit-search-wrap svg { position:absolute; top:50%; left:.65rem; width:14px; height:14px; color:#8392a8; transform:translateY(-50%); pointer-events:none; }
 .audit-search { width:100%; padding-left:1.9rem; }
 .audit-date { flex:0 1 150px; }
-.audit-filter-submit { height:34px; padding:.35rem .7rem; font-size:.68rem; }
-.audit-clear { display:inline-flex; align-items:center; gap:.3rem; padding:.35rem .55rem; color:#66768c; font-size:.68rem; white-space:nowrap; }
+.audit-filter-submit { height:34px; padding:.35rem .7rem; font-size:.75rem; }
+.audit-clear { display:inline-flex; align-items:center; gap:.3rem; padding:.35rem .55rem; color:#66768c; font-size:.75rem; white-space:nowrap; }
 .audit-list { overflow:hidden; border:1px solid #e5eaf1; border-radius:10px; background:#fff; box-shadow:0 3px 12px rgba(30,64,120,.035); }
 .audit-table-wrap { overflow-x:auto; }
 .audit-table { width:100%; min-width:900px; border-collapse:collapse; text-align:left; }
-.audit-table th { padding:.66rem .65rem; border-bottom:1px solid #e5eaf1; background:#f6f9fd; color:#71819a; font-size:.61rem; font-weight:750; letter-spacing:.035em; text-transform:uppercase; white-space:nowrap; }
-.audit-table td { padding:.48rem .65rem; border-bottom:1px solid #edf1f6; color:#40526d; font-size:.67rem; vertical-align:middle; }
+.audit-table th { padding:.66rem .65rem; border-bottom:1px solid #e5eaf1; background:#f6f9fd; color:#71819a; font-size:.68rem; font-weight:750; letter-spacing:.02em; text-transform:uppercase; white-space:nowrap; }
+.audit-table td { padding:.55rem .65rem; border-bottom:1px solid #edf1f6; color:#40526d; font-size:.75rem; vertical-align:middle; }
 .audit-table tbody tr:nth-child(even) { background:#fbfcfe; }
 .audit-table tbody tr:hover { background:#f8fbff; }
 .audit-table tbody tr:last-child td { border-bottom:0; }
-.audit-action { display:inline-flex; align-items:center; gap:.33rem; padding:.23rem .48rem; border:1px solid #bfdbfe; border-radius:999px; background:#eff6ff; color:#2563eb; font-size:.63rem; font-weight:650; white-space:nowrap; }
+.audit-action { display:inline-flex; align-items:center; gap:.33rem; padding:.23rem .48rem; border:1px solid #bfdbfe; border-radius:999px; background:#eff6ff; color:#2563eb; font-size:.7rem; font-weight:650; white-space:nowrap; }
 .audit-action svg { width:12px; height:12px; }
 .audit-action.edit { border-color:#fed7aa; background:#fff7ed; color:#c2410c; }
 .audit-action.restore { border-color:#ddd6fe; background:#f5f3ff; color:#6d28d9; }
 .audit-action.delete { border-color:#fecaca; background:#fff1f2; color:#dc2626; }
-.audit-target { display:inline-block; padding:.14rem .3rem; border:1px solid #dfe7f1; border-radius:4px; background:#f8fafc; color:#42536b; font-family:ui-monospace,monospace; font-size:.62rem; white-space:nowrap; }
+.audit-target { display:inline-block; padding:.14rem .3rem; border:1px solid #dfe7f1; border-radius:4px; background:#f8fafc; color:#42536b; font-family:"Cascadia Mono",Consolas,monospace; font-size:.68rem; white-space:nowrap; }
 .audit-value-old { color:#dc2626; }
 .audit-value-new { color:#15803d; }
 .audit-value-pill { display:inline-block; max-width:180px; overflow:hidden; padding:.2rem .42rem; border:1px solid #e7edf3; border-radius:6px; background:#f8fafc; text-overflow:ellipsis; vertical-align:middle; white-space:nowrap; }
@@ -171,10 +186,10 @@ $page_url = static function (int $target_page) use ($query_without_page): string
 .audit-value-pill.new { border-color:#dcfce7; background:#f4fcf6; color:#15803d; }
 .audit-note { max-width:185px; color:#708099; line-height:1.4; }
 .audit-user { display:flex; align-items:center; gap:.35rem; white-space:nowrap; }
-.audit-avatar { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%; background:linear-gradient(135deg,#60a5fa,#8b5cf6); color:#fff; font-size:.56rem; font-weight:700; }
-.audit-version { display:inline-flex; padding:.16rem .4rem; border:1px solid #cfe2ff; border-radius:999px; background:#eff6ff; color:#2563eb; font-size:.61rem; font-weight:650; }
-.audit-time { white-space:nowrap; color:#71819a; font-size:.63rem; }
-.audit-footer { display:flex; align-items:center; justify-content:space-between; gap:.8rem; padding:.55rem .7rem; border-top:1px solid #edf1f6; color:#71819a; font-size:.65rem; }
+.audit-avatar { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:50%; background:linear-gradient(135deg,#60a5fa,#8b5cf6); color:#fff; font-size:.62rem; font-weight:700; }
+.audit-version { display:inline-flex; padding:.16rem .4rem; border:1px solid #cfe2ff; border-radius:999px; background:#eff6ff; color:#2563eb; font-size:.68rem; font-weight:650; }
+.audit-time { white-space:nowrap; color:#71819a; font-size:.7rem; }
+.audit-footer { display:flex; align-items:center; justify-content:space-between; gap:.8rem; padding:.55rem .7rem; border-top:1px solid #edf1f6; color:#71819a; font-size:.7rem; }
 .audit-pagination { display:flex; align-items:center; gap:.25rem; }
 .audit-page-link { display:inline-flex; align-items:center; justify-content:center; min-width:25px; height:25px; padding:0 .35rem; border:1px solid #e1e8f1; border-radius:6px; background:#fff; color:#64748b; font-size:.65rem; text-decoration:none; }
 .audit-page-link:hover { border-color:#93c5fd; color:#1677ff; }

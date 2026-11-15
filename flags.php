@@ -8,6 +8,11 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/helpers.php';
 require_once __DIR__ . '/services/PermissionService.php';
 
+$selected_project_id = trim((string)($_POST['project_id'] ?? $_GET['project_id'] ?? $_SESSION['selected_project_id'] ?? ''));
+if ($selected_project_id !== '') {
+    $_SESSION['selected_project_id'] = $selected_project_id;
+}
+
 /* ============================================================
    XỬ LÝ POST: bật/tắt, thêm mới, cập nhật rollout, xóa
    ============================================================ */
@@ -29,6 +34,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $cur = !empty($_SESSION['ff_data']['flags'][$key]['environments'][$env]['enabled']);
             $new = !$cur;
             $user = get_authenticated_user()['username'] ?? 'admin';
+            require_once __DIR__ . '/services/DatabaseService.php';
+            $dbResult = DatabaseService::toggleFlag($key, $env, $new, $user);
+            if (!$dbResult['success']) {
+                set_flash('error', $dbResult['error'] ?? 'Không thể cập nhật cơ sở dữ liệu.');
+                header('Location: flags.php'); exit;
+            }
             $_SESSION['ff_data']['flags'][$key]['environments'][$env]['enabled']    = $new;
             $_SESSION['ff_data']['flags'][$key]['environments'][$env]['updated_at'] = date('Y-m-d H:i:s');
             $_SESSION['ff_data']['flags'][$key]['environments'][$env]['updated_by'] = $user;
@@ -39,13 +50,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             // Đồng bộ trực tiếp vào CSDL MySQL
-            try {
-                require_once __DIR__ . '/services/DatabaseService.php';
-                DatabaseService::toggleFlag($key, $env, $new, $user);
-            } catch (Throwable $e) {}
-
             append_audit_log('BẬT_TẮT_CỜ', $key, $cur?'Bật':'Tắt', $new?'Bật':'Tắt', 'Thay đổi trực tiếp từ danh sách');
-            set_flash('success', ($new ? 'Đã BẬT' : 'Đã TẮT') . " cờ [$key] trên môi trường " . ($env==='testing'?'Kiểm thử':'Vận hành') . '.');
+            $environmentName = $_SESSION['ff_data']['environments'][$env]['name'] ?? $env;
+            set_flash('success', ($new ? 'Đã BẬT' : 'Đã TẮT') . " cờ [$key] trên môi trường " . $environmentName . '.');
         }
         header('Location: flags.php'); exit;
     }
@@ -56,47 +63,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $key  = preg_replace('/[^a-z0-9_]/', '', strtolower(trim($_POST['flag_key'] ?? '')));
         $name = trim($_POST['name'] ?? '');
         $desc = trim($_POST['description'] ?? '');
+        $projectId = trim((string)($_POST['project_id'] ?? $selected_project_id));
 
-        if (empty($key) || empty($name)) {
+        if (empty($key) || empty($name) || !isset($_SESSION['ff_data']['projects'][$projectId])) {
             set_flash('error', 'Tên và mã cờ không được để trống.'); header('Location: flags.php'); exit;
         }
         if (isset($_SESSION['ff_data']['flags'][$key])) {
             set_flash('error', "Mã cờ [$key] đã tồn tại trong hệ thống."); header('Location: flags.php'); exit;
         }
         $num = count($_SESSION['ff_data']['flags']) + 1;
-        $_SESSION['ff_data']['flags'][$key] = [
+        $newFlag = [
             'id'          => sprintf('flg_%03d', $num),
             'key'         => $key,
             'name'        => $name,
             'description' => $desc,
-            'project_id'  => 'prj_ecommerce',
-            'environments' => [
-                'testing' => [
-                    'enabled' => false, 'rollout_percentage' => 0,
-                    'status'  => 'Bản nháp', 'target_groups' => [],
-                    'user_overrides' => [],
-                    'updated_at' => date('Y-m-d H:i:s'),
-                    'updated_by' => get_authenticated_user()['username'] ?? 'admin',
-                ],
-                'staging' => [
-                    'enabled' => false, 'rollout_percentage' => 0,
-                    'status'  => 'Bản nháp', 'target_groups' => [],
-                    'user_overrides' => [],
-                    'updated_at' => date('Y-m-d H:i:s'),
-                    'updated_by' => get_authenticated_user()['username'] ?? 'admin',
-                ],
-            ],
+            'project_id'  => $projectId,
+            'environments' => [],
         ];
-        try {
-            require_once __DIR__ . '/services/DatabaseService.php';
-            DatabaseService::createFlag([
+        foreach ($_SESSION['ff_data']['environments'] ?? [] as $environmentKey => $environment) {
+            $newFlag['environments'][$environmentKey] = [
+                    'enabled' => false, 'rollout_percentage' => 0,
+                    'status'  => 'Bản nháp', 'target_groups' => [],
+                    'user_overrides' => [],
+                    'updated_at' => date('Y-m-d H:i:s'),
+                    'updated_by' => get_authenticated_user()['username'] ?? 'admin',
+            ];
+        }
+        $_SESSION['ff_data']['flags'][$key] = $newFlag;
+        require_once __DIR__ . '/services/DatabaseService.php';
+        if (!DatabaseService::createFlag([
                 'id'          => sprintf('flg_%03d', $num),
                 'key'         => $key,
                 'name'        => $name,
                 'description' => $desc,
+                'project_id'  => $projectId,
                 'updated_by'  => get_authenticated_user()['username'] ?? 'admin',
-            ]);
-        } catch (Throwable $e) {}
+            ])) {
+            set_flash('error', 'Không thể lưu cờ vào CSDL MySQL.');
+            header('Location: flags.php'); exit;
+        }
 
         append_audit_log('TẠO_CỜ_MỚI', $key, '-', "[$key] – Bản nháp", 'Tạo mới từ giao diện danh sách');
         set_flash('success', "Đã tạo cờ tính năng [$key] và lưu vào CSDL MySQL thành công.");
@@ -111,14 +116,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (isset($_SESSION['ff_data']['flags'][$key])) {
             $user = get_authenticated_user()['username'] ?? 'admin';
             $old = $_SESSION['ff_data']['flags'][$key]['environments'][$env]['rollout_percentage'] ?? 0;
+            require_once __DIR__ . '/services/DatabaseService.php';
+            if (!DatabaseService::updateRollout($key, $env, $pct, $user)) {
+                set_flash('error', 'Không thể cập nhật tỷ lệ trong CSDL MySQL.');
+                header('Location: flags.php'); exit;
+            }
             $_SESSION['ff_data']['flags'][$key]['environments'][$env]['rollout_percentage'] = $pct;
             $_SESSION['ff_data']['flags'][$key]['environments'][$env]['updated_at'] = date('Y-m-d H:i:s');
             $_SESSION['ff_data']['flags'][$key]['environments'][$env]['updated_by'] = $user;
-
-            try {
-                require_once __DIR__ . '/services/DatabaseService.php';
-                DatabaseService::updateRollout($key, $env, $pct, $user);
-            } catch (Throwable $e) {}
 
             append_audit_log('CẬP_NHẬT_TỶ_LỆ', $key, "Tỷ lệ: $old%", "Tỷ lệ: $pct%", 'Điều chỉnh trực tiếp từ danh sách');
             set_flash('success', "Đã cập nhật tỷ lệ triển khai cờ [$key] → $pct% và lưu vào CSDL MySQL.");
@@ -131,13 +136,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         PermissionService::enforce('delete_flag');
         $key = trim($_POST['flag_key'] ?? '');
         if (isset($_SESSION['ff_data']['flags'][$key])) {
+            require_once __DIR__ . '/services/DatabaseService.php';
+            if (!DatabaseService::deleteFlag($key)) {
+                set_flash('error', 'Không thể xóa cờ khỏi CSDL MySQL.');
+                header('Location: flags.php'); exit;
+            }
             unset($_SESSION['ff_data']['flags'][$key]);
-
-            // Đồng bộ xóa trong CSDL MySQL
-            try {
-                require_once __DIR__ . '/services/DatabaseService.php';
-                DatabaseService::deleteFlag($key);
-            } catch (Throwable $e) {}
 
             append_audit_log('XÓA_CỜ', $key, 'Tồn tại', 'Đã xóa', 'Xóa từ giao diện danh sách');
             set_flash('success', "Đã xóa cờ tính năng [$key].");
@@ -160,11 +164,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 continue;
             }
 
+            require_once __DIR__ . '/services/DatabaseService.php';
+            if (!DatabaseService::deleteFlag($key)) {
+                continue;
+            }
             unset($_SESSION['ff_data']['flags'][$key]);
-            try {
-                require_once __DIR__ . '/services/DatabaseService.php';
-                DatabaseService::deleteFlag($key);
-            } catch (Throwable $e) {}
             append_audit_log('XÓA_CỜ', $key, 'Tồn tại', 'Đã xóa', 'Xóa hàng loạt từ giao diện danh sách');
             $deleted++;
         }
@@ -188,9 +192,20 @@ $breadcrumbs = [
 ];
 require_once __DIR__ . '/includes/header.php';
 
-$flags       = $_SESSION['ff_data']['flags'] ?? [];
+$projects    = $_SESSION['ff_data']['projects'] ?? [];
+$selected_project_id = trim((string)($_GET['project_id'] ?? $_SESSION['selected_project_id'] ?? ''));
+if (!isset($projects[$selected_project_id])) {
+    $selected_project_id = (string)(array_key_first($projects) ?? '');
+}
+if ($selected_project_id !== '') {
+    $_SESSION['selected_project_id'] = $selected_project_id;
+}
+$all_flags   = $_SESSION['ff_data']['flags'] ?? [];
+$flags       = array_filter($all_flags, static function (array $flag) use ($selected_project_id): bool {
+    return ($flag['project_id'] ?? '') === $selected_project_id;
+});
 $current_env = get_active_env();
-$env_label   = $current_env === 'testing' ? 'Kiểm thử' : 'Vận hành';
+$env_label   = $_SESSION['ff_data']['environments'][$current_env]['name'] ?? $current_env;
 
 $can_create = PermissionService::currentUserCan('create_flag');
 $can_toggle = PermissionService::currentUserCan('toggle_flag');
@@ -296,6 +311,7 @@ $page_flags = $flags_pagination['items'];
 <form method="POST" action="flags.php" id="bulkDeleteForm" hidden>
   <?= csrf_field() ?>
   <input type="hidden" name="action" value="bulk_delete">
+  <input type="hidden" name="project_id" value="<?= e($selected_project_id) ?>">
   <div id="bulkDeleteKeys"></div>
 </form>
 <?php endif; ?>
@@ -306,9 +322,16 @@ $page_flags = $flags_pagination['items'];
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input type="text" id="flagSearch" class="form-control" placeholder="Nhập tên hoặc mã cờ cần tìm">
     </div>
-    <select class="form-select" style="width:auto" onchange="location.href='?switch_env='+this.value">
-      <option value="testing" <?= $current_env==='testing'?'selected':'' ?>>Môi trường: Kiểm thử</option>
-      <option value="staging" <?= $current_env==='staging'?'selected':'' ?>>Môi trường: Vận hành</option>
+    <select class="form-select" style="width:auto;min-width:220px" onchange="location.href='?project_id='+encodeURIComponent(this.value)">
+      <?php foreach ($projects as $project): ?>
+        <option value="<?= e($project['id']) ?>" <?= $selected_project_id === $project['id'] ? 'selected' : '' ?>>Dự án: <?= e($project['name']) ?></option>
+      <?php endforeach; ?>
+    </select>
+    <select class="form-select" style="width:auto" onchange="location.href='?switch_env='+encodeURIComponent(this.value)">
+      <?php foreach ($_SESSION['ff_data']['environments'] ?? [] as $environment_key => $environment): ?>
+        <?php if (($environment['status'] ?? 'active') !== 'active') continue; ?>
+        <option value="<?= e($environment_key) ?>" <?= $current_env === $environment_key ? 'selected' : '' ?>>Môi trường: <?= e($environment['name'] ?? $environment_key) ?></option>
+      <?php endforeach; ?>
     </select>
     <select class="form-select" style="width:auto" id="statusFilter">
       <option value="">Tất cả trạng thái</option>
@@ -369,6 +392,7 @@ $page_flags = $flags_pagination['items'];
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="toggle">
                 <input type="hidden" name="flag_key" value="<?= e($flag['key']) ?>">
+                <input type="hidden" name="project_id" value="<?= e($selected_project_id) ?>">
                 <label class="switch" title="<?= $on?'Nhấn để TẮT':'Nhấn để BẬT' ?>">
                   <input type="checkbox" <?= $on?'checked':'' ?> onchange="this.form.submit()">
                   <span class="slider"></span>
@@ -424,6 +448,7 @@ $page_flags = $flags_pagination['items'];
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="delete">
                 <input type="hidden" name="flag_key" value="<?= e($flag['key']) ?>">
+                <input type="hidden" name="project_id" value="<?= e($selected_project_id) ?>">
                 <button type="submit" class="action-icon-btn danger action-delete" title="Xóa">
                   <svg viewBox="64 64 896 896" fill="currentColor"><path d="M864 256H736v-80c0-35.3-28.7-64-64-64H352c-35.3 0-64 28.7-64 64v80H160c-17.7 0-32 14.3-32 32v32c0 4.4 3.6 8 8 8h60.5l49.1 530.6C249.2 884.2 284.9 912 326.6 912h370.8c41.7 0 77.4-27.8 81-73.4L827.5 328H888c4.4 0 8-3.6 8-8v-32c0-17.7-14.3-32-32-32zM360 200h304v56H360v-56zm366.7 632.7c-1.2 15.2-13.1 23.3-26.7 23.3H324c-13.6 0-25.5-8.1-26.7-23.3L249.8 328h524.4l-47.5 504.7zM432 400c17.7 0 32 14.3 32 32v304c0 17.7-14.3 32-32 32s-32-14.3-32-32V432c0-17.7 14.3-32 32-32zm160 0c17.7 0 32 14.3 32 32v304c0 17.7-14.3 32-32 32s-32-14.3-32-32V432c0-17.7 14.3-32 32-32z"/></svg>
                 </button>
@@ -445,6 +470,7 @@ $page_flags = $flags_pagination['items'];
     <form method="POST" action="flags.php">
       <?= csrf_field() ?>
       <input type="hidden" name="action" value="create">
+      <input type="hidden" name="project_id" value="<?= e($selected_project_id) ?>">
       <div class="modal-header">
         <h3 class="modal-title">Tạo cờ tính năng mới</h3>
         <button type="button" class="modal-close-btn" data-modal-close>&times;</button>
@@ -465,7 +491,7 @@ $page_flags = $flags_pagination['items'];
         </div>
         <div class="alert alert-info" style="margin-top:.5rem">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-          Cờ mới sẽ ở trạng thái <strong>Bản nháp – Tắt (0%)</strong> trên cả 2 môi trường. Kích hoạt sau khi kiểm tra xong.
+          Cờ mới sẽ ở trạng thái <strong>Bản nháp – Tắt (0%)</strong> trên mọi môi trường. Kích hoạt sau khi kiểm tra xong.
         </div>
       </div>
       <div class="modal-footer">
@@ -483,6 +509,7 @@ $page_flags = $flags_pagination['items'];
       <?= csrf_field() ?>
       <input type="hidden" name="action" value="update_rollout">
       <input type="hidden" name="flag_key" id="rolloutFlagKey">
+      <input type="hidden" name="project_id" value="<?= e($selected_project_id) ?>">
       <div class="modal-header">
         <h3 class="modal-title">Điều chỉnh tỷ lệ triển khai</h3>
         <button type="button" class="modal-close-btn" data-modal-close>&times;</button>

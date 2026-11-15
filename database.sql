@@ -33,7 +33,10 @@ CREATE TABLE `environments` (
     `description` TEXT NULL,
     `badge_color` VARCHAR(50) DEFAULT 'primary',
     `is_production` TINYINT(1) DEFAULT 0,
-    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP
+    `sort_order` INT NOT NULL DEFAULT 0,
+    `status` VARCHAR(20) NOT NULL DEFAULT 'active',
+    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 3. Target Groups
@@ -103,7 +106,8 @@ CREATE TABLE `flag_environments` (
     `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     `updated_by` VARCHAR(50) DEFAULT 'admin',
     UNIQUE KEY `uk_flag_env` (`flag_key`, `environment`),
-    CONSTRAINT `fk_fe_flag` FOREIGN KEY (`flag_key`) REFERENCES `flags`(`key`) ON DELETE CASCADE
+    CONSTRAINT `fk_fe_flag` FOREIGN KEY (`flag_key`) REFERENCES `flags`(`key`) ON DELETE CASCADE,
+    CONSTRAINT `fk_fe_environment` FOREIGN KEY (`environment`) REFERENCES `environments`(`key`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 8. Flag Target Groups
@@ -115,7 +119,8 @@ CREATE TABLE `flag_target_groups` (
     `group_id` VARCHAR(50) NOT NULL,
     UNIQUE KEY `uk_flag_env_group` (`flag_key`, `environment`, `group_id`),
     CONSTRAINT `fk_ftg_flag` FOREIGN KEY (`flag_key`) REFERENCES `flags`(`key`) ON DELETE CASCADE,
-    CONSTRAINT `fk_ftg_group` FOREIGN KEY (`group_id`) REFERENCES `target_groups`(`id`) ON DELETE CASCADE
+    CONSTRAINT `fk_ftg_group` FOREIGN KEY (`group_id`) REFERENCES `target_groups`(`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_ftg_environment` FOREIGN KEY (`environment`) REFERENCES `environments`(`key`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 9. Flag User Overrides
@@ -128,7 +133,8 @@ CREATE TABLE `flag_user_overrides` (
     `state` TINYINT(1) NOT NULL,
     `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY `uk_flag_env_user` (`flag_key`, `environment`, `user_id`),
-    CONSTRAINT `fk_fuo_flag` FOREIGN KEY (`flag_key`) REFERENCES `flags`(`key`) ON DELETE CASCADE
+    CONSTRAINT `fk_fuo_flag` FOREIGN KEY (`flag_key`) REFERENCES `flags`(`key`) ON DELETE CASCADE,
+    CONSTRAINT `fk_fuo_environment` FOREIGN KEY (`environment`) REFERENCES `environments`(`key`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 10. Audit Logs
@@ -166,8 +172,9 @@ CREATE TABLE `versions` (
 INSERT INTO `projects` VALUES ('prj_ecommerce', 'ecommerce_web', 'Cửa hàng Thương mại Điện tử', 'Hệ thống bán lẻ công nghệ Apple phục vụ hàng triệu khách hàng trực tuyến.', 'Hoạt động', '2026-01-10 08:30:00', '2026-10-20 14:15:00');
 
 -- Dữ liệu: environments
-INSERT INTO `environments` VALUES ('env_testing', 'testing', 'Kiểm thử (Testing)', 'Môi trường kiểm thử nội bộ dành cho đội QA và lập trình viên.', 'warning', 0, '2026-01-10 09:00:00');
-INSERT INTO `environments` VALUES ('env_staging', 'staging', 'Vận hành (Staging)', 'Môi trường vận hành dùng để kiểm tra cấu hình trước khi áp dụng thực tế.', 'primary', 0, '2026-01-10 09:00:00');
+INSERT INTO `environments` (`id`, `key`, `name`, `description`, `badge_color`, `is_production`, `sort_order`, `status`, `created_at`, `updated_at`) VALUES
+('env_testing', 'testing', 'Kiểm thử (Testing)', 'Môi trường kiểm thử nội bộ dành cho đội QA và lập trình viên.', 'warning', 0, 10, 'active', '2026-01-10 09:00:00', '2026-01-10 09:00:00'),
+('env_staging', 'staging', 'Vận hành (Staging)', 'Môi trường vận hành dùng để kiểm tra cấu hình trước khi áp dụng thực tế.', 'primary', 0, 20, 'active', '2026-01-10 09:00:00', '2026-01-10 09:00:00');
 
 -- Dữ liệu: target_groups
 INSERT INTO `target_groups` VALUES ('nhom_noibu', 'noi_bo', 'Nội bộ', 'Đội ngũ lập trình viên, QA và kiểm thử viên nội bộ công ty.', 0, 'Chưa có khách hàng', '2026-01-12 10:00:00');
@@ -175,9 +182,9 @@ INSERT INTO `target_groups` VALUES ('nhom_beta', 'beta', 'Khách Beta', 'Khách 
 INSERT INTO `target_groups` VALUES ('nhom_chung', 'chung', 'Khách Thường', 'Toàn bộ khách hàng phổ thông mua sắm trên nền tảng.', 0, 'Chưa có khách hàng', '2026-01-12 10:00:00');
 
 -- Dữ liệu: members (Tài khoản quản trị)
-INSERT INTO `members` VALUES ('usr_admin', 'admin', 'admin123', 'Admin', 'admin@featuremanager.local', 'admin', 'Admin', 'A', '2026-01-01 00:00:00', '2026-10-27 15:00:00');
-INSERT INTO `members` VALUES ('usr_editor', 'editor', 'editor123', 'Biên tập', 'editor@featuremanager.local', 'editor', 'Biên tập', 'BT', '2026-01-05 08:30:00', '2026-10-26 11:20:00');
-INSERT INTO `members` VALUES ('usr_viewer', 'viewer', 'viewer123', 'Viewer', 'viewer@featuremanager.local', 'viewer', 'Viewer', 'V', '2026-01-10 14:00:00', '2026-10-25 09:45:00');
+INSERT INTO `members` VALUES ('usr_admin', 'admin', '$2y$10$/HQDwLCbLgJQd3UfvU7WVeUOVktWpEtZHnWctSUAHGQwXEaYzqDpO', 'Admin', 'admin@featuremanager.local', 'admin', 'Admin', 'A', '2026-01-01 00:00:00', '2026-10-27 15:00:00');
+INSERT INTO `members` VALUES ('usr_editor', 'editor', '$2y$10$DikOoVlFxaMukVToiXfrJe/s26cgGfizThbIhqCoUTXyeD81RZqAy', 'Biên tập', 'editor@featuremanager.local', 'editor', 'Biên tập', 'BT', '2026-01-05 08:30:00', '2026-10-26 11:20:00');
+INSERT INTO `members` VALUES ('usr_viewer', 'viewer', '$2y$10$OoC/3IB6GWIRCeqCLPL6LedWYHfAlRtYG.vtdzLODD65eY.stq0kq', 'Viewer', 'viewer@featuremanager.local', 'viewer', 'Viewer', 'V', '2026-01-10 14:00:00', '2026-10-25 09:45:00');
 
 -- Dữ liệu: flags & flag_environments & target_groups
 INSERT INTO `flags` (`id`, `key`, `name`, `description`, `project_id`, `created_at`, `updated_at`) VALUES ('flg_001', 'thanh_toan_nhanh', 'Thanh toán một bước', 'Rút gọn quy trình thanh toán còn 1 trang, tăng 25% tỷ lệ chuyển đổi đơn hàng.', 'prj_ecommerce', NOW(), NOW());
@@ -255,13 +262,6 @@ INSERT INTO `flag_target_groups` (`flag_key`, `environment`, `group_id`) VALUES 
 INSERT INTO `flag_target_groups` (`flag_key`, `environment`, `group_id`) VALUES ('banner_quang_cao', 'staging', 'nhom_chung');
 
 -- Dữ liệu: audit_logs
-INSERT INTO `audit_logs` VALUES ('log_001', 'admin', 'admin', 'PHÁT_HÀNH_PHIÊN_BẢN', 'Phiên bản v1.2.0', 'v1.1.0 (Lưu trữ)', 'v1.2.0 (Đang dùng)', 'Phát hành chính thức v1.2.0 trên Staging', '2026-10-26 14:15:00', 'v1.2.0');
-INSERT INTO `audit_logs` VALUES ('log_002', 'editor', 'editor', 'CẬP_NHẬT_TỶ_LỆ', 'thanh_toan_nhanh', 'Tỷ lệ: 10%', 'Tỷ lệ: 50%', 'Nâng tỷ lệ thử nghiệm sau phản hồi tích cực từ nhóm Beta', '2026-10-26 10:30:00', 'v1.2.0');
-INSERT INTO `audit_logs` VALUES ('log_003', 'admin', 'admin', 'BẬT_TẮT_CỜ', 'ma_giam_gia', 'Tắt (0%)', 'Bật (10%)', 'Kích hoạt thử nghiệm gợi ý voucher cho nhóm Beta', '2026-10-25 16:45:00', 'v1.1.0');
-INSERT INTO `audit_logs` VALUES ('log_005', 'admin', 'admin', 'CẬP_NHẬT_TỶ_LỆ', 'giao_dien_toi', 'Tỷ lệ: 0%', 'Tỷ lệ: 100% (Testing)', 'Mở toàn diện Giao diện tối trên môi trường Kiểm thử', '2026-10-24 16:45:00', 'v1.1.0');
-INSERT INTO `audit_logs` VALUES ('log_006', 'editor', 'editor', 'BẬT_TẮT_CỜ', 'danh_gia_san_pham', 'Tắt', 'Bật (10% Staging)', 'Bắt đầu thử nghiệm đánh giá sản phẩm có ảnh', '2026-10-23 15:30:00', 'v1.1.0');
-INSERT INTO `audit_logs` VALUES ('log_007', 'admin', 'admin', 'TẠO_CỜ_MỚI', 'tich_diem_thanh_vien', '-', 'tich_diem_thanh_vien (Bản nháp)', 'Tạo mới cờ chương trình tích điểm hội viên', '2026-10-15 14:30:00', 'v1.0.0');
-INSERT INTO `audit_logs` VALUES ('log_008', 'admin', 'admin', 'KHÔI_PHỤC_PHIÊN_BẢN', 'Cấu hình hệ thống', 'Bản nháp không ổn định', 'Khôi phục từ v1.0.0', 'Phát hiện lỗi logic, khôi phục về trạng thái ổn định', '2026-06-19 09:15:00', 'v1.1.0');
 
 -- Dữ liệu: versions
 INSERT INTO `versions` VALUES ('ver_001', 'v1.0.0', 'v1', 'Lưu trữ', 'staging', 'admin', '2026-01-15 10:00:00', 'Khởi tạo cấu hình ban đầu cho 10 cờ tính năng mẫu.', '{\"thanh_toan_nhanh\":{\"enabled\":false,\"rollout_percentage\":0},\"giao_dien_toi\":{\"enabled\":false,\"rollout_percentage\":0},\"danh_gia_san_pham\":{\"enabled\":false,\"rollout_percentage\":0},\"danh_sach_yeu_thich\":{\"enabled\":false,\"rollout_percentage\":0},\"ho_tro_truc_tuyen\":{\"enabled\":false,\"rollout_percentage\":0},\"ma_giam_gia\":{\"enabled\":false,\"rollout_percentage\":0},\"goi_y_san_pham\":{\"enabled\":false,\"rollout_percentage\":0},\"tim_kiem_nang_cao\":{\"enabled\":false,\"rollout_percentage\":0},\"theo_doi_don_hang\":{\"enabled\":false,\"rollout_percentage\":0},\"tich_diem_thanh_vien\":{\"enabled\":false,\"rollout_percentage\":0},\"banner_quang_cao\":{\"enabled\":true,\"rollout_percentage\":100}}');

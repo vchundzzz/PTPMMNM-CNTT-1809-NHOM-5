@@ -6,11 +6,12 @@
 declare(strict_types=1);
 
 $current_env = get_active_env();
+$available_environments = $_SESSION['ff_data']['environments'] ?? [];
 $breadcrumbs = $breadcrumbs ?? [
     ['label' => 'Trang chủ', 'url' => 'dashboard.php'],
     ['label' => $page_title ?? 'Tổng quan', 'url' => ''],
 ];
-$env_label = $current_env === 'testing' ? 'Kiểm thử' : 'Vận hành';
+$env_label = $available_environments[$current_env]['name'] ?? $current_env;
 ?>
 <header class="app-topbar">
   <!-- Trái: toggle + breadcrumb -->
@@ -37,13 +38,13 @@ $env_label = $current_env === 'testing' ? 'Kiểm thử' : 'Vận hành';
   <!-- Phải: môi trường + user menu -->
   <div class="topbar-right">
     <!-- Bộ chọn môi trường -->
-    <div class="env-selector-wrapper">
-      <a href="?switch_env=testing" class="env-tab-btn <?= $current_env==='testing' ? 'active env-testing' : '' ?>">
-        <span class="dot"></span><span>Kiểm thử</span>
-      </a>
-      <a href="?switch_env=staging" class="env-tab-btn <?= $current_env==='staging' ? 'active env-staging' : '' ?>">
-        <span class="dot"></span><span>Vận hành</span>
-      </a>
+    <div class="env-selector-wrapper" style="background:transparent;border:0;border-radius:0;padding:0;box-shadow:none;">
+      <select id="activeEnvironment" aria-label="Chọn môi trường" class="form-select" style="min-width:170px;height:34px;padding:.2rem 1.8rem .2rem .65rem;font-size:.78rem;border:1px solid var(--border-color) !important;border-radius:999px;box-shadow:none !important;outline:none;background:transparent;" onchange="location.href='?switch_env='+encodeURIComponent(this.value)">
+        <?php foreach ($available_environments as $environment_key => $environment): ?>
+          <?php if (($environment['status'] ?? 'active') !== 'active') continue; ?>
+          <option value="<?= e($environment_key) ?>" <?= $current_env === $environment_key ? 'selected' : '' ?>><?= e($environment['name'] ?? $environment_key) ?></option>
+        <?php endforeach; ?>
+      </select>
     </div>
 
     <!-- Menu tài khoản -->
@@ -60,7 +61,6 @@ $env_label = $current_env === 'testing' ? 'Kiểm thử' : 'Vận hành';
       <div class="user-dropdown-menu" id="userDropdownContent">
         <div class="dropdown-header">
           <div style="font-weight:600;font-size:.85rem;"><?= e($current_user['name'] ?? '') ?></div>
-          <div style="font-size:.72rem;color:var(--text-secondary);"><?= e($current_user['email'] ?? '') ?></div>
         </div>
 
         <div class="dropdown-divider"></div>

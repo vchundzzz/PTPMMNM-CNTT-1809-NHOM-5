@@ -1,7 +1,6 @@
 <?php
 /**
- * Web Feature Flag Management System
- * api/toggle.php - API Bật/Tắt nhanh cờ tính năng theo thời gian thực (AJAX)
+ * Feature flag mutation endpoint.
  */
 
 declare(strict_types=1);
@@ -10,101 +9,63 @@ header('Content-Type: application/json; charset=UTF-8');
 
 require_once __DIR__ . '/../includes/helpers.php';
 require_once __DIR__ . '/../services/PermissionService.php';
-require_once __DIR__ . '/../services/FeatureFlagService.php';
+require_once __DIR__ . '/../services/DatabaseService.php';
 
-init_session_data();
+function toggle_response(array $payload, int $status = 200): never
+{
+    http_response_code($status);
+    echo json_encode($payload, JSON_UNESCAPED_UNICODE);
+    exit;
+}
 
-// Kiểm tra quyền
+if (!is_logged_in()) {
+    toggle_response(['success' => false, 'error' => 'Yêu cầu đăng nhập.'], 401);
+}
 if (!PermissionService::currentUserCan('toggle_flag')) {
-    http_response_code(403);
-    echo json_encode([
-        'success' => false,
-        'error' => 'Bạn không có quyền bật/tắt cờ tính năng.',
-    ], JSON_UNESCAPED_UNICODE);
-    exit;
+    toggle_response(['success' => false, 'error' => 'Bạn không có quyền bật/tắt cờ tính năng.'], 403);
 }
 
-// Đọc dữ liệu từ JSON body hoặc POST
-$raw_input = file_get_contents('php://input');
-$request_data = [];
-if (!empty($raw_input)) {
-    $decoded = json_decode($raw_input, true);
-    if (is_array($decoded)) {
-        $request_data = $decoded;
+$rawInput = file_get_contents('php://input');
+$request = is_string($rawInput) && $rawInput !== '' ? json_decode($rawInput, true) : $_POST;
+if (!is_array($request)) {
+    toggle_response(['success' => false, 'error' => 'Dữ liệu yêu cầu không hợp lệ.'], 400);
+}
+
+$flagKey = trim((string)($request['flag_key'] ?? ''));
+$env = trim((string)($request['environment'] ?? $request['env'] ?? get_active_env()));
+if ($flagKey === '' || $env === '') {
+    toggle_response(['success' => false, 'error' => 'Cờ hoặc môi trường không hợp lệ.'], 422);
+}
+
+$enabled = null;
+if (array_key_exists('enabled', $request)) {
+    $value = filter_var($request['enabled'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+    if ($value === null) {
+        toggle_response(['success' => false, 'error' => 'enabled phải là boolean.'], 422);
     }
-}
-if (empty($request_data)) {
-    $request_data = $_POST;
+    $enabled = $value;
 }
 
-$flag_key = trim((string)($request_data['flag_key'] ?? ''));
-$env      = trim((string)($request_data['environment'] ?? $request_data['env'] ?? get_active_env()));
-$user_id  = trim((string)($request_data['user_id'] ?? ''));
-if (!in_array($env, ['testing', 'staging'], true)) {
-    $env = get_active_env();
+$actor = (string)(get_authenticated_user()['username'] ?? '');
+$result = DatabaseService::toggleFlag($flagKey, $env, $enabled, $actor);
+if (!$result['success']) {
+    toggle_response(['success' => false, 'error' => $result['error']], $result['status']);
 }
 
-if (empty($flag_key) || !isset($_SESSION['ff_data']['flags'][$flag_key])) {
-    http_response_code(400);
-    echo json_encode([
-        'success' => false,
-        'error' => "Không tìm thấy cờ tính năng [$flag_key].",
-    ], JSON_UNESCAPED_UNICODE);
-    exit;
-}
-
-// Xác định trạng thái mới
-$has_explicit_enabled = isset($request_data['enabled']);
-if ($has_explicit_enabled) {
-    $new_enabled = filter_var($request_data['enabled'], FILTER_VALIDATE_BOOLEAN);
-} else {
-    $cur = !empty($_SESSION['ff_data']['flags'][$flag_key]['environments'][$env]['enabled']);
-    $new_enabled = !$cur;
-}
-
-$user = get_authenticated_user()['username'] ?? 'admin';
-$cur_state = !empty($_SESSION['ff_data']['flags'][$flag_key]['environments'][$env]['enabled']);
-
-// Cập nhật cấu hình trong Session
-$_SESSION['ff_data']['flags'][$flag_key]['environments'][$env]['enabled']    = $new_enabled;
-$_SESSION['ff_data']['flags'][$flag_key]['environments'][$env]['status']     = $new_enabled ? 'Đã phát hành' : 'Bản nháp';
-$_SESSION['ff_data']['flags'][$flag_key]['environments'][$env]['updated_at'] = date('Y-m-d H:i:s');
-$_SESSION['ff_data']['flags'][$flag_key]['environments'][$env]['updated_by'] = $user;
-
-// Nếu bật cờ thì đồng bộ tỷ lệ rollout 100% và đầy đủ nhóm khách hàng để áp dụng ngay trên trang bán hàng
-if ($new_enabled) {
-    $_SESSION['ff_data']['flags'][$flag_key]['environments'][$env]['rollout_percentage'] = 100;
-    $_SESSION['ff_data']['flags'][$flag_key]['environments'][$env]['target_groups'] = ['nhom_noibu', 'nhom_beta', 'nhom_chung'];
-    if (!empty($_SESSION['ff_data']['flags'][$flag_key]['environments'][$env]['user_overrides'])) {
-        foreach ($_SESSION['ff_data']['flags'][$flag_key]['environments'][$env]['user_overrides'] as $ovUid => $ovState) {
-            if (!$ovState) {
-                unset($_SESSION['ff_data']['flags'][$flag_key]['environments'][$env]['user_overrides'][$ovUid]);
-            }
-        }
-    }
-}
-
-// Đồng bộ trực tiếp vào CSDL MySQL
-try {
-    require_once __DIR__ . '/../services/DatabaseService.php';
-    DatabaseService::toggleFlag($flag_key, $env, $new_enabled, $user);
-} catch (Throwable $e) {}
-
-// Ghi audit log
+init_session_data(true);
 append_audit_log(
     'BẬT_TẮT_CỜ',
-    $flag_key,
-    $cur_state ? 'Bật' : 'Tắt',
-    $new_enabled ? 'Bật' : 'Tắt',
-    "Thay đổi qua bảng điều khiển trên môi trường " . ($env === 'testing' ? 'Kiểm thử' : 'Vận hành')
+    $flagKey,
+    $result['old_enabled'] ? 'Bật' : 'Tắt',
+    $result['enabled'] ? 'Bật' : 'Tắt',
+    "Thay đổi qua API trên môi trường $env"
 );
 
-echo json_encode([
-    'success'     => true,
-    'flag_key'    => $flag_key,
+toggle_response([
+    'success' => true,
+    'flag_key' => $flagKey,
     'environment' => $env,
-    'enabled'     => $new_enabled,
-    'status'      => $new_enabled ? 'Đã phát hành' : 'Bản nháp',
-    'message'     => 'Đã ' . ($new_enabled ? 'BẬT' : 'TẮT') . " cờ [$flag_key] trên môi trường " . ($env === 'testing' ? 'Kiểm thử' : 'Vận hành') . '.',
-], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-exit;
+    'enabled' => $result['enabled'],
+    'status' => $result['enabled'] ? 'Đã phát hành' : 'Bản nháp',
+    'message' => 'Đã cập nhật trạng thái cờ thành công.',
+]);

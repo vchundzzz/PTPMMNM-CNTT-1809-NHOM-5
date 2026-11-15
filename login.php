@@ -138,10 +138,6 @@ $flash = get_flash();
 
     </div>
   </div>
-
-  <div style="text-align: center; margin-top: 1.5rem; font-size: 0.78rem; color: var(--text-muted);">
-    BTL Phát triển phần mềm mã nguồn mở &bull; Nhóm 5 &bull; Năm học 2025-2026
-  </div>
 </div>
 
 </body>

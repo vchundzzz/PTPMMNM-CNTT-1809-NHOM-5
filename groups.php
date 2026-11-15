@@ -48,7 +48,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         ];
 
         $_SESSION['ff_data']['groups'][$id] = $groupData;
-        DatabaseService::saveGroup($groupData);
+        if (!DatabaseService::saveGroup($groupData)) {
+            init_session_data(true);
+            set_flash('error', 'Không thể lưu nhóm vào CSDL MySQL.');
+            header('Location: groups.php');
+            exit;
+        }
         init_session_data(true);
 
         append_audit_log(
@@ -65,11 +70,17 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     }
 
     if ($action === 'delete_group') {
+        PermissionService::enforce('delete_group');
         $id = trim((string)($_POST['group_id'] ?? ''));
         if ($id !== '' && isset($_SESSION['ff_data']['groups'][$id])) {
             $oldName = $_SESSION['ff_data']['groups'][$id]['name'] ?? $id;
             unset($_SESSION['ff_data']['groups'][$id]);
-            DatabaseService::deleteGroup($id);
+            if (!DatabaseService::deleteGroup($id)) {
+                init_session_data(true);
+                set_flash('error', 'Không thể xóa nhóm khỏi CSDL MySQL.');
+                header('Location: groups.php');
+                exit;
+            }
             init_session_data(true);
 
             append_audit_log('XÓA_NHÓM', "$oldName ($id)", 'Tồn tại', 'Đã xóa', 'Xóa nhóm khách hàng khỏi CSDL MySQL');
@@ -83,7 +94,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $customer_id = trim((string)($_POST['customer_id'] ?? ''));
         $new_group   = trim((string)($_POST['group_id'] ?? ''));
         if ($customer_id !== '' && isset($_SESSION['ff_data']['groups'][$new_group])) {
-            DatabaseService::updateCustomerGroup($customer_id, $new_group);
+            if (!DatabaseService::updateCustomerGroup($customer_id, $new_group)) {
+                set_flash('error', 'Không thể cập nhật nhóm khách hàng trong CSDL MySQL.');
+                header('Location: groups.php');
+                exit;
+            }
             init_session_data(true);
             $grpName = $_SESSION['ff_data']['groups'][$new_group]['name'] ?? $new_group;
             append_audit_log('ĐỔI_NHÓM_KHÁCH_HÀNG', $customer_id, 'Nhóm cũ', $grpName, "Chuyển khách hàng $customer_id sang nhóm $grpName");
@@ -94,9 +109,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     }
 
     if ($action === 'delete_customer') {
+        PermissionService::enforce('delete_customer');
         $customer_id = trim((string)($_POST['customer_id'] ?? ''));
         if ($customer_id !== '') {
-            DatabaseService::deleteCustomer($customer_id);
+            if (!DatabaseService::deleteCustomer($customer_id)) {
+                set_flash('error', 'Không thể xóa khách hàng khỏi CSDL MySQL.');
+                header('Location: groups.php');
+                exit;
+            }
             init_session_data(true);
             append_audit_log('XÓA_KHÁCH_HÀNG', $customer_id, 'Tồn tại', 'Đã xóa', "Xóa tài khoản khách hàng $customer_id");
             set_flash('success', "Đã xóa mã khách hàng [$customer_id] và cập nhật lại số lượng nhóm.");
@@ -119,6 +139,8 @@ init_session_data(true);
 
 $groups = $_SESSION['ff_data']['groups'] ?? [];
 $can_manage_groups = PermissionService::currentUserCan('manage_groups');
+$can_delete_group = PermissionService::currentUserCan('delete_group');
+$can_delete_customer = PermissionService::currentUserCan('delete_customer');
 $all_users = DatabaseService::loadCustomers() ?? [];
 
 // Tính toán số lượng thực tế từng nhóm từ danh sách tài khoản đã đăng ký
@@ -205,16 +227,13 @@ $page_users = $users_pagination['items'];
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
               </svg>
             </button>
-            <?php if (!in_array($grp_id, ['nhom_noi_bo', 'nhom_noibu', 'nhom_beta', 'nhom_chung'], true)): ?>
+            <?php if ($can_delete_group && !in_array($grp_id, ['nhom_noi_bo', 'nhom_noibu', 'nhom_beta', 'nhom_chung'], true)): ?>
               <form method="POST" style="margin:0;" onsubmit="return confirm('Xóa nhóm khách hàng này khỏi hệ thống và CSDL MySQL?');">
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="delete_group">
                 <input type="hidden" name="group_id" value="<?= e((string)$grp_id) ?>">
                 <button type="submit" class="action-icon-btn action-delete" style="width:26px; height:26px;" title="Xóa nhóm">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-                  </svg>
+                  <svg viewBox="64 64 896 896" fill="currentColor"><path d="M864 256H736v-80c0-35.3-28.7-64-64-64H352c-35.3 0-64 28.7-64 64v80H160c-17.7 0-32 14.3-32 32v32c0 4.4 3.6 8 8 8h60.5l49.1 530.6C249.2 884.2 284.9 912 326.6 912h370.8c41.7 0 77.4-27.8 81-73.4L827.5 328H888c4.4 0 8-3.6 8-8v-32c0-17.7-14.3-32-32-32zM360 200h304v56H360v-56zm366.7 632.7c-1.2 15.2-13.1 23.3-26.7 23.3H324c-13.6 0-25.5-8.1-26.7-23.3L249.8 328h524.4l-47.5 504.7zM432 400c17.7 0 32 14.3 32 32v304c0 17.7-14.3 32-32 32s-32-14.3-32-32V432c0-17.7 14.3-32 32-32zm160 0c17.7 0 32 14.3 32 32v304c0 17.7-14.3 32-32 32s-32-14.3-32-32V432c0-17.7 14.3-32 32-32z"/></svg>
                 </button>
               </form>
             <?php endif; ?>
@@ -300,7 +319,7 @@ $page_users = $users_pagination['items'];
                 <strong style="color: var(--text-main);"><?= e($usr['username'] ?? $usr['name']) ?></strong>
               </td>
               <td>
-                <?php if ($can_manage_groups): ?>
+                <?php if ($can_delete_customer): ?>
                   <form method="POST" action="groups.php<?= $selected_group !== '' ? '?group=' . urlencode($selected_group) : '' ?>" style="display:inline-flex; align-items:center; gap:0.4rem; margin:0;">
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="change_customer_group">
@@ -322,19 +341,13 @@ $page_users = $users_pagination['items'];
               </td>
               <td style="text-align: right; white-space: nowrap;">
                 <div style="display:inline-flex; align-items:center; gap:0.4rem;">
-                  <a href="demo-app.php?user_id=<?= urlencode($usr['id']) ?>" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">
-                    Mở Web CDS STORE ↗
-                  </a>
                   <?php if ($can_manage_groups): ?>
                     <form method="POST" action="groups.php<?= $selected_group !== '' ? '?group=' . urlencode($selected_group) : '' ?>" style="margin:0;" onsubmit="return confirm('Xóa tài khoản khách hàng [<?= e($usr['id']) ?>]?');">
                       <?= csrf_field() ?>
                       <input type="hidden" name="action" value="delete_customer">
                       <input type="hidden" name="customer_id" value="<?= e($usr['id']) ?>">
                       <button type="submit" class="action-icon-btn danger action-delete" title="Xóa khách hàng">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <polyline points="3 6 5 6 21 6"></polyline>
-                          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-                        </svg>
+                        <svg viewBox="64 64 896 896" fill="currentColor"><path d="M864 256H736v-80c0-35.3-28.7-64-64-64H352c-35.3 0-64 28.7-64 64v80H160c-17.7 0-32 14.3-32 32v32c0 4.4 3.6 8 8 8h60.5l49.1 530.6C249.2 884.2 284.9 912 326.6 912h370.8c41.7 0 77.4-27.8 81-73.4L827.5 328H888c4.4 0 8-3.6 8-8v-32c0-17.7-14.3-32-32-32zM360 200h304v56H360v-56zm366.7 632.7c-1.2 15.2-13.1 23.3-26.7 23.3H324c-13.6 0-25.5-8.1-26.7-23.3L249.8 328h524.4l-47.5 504.7zM432 400c17.7 0 32 14.3 32 32v304c0 17.7-14.3 32-32 32s-32-14.3-32-32V432c0-17.7 14.3-32 32-32zm160 0c17.7 0 32 14.3 32 32v304c0 17.7-14.3 32-32 32s-32-14.3-32-32V432c0-17.7 14.3-32 32-32z"/></svg>
                       </button>
                     </form>
                   <?php endif; ?>
