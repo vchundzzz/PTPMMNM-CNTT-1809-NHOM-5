@@ -32,8 +32,8 @@ $user_id = trim((string)($request_data['user_id'] ?? 'KH1'));
 $env = trim((string)($request_data['environment_id'] ?? $request_data['environment'] ?? get_active_env()));
 $project_id = trim((string)($request_data['project_id'] ?? 'prj_ecommerce'));
 
-// Xử lý mô phỏng lỗi API nếu client gửi cờ simulate_error
-if (!empty($request_data['simulate_error'])) {
+// Xử lý mô phỏng lỗi API nếu client gửi cờ simulate_error hoặc môi trường đang bật chế độ Mô phỏng máy chủ lỗi
+if (!empty($request_data['simulate_error']) || FeatureFlagService::isErrorSimulated($env)) {
     http_response_code(500);
     echo json_encode([
         'success' => false,

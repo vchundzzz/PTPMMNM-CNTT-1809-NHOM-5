@@ -7,11 +7,11 @@
 
 ## 1. THÀNH VIÊN NHÓM VÀ BẢNG PHÂN CÔNG ĐÓNG GÓP
 
-| STT | Họ và tên | Vai trò | Phân công nhiệm vụ chính | Mức độ đóng góp |
-| :---: | :--- | :---: | :--- | :---: |
-| 1 | **Nguyễn Văn Đạt** | Trưởng nhóm | Thiết kế kiến trúc lõi (`FeatureFlagService`, `VersionService`), giải thuật băm nhất quán `crc32`, xây dựng Database Schema 11 bảng, viết bộ kiểm thử tự động `tests/test_mandatory.php`. | 100% |
-| 2 | **Vũ Hồng Sơn** | Thành viên | Xây dựng hệ thống phân quyền máy chủ RBAC (`PermissionService`), quản lý dự án (`projects.php`), quản lý thành viên & nhóm khách hàng (`members.php`, `groups.php`), giao diện Dark/Light mode. | 100% |
-| 3 | **Nguyễn Văn Chung** | Thành viên | Phát triển ứng dụng Web bán hàng mô phỏng CDS STORE ([demo-app.php](demo-app.php)), tích hợp 10 Feature Flags, cơ chế Fallback ngắt API, chức năng giỏ hàng và thanh toán. | 100% |
+| STT | Họ và tên | Phân công nhiệm vụ (Chia đều 1/3 khối lượng dự án) | Mức độ đóng góp |
+| :---: | :--- | :--- | :---: |
+| 1 | **Nguyễn Vân Đạt** | Cùng phân tích yêu cầu, thiết kế CSDL nhóm bảng Cờ & Phiên bản; lập trình lõi `FeatureFlagService` (giải thuật băm `crc32` & 10 quy tắc), `VersionService` (Snapshot, Diff, Rollback), trang `flags.php`, `flag-detail.php`, `versions.php`, `version-compare.php`, API `evaluate.php`, `toggle.php` và viết báo cáo. | 33.3% (Hoàn thành 100%) |
+| 2 | **Vũ Hồng Sơn** | Cùng phân tích yêu cầu, thiết kế CSDL nhóm bảng Quản trị & Kiểm toán; lập trình kết nối PDO `includes/db.php`, `DatabaseService`, phân quyền RBAC `PermissionService`, trang `dashboard.php`, `projects.php`, `environments.php`, `members.php`, `audit-logs.php`, `import-export.php`, API `auth.php`, `flags.php` và viết báo cáo. | 33.3% (Hoàn thành 100%) |
+| 3 | **Phạm Văn Chung** | Cùng phân tích yêu cầu, thiết kế CSDL nhóm bảng Khách hàng & Phân khúc (`database.sql`, `setup.php`); lập trình `CustomerAuthService`, trang `groups.php`, `store-auth.php`, ứng dụng bán hàng Apple CDS STORE ([demo-app.php](demo-app.php)) tích hợp 11 Feature Flags & Fallback, giao diện CSS/JS và bộ kiểm thử `tests/test_mandatory.php`. | 33.3% (Hoàn thành 100%) |
 
 ---
 

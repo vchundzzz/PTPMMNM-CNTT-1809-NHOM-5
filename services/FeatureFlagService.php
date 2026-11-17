@@ -16,6 +16,19 @@ class FeatureFlagService
     public const DEFAULT_FALLBACK = false;
 
     /**
+     * Kiểm tra chế độ mô phỏng máy chủ lỗi (Ngắt kết nối API) có đang được bật trên môi trường hay không
+     */
+    public static function isErrorSimulated(string $env = ''): bool
+    {
+        init_session_data();
+        $env = $env !== '' ? $env : (DatabaseService::getActiveEnv() ?? '');
+        if ($env !== '' && isset($_SESSION['ff_data']['environments'][$env]['simulate_error'])) {
+            return !empty($_SESSION['ff_data']['environments'][$env]['simulate_error']);
+        }
+        return DatabaseService::isApiErrorSimulated($env);
+    }
+
+    /**
      * Đánh giá trạng thái cờ tính năng cho một khách hàng cụ thể (theo mã KH hoặc username).
      */
     public static function evaluate(
@@ -35,6 +48,22 @@ class FeatureFlagService
         $ugroup = $customer['group_id'] ?? 'nhom_chung';
         $ugroup_name = $customer['group_name'] ?? ($groups_map[$ugroup]['name'] ?? $ugroup);
         $bucket = !empty($flag_key) ? self::calculateBucket($canonical_id, $flag_key) : null;
+
+        // Quy tắc 0: Mô phỏng máy chủ lỗi / Ngắt kết nối API -> trả về giá trị dự phòng an toàn (Fallback: false)
+        if (self::isErrorSimulated($env)) {
+            return self::result(
+                self::DEFAULT_FALLBACK,
+                $flag_key,
+                $env,
+                $bucket,
+                'Mô phỏng máy chủ lỗi (Ngắt API): Tự động áp dụng giá trị dự phòng an toàn (Fallback: false)',
+                false,
+                $canonical_id,
+                $username,
+                $ugroup,
+                $ugroup_name
+            );
+        }
 
         // Quy tắc 9: tham số thiếu / cờ không tồn tại
         if (empty($flag_key) || !isset($flags[$flag_key])) {

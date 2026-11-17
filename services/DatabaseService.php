@@ -27,6 +27,9 @@ class DatabaseService
         if (!isset($columns['sort_order'])) {
             $pdo->exec("ALTER TABLE environments ADD COLUMN sort_order INT NOT NULL DEFAULT 0 AFTER badge_color");
         }
+        if (!isset($columns['simulate_error'])) {
+            $pdo->exec("ALTER TABLE environments ADD COLUMN simulate_error TINYINT(1) NOT NULL DEFAULT 0 AFTER is_production");
+        }
         if (!isset($columns['status'])) {
             $pdo->exec("ALTER TABLE environments ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'active' AFTER sort_order");
         }
@@ -215,6 +218,7 @@ class DatabaseService
             $environments = [];
             foreach ($pdo->query("SELECT * FROM environments ORDER BY sort_order ASC, created_at ASC, id ASC") as $row) {
                 $row['is_production'] = (bool)$row['is_production'];
+                $row['simulate_error'] = !empty($row['simulate_error']);
                 $environments[$row['key']] = $row;
             }
 
@@ -400,6 +404,45 @@ class DatabaseService
             $stmt = $pdo->prepare("UPDATE environments SET is_production = CASE WHEN `key` = ? THEN 1 ELSE 0 END");
             $stmt->execute([$env]);
         } catch (Throwable $e) {}
+    }
+
+    /**
+     * Kiểm tra trạng thái mô phỏng máy chủ lỗi (Ngắt API) trên môi trường hiện tại
+     */
+    public static function isApiErrorSimulated(?string $env = null): bool
+    {
+        $pdo = Database::getConnection();
+        if (!$pdo) return false;
+
+        try {
+            self::ensureEnvironmentSchema($pdo);
+            $targetEnv = ($env !== null && $env !== '') ? $env : (self::getActiveEnv() ?? '');
+            if ($targetEnv === '') return false;
+            $stmt = $pdo->prepare("SELECT simulate_error FROM environments WHERE `key` = ? LIMIT 1");
+            $stmt->execute([$targetEnv]);
+            return (bool)$stmt->fetchColumn();
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Bật/Tắt trạng thái mô phỏng máy chủ lỗi (Ngắt API) và đồng bộ trực tiếp qua CSDL MySQL
+     */
+    public static function setApiErrorSimulated(bool $simulated, ?string $env = null): bool
+    {
+        $pdo = Database::getConnection();
+        if (!$pdo) return false;
+
+        try {
+            self::ensureEnvironmentSchema($pdo);
+            $targetEnv = ($env !== null && $env !== '') ? $env : (self::getActiveEnv() ?? '');
+            if ($targetEnv === '') return false;
+            $stmt = $pdo->prepare("UPDATE environments SET simulate_error = ?, updated_at = NOW() WHERE `key` = ?");
+            return $stmt->execute([$simulated ? 1 : 0, $targetEnv]);
+        } catch (Throwable $e) {
+            return false;
+        }
     }
 
     private static function environmentExists(PDO $pdo, string $key, bool $activeOnly = false): bool

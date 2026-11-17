@@ -73,23 +73,29 @@ $flag_keys = [
 ];
 
 // --------------------------------------------------------------------------
-// 2. ĐÁNH GIÁ ĐỒNG LOẠT 11 CỜ TÍNH NĂNG QUA FeatureFlagService
+// 2. ĐÁNH GIÁ ĐỒNG LOẠT 11 CỜ TÍNH NĂNG QUA FeatureFlagService & ĐỒNG BỘ MÔ PHỎNG LỖI API
 // --------------------------------------------------------------------------
+$is_api_error_simulated = FeatureFlagService::isErrorSimulated($current_env) || !empty($_GET['simulate_error']);
 $eval_results = [];
 $enabled_flags_map = [];
 foreach ($flag_keys as $f_key) {
     $eval_results[$f_key] = FeatureFlagService::evaluate($f_key, $current_user_id, $current_env);
+    if ($is_api_error_simulated) {
+        $eval_results[$f_key]['data']['enabled'] = FeatureFlagService::DEFAULT_FALLBACK;
+        $eval_results[$f_key]['data']['reason']  = 'Mô phỏng máy chủ lỗi (Ngắt API): Tự động áp dụng giá trị dự phòng an toàn (Fallback: false)';
+    }
     $enabled_flags_map[$f_key] = !empty($eval_results[$f_key]['data']['enabled']);
 }
 
-$flags_sync_hash = md5($current_env . ':' . $current_user_id . ':' . ($current_customer['group_id'] ?? '') . ':' . json_encode($enabled_flags_map));
+$flags_sync_hash = md5($current_env . ':' . $current_user_id . ':' . ($current_customer['group_id'] ?? '') . ':' . ($is_api_error_simulated ? 'SIM1' : 'SIM0') . ':' . json_encode($enabled_flags_map));
 if (!empty($_GET['ajax_sync_check'])) {
     header('Content-Type: application/json; charset=UTF-8');
     echo json_encode([
-        'success' => true,
-        'env'     => $current_env,
-        'hash'    => $flags_sync_hash,
-        'flags'   => $enabled_flags_map,
+        'success'        => true,
+        'env'            => $current_env,
+        'simulate_error' => $is_api_error_simulated,
+        'hash'           => $flags_sync_hash,
+        'flags'          => $enabled_flags_map,
     ], JSON_UNESCAPED_UNICODE);
     exit;
 }
@@ -2679,6 +2685,14 @@ $flash = get_flash();
       </div>
     </nav>
   </header>
+
+  <?php if ($is_api_error_simulated): ?>
+    <div style="background: linear-gradient(90deg, #7f1d1d 0%, #991b1b 50%, #7f1d1d 100%); border-bottom: 1px solid #ef4444; color: #ffffff; padding: 0.6rem 1.5rem; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0.75rem; font-size: 0.84rem; text-align: center;">
+      <span>
+        ⚠️ <strong>MÔ PHỎNG MÁY CHỦ LỖI (NGẮT KẾT NỐI API FEATURE FLAG):</strong> Toàn bộ 11 cờ tính năng đã tự động chuyển về giá trị dự phòng an toàn (<code>DEFAULT_FALLBACK = false</code>). Website CDS Store vẫn vận hành ổn định, không bị gián đoạn!
+      </span>
+    </div>
+  <?php endif; ?>
 
   <!-- CỜ 6: TỰ ĐỘNG GỢI Ý MÃ GIẢM GIÁ (ma_giam_gia) -->
   <?php if ($is_coupon): ?>

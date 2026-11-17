@@ -126,11 +126,22 @@ $tests[] = [
 ];
 
 // ==========================================================================
-// PHÉP THỬ 5: Ngắt API: Ứng dụng dùng giá trị dự phòng (Fallback)
+// PHÉP THỬ 5: Ngắt API / Mô phỏng máy chủ lỗi: Ứng dụng dùng giá trị dự phòng (Fallback)
 // ==========================================================================
 $fallback_state = FeatureFlagService::DEFAULT_FALLBACK;
 $invalid_flag = FeatureFlagService::evaluate('co_khong_ton_tai_xyz', 'KH1', 'testing');
-$t5_pass = ($fallback_state === false && $invalid_flag['data']['enabled'] === false && strpos($invalid_flag['data']['reason'], 'mặc định') !== false);
+
+// Bật mô phỏng máy chủ lỗi trên môi trường testing
+$_SESSION['ff_data']['environments']['testing']['simulate_error'] = true;
+$simulated_err_eval = FeatureFlagService::evaluate('banner_quang_cao', 'KH1', 'testing');
+$_SESSION['ff_data']['environments']['testing']['simulate_error'] = false;
+
+$t5_pass = (
+    $fallback_state === false
+    && $invalid_flag['data']['enabled'] === false
+    && $simulated_err_eval['data']['enabled'] === false
+    && strpos($simulated_err_eval['data']['reason'], 'Fallback: false') !== false
+);
 if ($t5_pass) $total_passed++;
 
 $tests[] = [

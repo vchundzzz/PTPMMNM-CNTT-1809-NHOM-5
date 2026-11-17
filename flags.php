@@ -180,6 +180,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         header('Location: flags.php'); exit;
     }
+
+    /* --- Bật / Tắt Mô phỏng máy chủ lỗi (Ngắt API -> Fallback: false) --- */
+    if ($action === 'toggle_simulate_error') {
+        PermissionService::enforce('toggle_flag');
+        require_once __DIR__ . '/services/DatabaseService.php';
+        $cur_sim = !empty($_SESSION['ff_data']['environments'][$env]['simulate_error']) || DatabaseService::isApiErrorSimulated($env);
+        $new_sim = !$cur_sim;
+        if (!DatabaseService::setApiErrorSimulated($new_sim, $env)) {
+            set_flash('error', 'Không thể cập nhật trạng thái mô phỏng lỗi máy chủ trong CSDL MySQL.');
+            header('Location: flags.php'); exit;
+        }
+        $_SESSION['ff_data']['environments'][$env]['simulate_error'] = $new_sim;
+        $environmentName = $_SESSION['ff_data']['environments'][$env]['name'] ?? $env;
+        append_audit_log(
+            'MÔ_PHỎNG_LỖI_API',
+            "Môi trường [$env]",
+            $cur_sim ? 'Đang mô phỏng lỗi' : 'Hoạt động bình thường',
+            $new_sim ? 'Đang mô phỏng lỗi (Fallback: false)' : 'Hoạt động bình thường',
+            "Chuyển đổi trạng thái mô phỏng máy chủ lỗi trên môi trường $environmentName"
+        );
+        if ($new_sim) {
+            set_flash('warning', "Đã BẬT chế độ Mô phỏng máy chủ lỗi trên [$environmentName]. Toàn bộ cờ tự động trả về giá trị dự phòng an toàn (Fallback: Tắt) và đồng bộ sang CDS Store!");
+        } else {
+            set_flash('success', "Đã TẮT chế độ Mô phỏng máy chủ lỗi trên [$environmentName]. Hệ thống và CDS Store đã khôi phục trạng thái cờ bình thường!");
+        }
+        header('Location: flags.php'); exit;
+    }
 }
 
 /* ============================================================
@@ -206,6 +233,8 @@ $flags       = array_filter($all_flags, static function (array $flag) use ($sele
 });
 $current_env = get_active_env();
 $env_label   = $_SESSION['ff_data']['environments'][$current_env]['name'] ?? $current_env;
+require_once __DIR__ . '/services/FeatureFlagService.php';
+$is_error_simulated = FeatureFlagService::isErrorSimulated($current_env);
 
 $can_create = PermissionService::currentUserCan('create_flag');
 $can_toggle = PermissionService::currentUserCan('toggle_flag');
@@ -288,7 +317,18 @@ $page_flags = $flags_pagination['items'];
       Quản lý bật/tắt và tỷ lệ triển khai trên môi trường <strong style="color:var(--primary)"><?= e($env_label) ?></strong>.
     </p>
 </div>
-  <div class="page-actions">
+  <div class="page-actions" style="display:flex;align-items:center;gap:.65rem;flex-wrap:wrap">
+    <?php if ($can_toggle): ?>
+      <form method="POST" action="flags.php" style="display:inline;margin:0">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="toggle_simulate_error">
+        <input type="hidden" name="project_id" value="<?= e($selected_project_id) ?>">
+        <button type="submit" class="btn <?= $is_error_simulated ? 'btn-danger' : 'btn-secondary' ?>" style="display:inline-flex;align-items:center;gap:.45rem;border:1px solid <?= $is_error_simulated ? '#ff4d4f' : '#cbd5e1' ?>;" title="Mô phỏng sự cố ngắt kết nối API để kiểm tra cơ chế Fallback an toàn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <?= $is_error_simulated ? 'Đang mô phỏng máy chủ lỗi: BẬT (Nhấn để khôi phục)' : 'Mô phỏng máy chủ lỗi: TẮT' ?>
+        </button>
+      </form>
+    <?php endif; ?>
     <?php if ($can_create): ?>
       <button class="btn btn-primary" onclick="openModal('createFlagModal')">
         <!-- plus icon -->
@@ -298,6 +338,18 @@ $page_flags = $flags_pagination['items'];
     <?php endif; ?>
   </div>
 </div>
+
+<?php if ($is_error_simulated): ?>
+<div class="alert alert-danger" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1rem;padding:.85rem 1.1rem;border:1px solid #fca5a5;border-radius:10px;background:#fef2f2;color:#991b1b;">
+  <div style="display:flex;align-items:center;gap:.75rem;">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.2" style="flex-shrink:0"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+    <div style="font-size:.84rem;line-height:1.45;">
+      <strong>CHẾ ĐỘ MÔ PHỎNG MÁY CHỦ LỖI (NGẮT API) ĐANG BẬT TRÊN MÔI TRƯỜNG [<?= e(strtoupper($env_label)) ?>]:</strong><br>
+      Toàn bộ yêu cầu đánh giá cờ từ <code>api/evaluate.php</code> và ứng dụng <strong>CDS Store (demo-app.php)</strong> đang tự động chuyển về giá trị dự phòng an toàn <strong>Fallback = FALSE (Tắt)</strong> để đảm bảo website bán hàng hoạt động ổn định, không bị gián đoạn.
+    </div>
+  </div>
+</div>
+<?php endif; ?>
 
 <?php if ($can_delete): ?>
 <div class="flag-bulk-toolbar" id="flagBulkToolbar" role="region" aria-live="polite" aria-label="Thao tác với các cờ đã chọn">
@@ -401,7 +453,11 @@ $page_flags = $flags_pagination['items'];
               <?php else: ?>
               <label class="switch"><input type="checkbox" <?= $on?'checked':'' ?> disabled><span class="slider"></span></label>
               <?php endif; ?>
-              <?= render_badge($st) ?>
+              <?php if ($is_error_simulated): ?>
+                <span class="badge badge-danger" title="Đang trả về false do bật Mô phỏng máy chủ lỗi">Fallback: Tắt</span>
+              <?php else: ?>
+                <?= render_badge($st) ?>
+              <?php endif; ?>
             </div>
           </td>
           <td>

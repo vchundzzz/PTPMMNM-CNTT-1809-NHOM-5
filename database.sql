@@ -33,6 +33,7 @@ CREATE TABLE `environments` (
     `description` TEXT NULL,
     `badge_color` VARCHAR(50) DEFAULT 'primary',
     `is_production` TINYINT(1) DEFAULT 0,
+    `simulate_error` TINYINT(1) NOT NULL DEFAULT 0,
     `sort_order` INT NOT NULL DEFAULT 0,
     `status` VARCHAR(20) NOT NULL DEFAULT 'active',
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
